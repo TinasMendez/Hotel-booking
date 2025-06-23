@@ -13,8 +13,9 @@ import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test unitario para ProductServiceImpl.
- * Usamos Mockito para simular el comportamiento de ProductRepository sin tocar la base de datos real.
+ * Unit test for ProductServiceImpl.
+ * Uses Mockito to simulate ProductRepository behavior without touching the real
+ * database.
  */
 public class ProductServiceImplTest {
 
@@ -26,29 +27,24 @@ public class ProductServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // Inicializa los mocks antes de cada test
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void testCrearProducto_exitoso() {
-        // Arrange
-        Product producto = new Product();
-        producto.setNombre("Hotel Nuevo");
-        producto.setDescripcion("Un hotel de prueba");
-        producto.setImagenUrl("https://url.com/hotel.jpg");
+    public void testCreateProduct_success() {
+        Product product = new Product();
+        product.setNombre("Test Hotel");
+        product.setDescripcion("A test hotel");
+        product.setImagenUrl("https://url.com/hotel.jpg");
 
-        // El repositorio no debería encontrar otro producto con el mismo nombre
-        when(productRepository.existsByNombre("Hotel Nuevo")).thenReturn(false);
-        when(productRepository.save(any(Product.class))).thenReturn(producto);
+        when(productRepository.existsByNombre("Test Hotel")).thenReturn(false);
+        when(productRepository.save(any(Product.class))).thenReturn(product);
 
-        // Act
-        Product creado = productService.crearProducto(producto);
+        Product created = productService.createProduct(product);
 
-        // Assert
-        assertNotNull(creado);
-        assertEquals("Hotel Nuevo", creado.getNombre());
+        assertNotNull(created);
+        assertEquals("Test Hotel", created.getNombre());
 
-        verify(productRepository).save(producto); // Verifica que se haya llamado a .save()
+        verify(productRepository).save(product);
     }
 }

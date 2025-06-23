@@ -7,14 +7,10 @@ import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Implementation of ProductService containing business logic for products.
- */
 @Service
 public class ProductServiceImpl implements ProductService {
 
@@ -25,34 +21,34 @@ public class ProductServiceImpl implements ProductService {
     private FeatureRepository featureRepository;
 
     @Override
-    public Product crearProducto(Product product) {
-        // Validation: prevent duplicate product names
+    public Product createProduct(Product product) {
         if (productRepository.existsByNombre(product.getNombre())) {
-            throw new RuntimeException("Product with this name already exists.");
+            throw new RuntimeException("A product with this name already exists.");
         }
         return productRepository.save(product);
     }
 
     @Override
-    public List<Product> listarProductos() {
+    public List<Product> listProducts() {
         return productRepository.findAll();
     }
 
     @Override
-    public void eliminarProducto(Long id) {
+    public void deleteProduct(Long id) {
         productRepository.deleteById(id);
     }
 
     @Override
-    public Product actualizarProducto(Long id, Product productoActualizado) {
-        Product productoExistente = productRepository.findById(id)
+    public Product updateProduct(Long id, Product updatedProduct) {
+        Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
 
-        productoExistente.setNombre(productoActualizado.getNombre());
-        productoExistente.setDescripcion(productoActualizado.getDescripcion());
-        productoExistente.setImagenUrl(productoActualizado.getImagenUrl());
+        existing.setNombre(updatedProduct.getNombre());
+        existing.setDescripcion(updatedProduct.getDescripcion());
+        existing.setImagenUrl(updatedProduct.getImagenUrl());
+        existing.setFeatures(updatedProduct.getFeatures());
 
-        return productRepository.save(productoExistente);
+        return productRepository.save(existing);
     }
 
     @Override
@@ -71,3 +67,4 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(product);
     }
 }
+

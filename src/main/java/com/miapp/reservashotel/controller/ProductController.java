@@ -7,38 +7,52 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 /**
- * Controlador REST para manejar peticiones relacionadas con productos.
+ * REST controller to manage product endpoints.
  */
 @RestController
-@RequestMapping("/api/productos")
-@CrossOrigin(origins = "*") // permite peticiones desde el frontend
+@RequestMapping("/api/products")
+@CrossOrigin(origins = "*") // Allows requests from frontend
 public class ProductController {
 
     @Autowired
     private ProductService productService;
 
+    // Create a new product
     @PostMapping
-    public ResponseEntity<Product> crearProducto(@RequestBody Product product) {
-        return ResponseEntity.ok(productService.crearProducto(product));
+    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
+        return ResponseEntity.ok(productService.createProduct(product));
     }
 
+    // List all products
     @GetMapping
-    public ResponseEntity<List<Product>> listarProductos() {
-        return ResponseEntity.ok(productService.listarProductos());
+    public ResponseEntity<List<Product>> listProducts() {
+        return ResponseEntity.ok(productService.listProducts());
     }
 
+    // Delete a product by ID
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable Long id) {
-        productService.eliminarProducto(id);
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
 
+    // Update a product by ID
     @PutMapping("/{id}")
-public ResponseEntity<Product> actualizarProducto(@PathVariable Long id, @RequestBody Product producto) {
-    return ResponseEntity.ok(productService.actualizarProducto(id, producto));
-}
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
+        return ResponseEntity.ok(productService.updateProduct(id, product));
+    }
 
+    // Assign features to a product by product ID
+    @PutMapping("/{productId}/features")
+    public ResponseEntity<String> assignFeaturesToProduct(
+            @PathVariable Long productId,
+            @RequestBody Set<Long> featureIds) {
+
+        productService.assignFeaturesToProduct(productId, featureIds);
+        return ResponseEntity.ok("Features assigned successfully to product.");
+    }
 }
 

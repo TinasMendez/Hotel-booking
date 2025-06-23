@@ -18,26 +18,25 @@ public class ProductServiceTest {
     private ProductService productService;
 
     @Test
-public void testCrearProducto() {
-    // Generate a unique name to avoid conflicts with duplicate names
-    String uniqueName = "Hotel_Test_" + UUID.randomUUID();
+    public void testCreateProduct() {
+        String uniqueName = "Hotel_Test_" + UUID.randomUUID();
 
-    Product product = new Product();
-    product.setNombre(uniqueName);
-    product.setDescripcion("Test hotel description");
-    product.setImagenUrl("https://url-test.com/hotel.jpg");
+        Product product = new Product();
+        product.setNombre(uniqueName);
+        product.setDescripcion("Test hotel description");
+        product.setImagenUrl("https://url-test.com/hotel.jpg");
 
-    Product created = productService.crearProducto(product);
+        Product created = productService.createProduct(product);
 
-    assertNotNull(created.getId());
-    assertEquals(uniqueName, created.getNombre());
-}
-
+        assertNotNull(created.getId());
+        assertEquals(uniqueName, created.getNombre());
+    }
 
     @Test
-    public void testListarProductos() {
-        List<Product> productos = productService.listarProductos();
-        assertNotNull(productos);
-        assertTrue(productos.size() >= 0); // Al menos que no falle por null
+    public void testListProducts() {
+        List<Product> products = productService.listProducts();
+        assertNotNull(products);
+        assertTrue(products.size() >= 0);
     }
 }
+
