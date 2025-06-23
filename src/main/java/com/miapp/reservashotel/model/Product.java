@@ -1,20 +1,17 @@
 package com.miapp.reservashotel.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Data;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * Represents a product entity available for booking.
+ * Represents a hotel product available for booking.
  */
+@Data
 @Entity
 @Table(name = "products")
-@Getter
-@Setter
-@NoArgsConstructor
 public class Product {
 
     @Id
@@ -27,16 +24,15 @@ public class Product {
     // Description of the product
     private String descripcion;
 
-    // URL to the product image
+    // Image URL of the product
     private String imagenUrl;
 
-    // List of features associated with this product
+    // List of features associated with this product (e.g. WiFi, Pool, etc.)
     @ManyToMany
     @JoinTable(
         name = "product_features", // Name of the join table
-        joinColumns = @JoinColumn(name = "product_id"), // Foreign key to the product
-        inverseJoinColumns = @JoinColumn(name = "feature_id") // Foreign key to the feature
+        joinColumns = @JoinColumn(name = "product_id"), // Foreign key to Product
+        inverseJoinColumns = @JoinColumn(name = "feature_id") // Foreign key to Feature
     )
-    private List<Feature> features;
+    private Set<Feature> features = new HashSet<>();
 }
-
