@@ -4,6 +4,7 @@ import com.miapp.reservashotel.model.City;
 import com.miapp.reservashotel.service.CityService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,7 @@ public class CityController {
 
     @PostMapping
     public ResponseEntity<City> saveCity(@Valid @RequestBody City city) {
-        return ResponseEntity.ok(cityService.saveCity(city));
+        return new ResponseEntity<>(cityService.saveCity(city), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
@@ -42,3 +43,4 @@ public class CityController {
         return ResponseEntity.noContent().build();
     }
 }
+
