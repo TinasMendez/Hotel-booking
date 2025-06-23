@@ -22,21 +22,21 @@ public class ProductServiceTest {
         String uniqueName = "Hotel_Test_" + UUID.randomUUID();
 
         Product product = new Product();
-        product.setNombre(uniqueName);
-        product.setDescripcion("Test hotel description");
-        product.setImagenUrl("https://url-test.com/hotel.jpg");
+        product.setName(uniqueName);
+        product.setDescription("Test hotel description");
+        product.setImageUrl("https://url-test.com/hotel.jpg");
 
         Product created = productService.createProduct(product);
 
         assertNotNull(created.getId());
-        assertEquals(uniqueName, created.getNombre());
+        assertEquals(uniqueName, created.getName());
     }
 
     @Test
     public void testListProducts() {
         List<Product> products = productService.listProducts();
         assertNotNull(products);
-        assertTrue(products.size() >= 0);
+        assertTrue(products.size() >= 0); // Make sure it doesn't return null
     }
 }
 

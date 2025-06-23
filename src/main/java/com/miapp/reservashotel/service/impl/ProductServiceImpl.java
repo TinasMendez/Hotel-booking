@@ -7,10 +7,14 @@ import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Service implementation for handling business logic related to products.
+ */
 @Service
 public class ProductServiceImpl implements ProductService {
 
@@ -22,8 +26,8 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product createProduct(Product product) {
-        if (productRepository.existsByNombre(product.getNombre())) {
-            throw new RuntimeException("A product with this name already exists.");
+        if (productRepository.existsByName(product.getName())) {
+            throw new RuntimeException("A product with that name already exists.");
         }
         return productRepository.save(product);
     }
@@ -40,15 +44,17 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product updateProduct(Long id, Product updatedProduct) {
-        Product existing = productRepository.findById(id)
+        Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
 
-        existing.setNombre(updatedProduct.getNombre());
-        existing.setDescripcion(updatedProduct.getDescripcion());
-        existing.setImagenUrl(updatedProduct.getImagenUrl());
-        existing.setFeatures(updatedProduct.getFeatures());
+        existingProduct.setName(updatedProduct.getName());
+        existingProduct.setDescription(updatedProduct.getDescription());
+        existingProduct.setImageUrl(updatedProduct.getImageUrl());
+        existingProduct.setPrice(updatedProduct.getPrice());
+        existingProduct.setAvailable(updatedProduct.isAvailable());
+        existingProduct.setCategory(updatedProduct.getCategory());
 
-        return productRepository.save(existing);
+        return productRepository.save(existingProduct);
     }
 
     @Override
@@ -67,4 +73,5 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(product);
     }
 }
+
 
