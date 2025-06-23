@@ -5,11 +5,14 @@ import com.miapp.reservashotel.model.City;
 import java.util.List;
 
 public interface CityService {
-    City createCity(City city);
+
+    City saveCity(City city);
+
+    City getCityById(Long id);
 
     List<City> listCities();
 
-    City getCityById(Long id);
+    City updateCity(Long id, City city);
 
     void deleteCity(Long id);
 }
