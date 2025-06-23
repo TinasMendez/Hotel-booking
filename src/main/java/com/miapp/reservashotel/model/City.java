@@ -1,8 +1,8 @@
 package com.miapp.reservashotel.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,11 +23,11 @@ public class City {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Name is required")
-    @Size(max = 100, message = "Name must be less than 100 characters")
+    @NotBlank(message = "City name is required")
+    @Size(max = 100, message = "City name must be less than 100 characters")
     private String name;
 
-    // Bidirectional mapping
     @OneToMany(mappedBy = "city")
+    @JsonIgnoreProperties("city")
     private Set<Product> products;
 }

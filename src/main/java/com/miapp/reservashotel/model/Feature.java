@@ -1,5 +1,6 @@
 package com.miapp.reservashotel.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -8,14 +9,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Represents a feature that a product can have (e.g., WiFi, Pool, Breakfast).
- */
+import java.util.Set;
+
 @Entity
 @Table(name = "features")
 @Getter
 @Setter
 @NoArgsConstructor
+@JsonIgnoreProperties("products") // Prevents circular references during JSON serialization
 public class Feature {
 
     @Id
@@ -31,4 +32,7 @@ public class Feature {
     @NotBlank(message = "Icon is required")
     @Pattern(regexp = "^(http|https)://.*$", message = "Icon must be a valid URL")
     private String icon;
+
+    @ManyToMany(mappedBy = "features")
+    private Set<Product> products;
 }

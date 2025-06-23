@@ -1,52 +1,46 @@
 package com.miapp.reservashotel.controller;
 
 import com.miapp.reservashotel.model.Category;
-import com.miapp.reservashotel.service.CategoryService;
-import jakarta.validation.Valid;
+import com.miapp.reservashotel.repository.CategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 import java.util.List;
 
-/**
- * REST Controller to manage category endpoints.
- */
 @RestController
 @RequestMapping("/api/categories")
-@CrossOrigin(origins = "*")
 public class CategoryController {
 
     @Autowired
-    private CategoryService categoryService;
-
-    @PostMapping
-    public ResponseEntity<Category> createCategory(@Valid @RequestBody Category category) {
-        Category created = categoryService.createCategory(category);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
+    private CategoryRepository categoryRepository;
 
     @GetMapping
-    public ResponseEntity<List<Category>> listCategories() {
-        return ResponseEntity.ok(categoryService.listCategories());
+    public List<Category> listAll() {
+        return categoryRepository.findAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Category> getCategoryById(@PathVariable Long id) {
-        return ResponseEntity.ok(categoryService.getCategoryById(id));
+    public ResponseEntity<Category> getById(@PathVariable Long id) {
+        return categoryRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Category> updateCategory(@PathVariable Long id,
-            @Valid @RequestBody Category updatedCategory) {
-        Category category = categoryService.updateCategory(id, updatedCategory);
-        return ResponseEntity.ok(category);
-    }
+    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @RequestBody Category updatedCategory) {
+        Optional<Category> optionalCategory = categoryRepository.findById(id);
+        if (optionalCategory.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
-        categoryService.deleteCategory(id);
-        return ResponseEntity.noContent().build();
+        Category category = optionalCategory.get();
+        category.setName(updatedCategory.getName());
+        category.setDescription(updatedCategory.getDescription());
+        category.setImageUrl(updatedCategory.getImageUrl());
+
+        Category saved = categoryRepository.save(category);
+        return ResponseEntity.ok(saved);
     }
 }

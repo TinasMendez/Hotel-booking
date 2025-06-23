@@ -1,13 +1,12 @@
 package com.miapp.reservashotel.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.util.Set;
 
@@ -45,14 +44,19 @@ public class Product {
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     @NotNull(message = "Category is required")
+    @JsonIgnoreProperties("products")
     private Category category;
 
     @ManyToOne
     @JoinColumn(name = "city_id", nullable = false)
     @NotNull(message = "City is required")
+    @JsonIgnoreProperties("products")
     private City city;
 
     @ManyToMany
-    @JoinTable(name = "product_features", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "feature_id"))
+    @JoinTable(name = "product_features",
+        joinColumns = @JoinColumn(name = "product_id"),
+        inverseJoinColumns = @JoinColumn(name = "feature_id"))
+    @JsonIgnoreProperties("products")
     private Set<Feature> features;
 }

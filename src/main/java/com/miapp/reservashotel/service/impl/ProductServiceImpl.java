@@ -1,7 +1,11 @@
 package com.miapp.reservashotel.service.impl;
 
+import com.miapp.reservashotel.model.Category;
+import com.miapp.reservashotel.model.City;
 import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.model.Product;
+import com.miapp.reservashotel.repository.CategoryRepository;
+import com.miapp.reservashotel.repository.CityRepository;
 import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.service.ProductService;
@@ -24,11 +28,29 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private FeatureRepository featureRepository;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private CityRepository cityRepository;
+
     @Override
     public Product createProduct(Product product) {
         if (productRepository.existsByName(product.getName())) {
             throw new RuntimeException("Product with this name already exists.");
         }
+
+        // Load full Category and City entities by ID
+        Category category = categoryRepository.findById(product.getCategory().getId())
+                .orElseThrow(
+                        () -> new RuntimeException("Category not found with ID: " + product.getCategory().getId()));
+
+        City city = cityRepository.findById(product.getCity().getId())
+                .orElseThrow(() -> new RuntimeException("City not found with ID: " + product.getCity().getId()));
+
+        product.setCategory(category);
+        product.setCity(city);
+
         return productRepository.save(product);
     }
 
@@ -52,8 +74,16 @@ public class ProductServiceImpl implements ProductService {
         existing.setImageUrl(updatedProduct.getImageUrl());
         existing.setPrice(updatedProduct.getPrice());
         existing.setAvailable(updatedProduct.isAvailable());
-        existing.setCategory(updatedProduct.getCategory());
-        existing.setCity(updatedProduct.getCity()); // only if your model has it
+
+        Category category = categoryRepository.findById(updatedProduct.getCategory().getId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Category not found with ID: " + updatedProduct.getCategory().getId()));
+
+        City city = cityRepository.findById(updatedProduct.getCity().getId())
+                .orElseThrow(() -> new RuntimeException("City not found with ID: " + updatedProduct.getCity().getId()));
+
+        existing.setCategory(category);
+        existing.setCity(city);
         existing.setFeatures(updatedProduct.getFeatures());
 
         return productRepository.save(existing);
@@ -81,7 +111,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<Product> findProductsByCity(String city) {
-        return productRepository.findByCity_NameIgnoreCase(city);
+    public List<Product> findProductsByCity(String cityName) {
+        return productRepository.findByCity_NameIgnoreCase(cityName);
     }
 }

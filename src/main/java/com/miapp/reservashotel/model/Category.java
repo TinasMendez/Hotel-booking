@@ -1,16 +1,16 @@
 package com.miapp.reservashotel.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import java.util.Set;
 
 /**
- * Represents a product category (e.g. Luxury, Budget, Boutique).
+ * Represents a product category (e.g., Luxury, Budget).
  */
 @Entity
 @Table(name = "categories")
@@ -36,7 +36,6 @@ public class Category {
     private String imageUrl;
 
     @OneToMany(mappedBy = "category")
+    @JsonIgnoreProperties("category")
     private Set<Product> products;
 }
-
-
