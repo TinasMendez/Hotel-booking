@@ -1,25 +1,29 @@
 package com.miapp.reservashotel.service.impl;
 
+import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.repository.CategoryRepository;
 import com.miapp.reservashotel.service.CategoryService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Implements the business logic for categories.
- */
 @Service
+@RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository;
 
     @Override
-    public Category createCategory(Category category) {
+    public Category saveCategory(Category category) {
         return categoryRepository.save(category);
+    }
+
+    @Override
+    public Category getCategoryById(Long id) {
+        return categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
     }
 
     @Override
@@ -29,23 +33,16 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Category updateCategory(Long id, Category updatedCategory) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
-
+        Category category = getCategoryById(id);
         category.setName(updatedCategory.getName());
         category.setDescription(updatedCategory.getDescription());
-
+        category.setImageUrl(updatedCategory.getImageUrl());
         return categoryRepository.save(category);
     }
 
     @Override
     public void deleteCategory(Long id) {
-        categoryRepository.deleteById(id);
-    }
-
-    @Override
-    public Category getCategoryById(Long id) {
-        return categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
+        Category category = getCategoryById(id);
+        categoryRepository.delete(category);
     }
 }

@@ -9,6 +9,7 @@ public interface ProductService {
     Product createProduct(Product product);
     List<Product> listProducts();
     void deleteProduct(Long id);
+    Product getProductById(Long id);
     Product updateProduct(Long id, Product product);
     void assignFeaturesToProduct(Long productId, Set<Long> featureIds);
 
