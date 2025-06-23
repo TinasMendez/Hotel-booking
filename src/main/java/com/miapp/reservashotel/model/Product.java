@@ -8,7 +8,6 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.math.BigDecimal;
 import java.util.Set;
 
@@ -48,11 +47,12 @@ public class Product {
     @NotNull(message = "Category is required")
     private Category category;
 
+    @ManyToOne
+    @JoinColumn(name = "city_id", nullable = false)
+    @NotNull(message = "City is required")
+    private City city;
+
     @ManyToMany
-    @JoinTable(
-        name = "product_features",
-        joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "feature_id")
-    )
+    @JoinTable(name = "product_features", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "feature_id"))
     private Set<Feature> features;
 }

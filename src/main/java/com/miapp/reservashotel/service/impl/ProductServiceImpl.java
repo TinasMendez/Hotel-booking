@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Service implementation for handling business logic related to products.
+ * Implements the business logic for managing products.
  */
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -27,7 +27,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product createProduct(Product product) {
         if (productRepository.existsByName(product.getName())) {
-            throw new RuntimeException("A product with that name already exists.");
+            throw new RuntimeException("Product with this name already exists.");
         }
         return productRepository.save(product);
     }
@@ -44,17 +44,19 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product updateProduct(Long id, Product updatedProduct) {
-        Product existingProduct = productRepository.findById(id)
+        Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
 
-        existingProduct.setName(updatedProduct.getName());
-        existingProduct.setDescription(updatedProduct.getDescription());
-        existingProduct.setImageUrl(updatedProduct.getImageUrl());
-        existingProduct.setPrice(updatedProduct.getPrice());
-        existingProduct.setAvailable(updatedProduct.isAvailable());
-        existingProduct.setCategory(updatedProduct.getCategory());
+        existing.setName(updatedProduct.getName());
+        existing.setDescription(updatedProduct.getDescription());
+        existing.setImageUrl(updatedProduct.getImageUrl());
+        existing.setPrice(updatedProduct.getPrice());
+        existing.setAvailable(updatedProduct.isAvailable());
+        existing.setCategory(updatedProduct.getCategory());
+        existing.setCity(updatedProduct.getCity()); // only if your model has it
+        existing.setFeatures(updatedProduct.getFeatures());
 
-        return productRepository.save(existingProduct);
+        return productRepository.save(existing);
     }
 
     @Override
@@ -72,6 +74,14 @@ public class ProductServiceImpl implements ProductService {
         product.setFeatures(features);
         productRepository.save(product);
     }
+
+    @Override
+    public List<Product> getProductsByCategoryId(Long categoryId) {
+        return productRepository.findByCategoryId(categoryId);
+    }
+
+    @Override
+    public List<Product> findProductsByCity(String city) {
+        return productRepository.findByCity_NameIgnoreCase(city);
+    }
 }
-
-

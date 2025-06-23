@@ -54,5 +54,18 @@ public class ProductController {
         productService.assignFeaturesToProduct(productId, featureIds);
         return ResponseEntity.ok("Features assigned successfully to product.");
     }
-}
 
+    // Get products by category ID
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable Long categoryId) {
+        List<Product> products = productService.getProductsByCategoryId(categoryId);
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/city/{city}")
+    public ResponseEntity<List<Product>> getProductsByCity(@PathVariable String city) {
+        return ResponseEntity.ok(productService.findProductsByCity(city));
+    }
+
+
+}
