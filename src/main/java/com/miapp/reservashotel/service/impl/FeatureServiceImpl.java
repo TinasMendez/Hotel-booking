@@ -3,14 +3,13 @@ package com.miapp.reservashotel.service.impl;
 import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.service.FeatureService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
-/**
- * Implements business logic for managing features.
- */
 @Service
 public class FeatureServiceImpl implements FeatureService {
 
@@ -18,7 +17,7 @@ public class FeatureServiceImpl implements FeatureService {
     private FeatureRepository featureRepository;
 
     @Override
-    public Feature createFeature(Feature feature) {
+    public Feature saveFeature(Feature feature) {
         return featureRepository.save(feature);
     }
 
@@ -28,14 +27,14 @@ public class FeatureServiceImpl implements FeatureService {
     }
 
     @Override
-    public Feature getFeatureById(Long id) {
-        return featureRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Feature not found with id: " + id));
+    public Optional<Feature> getFeatureById(Long id) {
+        return featureRepository.findById(id);
     }
 
     @Override
     public Feature updateFeature(Long id, Feature feature) {
-        Feature existing = getFeatureById(id);
+        Feature existing = featureRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Feature not found with id " + id));
         existing.setName(feature.getName());
         existing.setIcon(feature.getIcon());
         return featureRepository.save(existing);
@@ -46,3 +45,4 @@ public class FeatureServiceImpl implements FeatureService {
         featureRepository.deleteById(id);
     }
 }
+
