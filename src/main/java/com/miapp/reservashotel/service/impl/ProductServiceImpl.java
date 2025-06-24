@@ -1,5 +1,6 @@
 package com.miapp.reservashotel.service.impl;
 
+import com.miapp.reservashotel.dto.ProductRequestDTO;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.model.City;
@@ -17,9 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Implements the business logic for managing products.
- */
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
@@ -29,38 +27,44 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final CityRepository cityRepository;
 
+    // ✅ Método faltante agregado para corregir el error en los tests
     @Override
     public Product createProduct(Product product) {
-        if (productRepository.existsByName(product.getName())) {
-            throw new ResourceNotFoundException("Product with this name already exists.");
-        }
-
-        // Validate and assign Category
-        Long categoryId = product.getCategory().getId();
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
-        product.setCategory(category);
-
-        // Validate and assign City
-        Long cityId = product.getCity().getId();
-        City city = cityRepository.findById(cityId)
-                .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + cityId));
-        product.setCity(city);
-
         return productRepository.save(product);
     }
 
     @Override
-    public List<Product> listProducts() {
-        return productRepository.findAll();
-    }
-
-    @Override
-    public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product not found with id: " + id);
+    public Product createProductFromDTO(ProductRequestDTO dto) {
+        if (productRepository.existsByName(dto.getName())) {
+            throw new ResourceNotFoundException("Product with this name already exists.");
         }
-        productRepository.deleteById(id);
+
+        Category category = categoryRepository.findById(dto.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + dto.getCategoryId()));
+
+        City city = cityRepository.findById(dto.getCityId())
+                .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + dto.getCityId()));
+
+        Set<Feature> features = new HashSet<>();
+        if (dto.getFeatureIds() != null) {
+            for (Long featureId : dto.getFeatureIds()) {
+                Feature feature = featureRepository.findById(featureId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Feature not found with ID: " + featureId));
+                features.add(feature);
+            }
+        }
+
+        Product product = new Product();
+        product.setName(dto.getName());
+        product.setDescription(dto.getDescription());
+        product.setImageUrl(dto.getImageUrl());
+        product.setPrice(dto.getPrice());
+        product.setAvailable(dto.isAvailable());
+        product.setCategory(category);
+        product.setCity(city);
+        product.setFeatures(features);
+
+        return productRepository.save(product);
     }
 
     @Override
@@ -73,31 +77,30 @@ public class ProductServiceImpl implements ProductService {
         existing.setImageUrl(updatedProduct.getImageUrl());
         existing.setPrice(updatedProduct.getPrice());
         existing.setAvailable(updatedProduct.isAvailable());
-
-        // Validate and update Category
-        Long categoryId = updatedProduct.getCategory().getId();
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
-        existing.setCategory(category);
-
-        // Validate and update City
-        Long cityId = updatedProduct.getCity().getId();
-        City city = cityRepository.findById(cityId)
-                .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + cityId));
-        existing.setCity(city);
-
-        // Optional: Validate features if present
-        if (updatedProduct.getFeatures() != null) {
-            Set<Feature> validatedFeatures = new HashSet<>();
-            for (Feature feature : updatedProduct.getFeatures()) {
-                Feature validatedFeature = featureRepository.findById(feature.getId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Feature not found with ID: " + feature.getId()));
-                validatedFeatures.add(validatedFeature);
-            }
-            existing.setFeatures(validatedFeatures);
-        }
+        existing.setCategory(updatedProduct.getCategory());
+        existing.setCity(updatedProduct.getCity());
+        existing.setFeatures(updatedProduct.getFeatures());
 
         return productRepository.save(existing);
+    }
+
+    @Override
+    public void deleteProduct(Long id) {
+        if (!productRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Product not found with id: " + id);
+        }
+        productRepository.deleteById(id);
+    }
+
+    @Override
+    public Product getProductById(Long id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+    }
+
+    @Override
+    public List<Product> listProducts() {
+        return productRepository.findAll();
     }
 
     @Override
@@ -124,11 +127,5 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<Product> findProductsByCity(String cityName) {
         return productRepository.findByCity_NameIgnoreCase(cityName);
-    }
-
-    @Override
-    public Product getProductById(Long id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
     }
 }

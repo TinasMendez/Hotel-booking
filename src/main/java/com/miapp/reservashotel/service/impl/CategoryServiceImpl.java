@@ -1,5 +1,6 @@
 package com.miapp.reservashotel.service.impl;
 
+import com.miapp.reservashotel.dto.CategoryRequestDTO;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.repository.CategoryRepository;
@@ -16,8 +17,22 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
 
     @Override
-    public Category saveCategory(Category category) {
+    public Category createFromDTO(CategoryRequestDTO dto) {
+        Category category = new Category();
+        category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
+        category.setImageUrl(dto.getImageUrl());
         return categoryRepository.save(category);
+    }
+
+    @Override
+    public Category updateFromDTO(Long id, CategoryRequestDTO dto) {
+        Category existing = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+        existing.setName(dto.getName());
+        existing.setDescription(dto.getDescription());
+        existing.setImageUrl(dto.getImageUrl());
+        return categoryRepository.save(existing);
     }
 
     @Override
@@ -32,17 +47,10 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public Category updateCategory(Long id, Category updatedCategory) {
-        Category category = getCategoryById(id);
-        category.setName(updatedCategory.getName());
-        category.setDescription(updatedCategory.getDescription());
-        category.setImageUrl(updatedCategory.getImageUrl());
-        return categoryRepository.save(category);
-    }
-
-    @Override
     public void deleteCategory(Long id) {
-        Category category = getCategoryById(id);
-        categoryRepository.delete(category);
+        if (!categoryRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Category not found with id: " + id);
+        }
+        categoryRepository.deleteById(id);
     }
 }

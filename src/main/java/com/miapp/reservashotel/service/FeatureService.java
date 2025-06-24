@@ -1,14 +1,19 @@
 package com.miapp.reservashotel.service;
 
+import com.miapp.reservashotel.dto.FeatureRequestDTO;
 import com.miapp.reservashotel.model.Feature;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface FeatureService {
-    Feature saveFeature(Feature feature);
+
+    Feature createFromDTO(FeatureRequestDTO dto);
+
+    Feature updateFromDTO(Long id, FeatureRequestDTO dto);
+
+    Feature getFeatureById(Long id);
+
     List<Feature> listFeatures();
-    Optional<Feature> getFeatureById(Long id);
-    Feature updateFeature(Long id, Feature feature);
+
     void deleteFeature(Long id);
 }

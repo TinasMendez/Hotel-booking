@@ -1,8 +1,6 @@
 package com.miapp.reservashotel.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,9 +8,6 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.util.Set;
 
-/**
- * Represents a hotel product available for reservation.
- */
 @Entity
 @Table(name = "products")
 @Getter
@@ -24,39 +19,25 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Name is required")
-    @Size(max = 100, message = "Name must be less than 100 characters")
     private String name;
-
-    @NotBlank(message = "Description is required")
-    @Size(max = 500, message = "Description must be 500 characters or less")
     private String description;
-
-    @NotBlank(message = "Image URL is required")
-    @Pattern(regexp = "^(http|https)://.*$", message = "Image URL must be a valid URL")
     private String imageUrl;
-
-    @NotNull(message = "Price is required")
     private BigDecimal price;
-
     private boolean available;
 
     @ManyToOne
-    @JoinColumn(name = "category_id", nullable = false)
-    @NotNull(message = "Category is required")
-    @JsonIgnoreProperties("products")
+    @JoinColumn(name = "category_id")
     private Category category;
 
     @ManyToOne
-    @JoinColumn(name = "city_id", nullable = false)
-    @NotNull(message = "City is required")
-    @JsonIgnoreProperties("products")
+    @JoinColumn(name = "city_id")
     private City city;
 
     @ManyToMany
-    @JoinTable(name = "product_features",
+    @JoinTable(
+        name = "product_features",
         joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "feature_id"))
-    @JsonIgnoreProperties("products")
+        inverseJoinColumns = @JoinColumn(name = "feature_id")
+    )
     private Set<Feature> features;
 }

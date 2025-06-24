@@ -1,10 +1,10 @@
 package com.miapp.reservashotel.controller;
 
+import com.miapp.reservashotel.dto.ProductRequestDTO;
 import com.miapp.reservashotel.model.Product;
 import com.miapp.reservashotel.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,8 +24,9 @@ public class ProductController {
 
     // Create a new product
     @PostMapping
-    public ResponseEntity<Product> createProduct(@Valid @RequestBody Product product) {
-        return new ResponseEntity<>(productService.createProduct(product), HttpStatus.CREATED);
+    public ResponseEntity<Product> createProduct(@Valid @RequestBody ProductRequestDTO dto) {
+        Product product = productService.createProductFromDTO(dto);
+        return ResponseEntity.ok(product);
     }
 
     // List all products

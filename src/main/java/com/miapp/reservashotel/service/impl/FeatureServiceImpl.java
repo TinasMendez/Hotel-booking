@@ -1,24 +1,44 @@
 package com.miapp.reservashotel.service.impl;
 
+import com.miapp.reservashotel.dto.FeatureRequestDTO;
+import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.service.FeatureService;
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class FeatureServiceImpl implements FeatureService {
 
-    @Autowired
-    private FeatureRepository featureRepository;
+    private final FeatureRepository featureRepository;
 
     @Override
-    public Feature saveFeature(Feature feature) {
+    public Feature createFromDTO(FeatureRequestDTO dto) {
+        Feature feature = new Feature();
+        feature.setName(dto.getName());
+        feature.setDescription(dto.getDescription());
+        feature.setIcon(dto.getIcon());
         return featureRepository.save(feature);
+    }
+
+    @Override
+    public Feature updateFromDTO(Long id, FeatureRequestDTO dto) {
+        Feature existing = featureRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Feature not found with id: " + id));
+        existing.setName(dto.getName());
+        existing.setDescription(dto.getDescription());
+        existing.setIcon(dto.getIcon());
+        return featureRepository.save(existing);
+    }
+
+    @Override
+    public Feature getFeatureById(Long id) {
+        return featureRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Feature not found with id: " + id));
     }
 
     @Override
@@ -27,22 +47,10 @@ public class FeatureServiceImpl implements FeatureService {
     }
 
     @Override
-    public Optional<Feature> getFeatureById(Long id) {
-        return featureRepository.findById(id);
-    }
-
-    @Override
-    public Feature updateFeature(Long id, Feature feature) {
-        Feature existing = featureRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Feature not found with id " + id));
-        existing.setName(feature.getName());
-        existing.setIcon(feature.getIcon());
-        return featureRepository.save(existing);
-    }
-
-    @Override
     public void deleteFeature(Long id) {
+        if (!featureRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Feature not found with id: " + id);
+        }
         featureRepository.deleteById(id);
     }
 }
-
