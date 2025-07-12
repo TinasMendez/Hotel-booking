@@ -1,48 +1,37 @@
 package com.miapp.reservashotel.exception;
 
-import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestControllerAdvice
+@ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> {
-            errors.put(error.getField(), error.getDefaultMessage());
-        });
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
-    }
-
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFound(ResourceNotFoundException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("message", ex.getMessage());
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Map<String, String>> handleConstraintViolation(ConstraintViolationException ex) {
-        Map<String, String> error = new HashMap<>();
-        ex.getConstraintViolations().forEach(violation -> {
-            error.put("error", violation.getMessage());
-        });
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<Object> handleResourceNotFound(ResourceNotFoundException ex) {
+        // Custom handler for resource not found exceptions
+        Map<String, Object> errorBody = new HashMap<>();
+        errorBody.put("timestamp", LocalDateTime.now());
+        errorBody.put("status", HttpStatus.NOT_FOUND.value());
+        errorBody.put("error", "Resource Not Found");
+        errorBody.put("message", ex.getMessage());
+        return new ResponseEntity<>(errorBody, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleAll(Exception ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Unexpected error occurred");
-        error.put("details", ex.getMessage());
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<Object> handleGeneralException(Exception ex) {
+        // Fallback handler for all other exceptions
+        Map<String, Object> errorBody = new HashMap<>();
+        errorBody.put("timestamp", LocalDateTime.now());
+        errorBody.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        errorBody.put("error", "Internal Server Error");
+        errorBody.put("message", ex.getMessage());
+        return new ResponseEntity<>(errorBody, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
+

@@ -1,18 +1,17 @@
 package com.miapp.reservashotel.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.Set;
 
 @Entity
-@Table(name = "products")
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Product {
 
     @Id
@@ -23,7 +22,7 @@ public class Product {
     private String description;
     private String imageUrl;
     private BigDecimal price;
-    private boolean available;
+    private Boolean available;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -35,9 +34,10 @@ public class Product {
 
     @ManyToMany
     @JoinTable(
-        name = "product_features",
+        name = "product_feature",
         joinColumns = @JoinColumn(name = "product_id"),
         inverseJoinColumns = @JoinColumn(name = "feature_id")
     )
     private Set<Feature> features;
 }
+

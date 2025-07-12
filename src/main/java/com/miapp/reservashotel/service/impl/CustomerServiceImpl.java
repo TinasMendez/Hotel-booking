@@ -1,21 +1,30 @@
 package com.miapp.reservashotel.service.impl;
 
+import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Customer;
 import com.miapp.reservashotel.repository.CustomerRepository;
 import com.miapp.reservashotel.service.CustomerService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Business logic implementation for customers.
- */
 @Service
+@RequiredArgsConstructor
 public class CustomerServiceImpl implements CustomerService {
 
-    @Autowired
-    private CustomerRepository customerRepository;
+    private final CustomerRepository customerRepository;
+
+    @Override
+    public List<Customer> getAllCustomers() {
+        return customerRepository.findAll();
+    }
+
+    @Override
+    public Customer getCustomerById(Long id) {
+        return customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+    }
 
     @Override
     public Customer createCustomer(Customer customer) {
@@ -23,30 +32,20 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public List<Customer> listCustomers() {
-        return customerRepository.findAll();
+    public Customer updateCustomer(Long id, Customer updatedCustomer) {
+        Customer existing = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+        existing.setName(updatedCustomer.getName());
+        existing.setEmail(updatedCustomer.getEmail());
+        existing.setPhone(updatedCustomer.getPhone());
+        return customerRepository.save(existing);
     }
 
     @Override
     public void deleteCustomer(Long id) {
-        customerRepository.deleteById(id);
+        Customer existing = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+        customerRepository.delete(existing);
     }
-
-    @Override
-    public Customer getCustomerById(Long id) {
-        return customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
-    }
-
-    @Override
-public Customer updateCustomer(Long id, Customer updatedCustomer) {
-    Customer existingCustomer = customerRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
-
-    existingCustomer.setName(updatedCustomer.getName());
-    existingCustomer.setEmail(updatedCustomer.getEmail());
-    existingCustomer.setPhone(updatedCustomer.getPhone());
-
-    return customerRepository.save(existingCustomer);
 }
-}
+

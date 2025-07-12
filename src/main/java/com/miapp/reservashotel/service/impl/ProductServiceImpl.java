@@ -14,6 +14,7 @@ import com.miapp.reservashotel.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,12 +27,6 @@ public class ProductServiceImpl implements ProductService {
     private final FeatureRepository featureRepository;
     private final CategoryRepository categoryRepository;
     private final CityRepository cityRepository;
-
-    // ✅ Método faltante agregado para corregir el error en los tests
-    @Override
-    public Product createProduct(Product product) {
-        return productRepository.save(product);
-    }
 
     @Override
     public Product createProductFromDTO(ProductRequestDTO dto) {
@@ -59,7 +54,7 @@ public class ProductServiceImpl implements ProductService {
         product.setDescription(dto.getDescription());
         product.setImageUrl(dto.getImageUrl());
         product.setPrice(dto.getPrice());
-        product.setAvailable(dto.isAvailable());
+        product.setAvailable(dto.getAvailable()); // <--- Boolean usa getAvailable() con Lombok
         product.setCategory(category);
         product.setCity(city);
         product.setFeatures(features);
@@ -76,7 +71,7 @@ public class ProductServiceImpl implements ProductService {
         existing.setDescription(updatedProduct.getDescription());
         existing.setImageUrl(updatedProduct.getImageUrl());
         existing.setPrice(updatedProduct.getPrice());
-        existing.setAvailable(updatedProduct.isAvailable());
+        existing.setAvailable(updatedProduct.getAvailable()); // <--- igual que arriba
         existing.setCategory(updatedProduct.getCategory());
         existing.setCity(updatedProduct.getCity());
         existing.setFeatures(updatedProduct.getFeatures());
@@ -128,4 +123,30 @@ public class ProductServiceImpl implements ProductService {
     public List<Product> findProductsByCity(String cityName) {
         return productRepository.findByCity_NameIgnoreCase(cityName);
     }
+
+    @Override
+    public List<Product> findAvailableProducts() {
+        return productRepository.findByAvailableTrue();
+    }
+
+    @Override
+    public List<Product> findProductsByPriceRange(BigDecimal min, BigDecimal max) {
+        return productRepository.findByPriceBetween(min, max);
+    }
+
+    @Override
+    public List<Product> findProductsByFeatureName(String featureName) {
+        return productRepository.findByFeatures_NameIgnoreCase(featureName);
+    }
+
+    @Override
+    public List<Product> findAvailableProductsByCity(String city) {
+        return productRepository.findByAvailableTrueAndCity_NameIgnoreCase(city);
+    }
+
+    @Override
+    public Product createProduct(Product product) {
+        return productRepository.save(product);
+    }
 }
+

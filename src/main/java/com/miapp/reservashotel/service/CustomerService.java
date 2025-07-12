@@ -1,17 +1,16 @@
 package com.miapp.reservashotel.service;
 
 import com.miapp.reservashotel.model.Customer;
+
 import java.util.List;
 
-/*** Defines the business logic for customers.*/
-
 public interface CustomerService {
-    Customer createCustomer(Customer customer);
-    List<Customer> listCustomers();
-    void deleteCustomer(Long id);
+    List<Customer> getAllCustomers();
     Customer getCustomerById(Long id);
-    Customer updateCustomer(Long id, Customer updatedCustomer);
-
-
-
+    Customer createCustomer(Customer customer);
+    Customer updateCustomer(Long id, Customer customer);
+    void deleteCustomer(Long id);
 }
+
+
+

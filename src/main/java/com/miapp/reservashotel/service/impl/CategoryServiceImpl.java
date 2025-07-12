@@ -17,22 +17,31 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
 
     @Override
-    public Category createFromDTO(CategoryRequestDTO dto) {
+    public Category createCategory(CategoryRequestDTO dto) {
+        if (categoryRepository.existsByName(dto.getName())) {
+            throw new ResourceNotFoundException("Category with this name already exists.");
+        }
         Category category = new Category();
         category.setName(dto.getName());
         category.setDescription(dto.getDescription());
-        category.setImageUrl(dto.getImageUrl());
         return categoryRepository.save(category);
     }
 
     @Override
-    public Category updateFromDTO(Long id, CategoryRequestDTO dto) {
-        Category existing = categoryRepository.findById(id)
+    public Category updateCategory(Long id, CategoryRequestDTO dto) {
+        Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
-        existing.setName(dto.getName());
-        existing.setDescription(dto.getDescription());
-        existing.setImageUrl(dto.getImageUrl());
-        return categoryRepository.save(existing);
+        category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
+        return categoryRepository.save(category);
+    }
+
+    @Override
+    public void deleteCategory(Long id) {
+        if (!categoryRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Category not found with id: " + id);
+        }
+        categoryRepository.deleteById(id);
     }
 
     @Override
@@ -45,12 +54,5 @@ public class CategoryServiceImpl implements CategoryService {
     public List<Category> listCategories() {
         return categoryRepository.findAll();
     }
-
-    @Override
-    public void deleteCategory(Long id) {
-        if (!categoryRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Category not found with id: " + id);
-        }
-        categoryRepository.deleteById(id);
-    }
 }
+

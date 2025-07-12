@@ -4,74 +4,91 @@ import com.miapp.reservashotel.dto.ProductRequestDTO;
 import com.miapp.reservashotel.model.Product;
 import com.miapp.reservashotel.service.ProductService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
-/**
- * REST controller to manage product endpoints.
- */
 @RestController
-@RequestMapping("/api/products")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api")
+@RequiredArgsConstructor
 public class ProductController {
 
-    @Autowired
-    private ProductService productService;
+    private final ProductService productService;
 
-    // Create a new product
-    @PostMapping
-    public ResponseEntity<Product> createProduct(@Valid @RequestBody ProductRequestDTO dto) {
-        Product product = productService.createProductFromDTO(dto);
-        return ResponseEntity.ok(product);
+    @PostMapping("/products")
+    public Product createProduct(@Valid @RequestBody ProductRequestDTO dto) {
+        return productService.createProductFromDTO(dto);
     }
 
-    // List all products
-    @GetMapping
-    public ResponseEntity<List<Product>> listProducts() {
-        return ResponseEntity.ok(productService.listProducts());
+    @PutMapping("/products/{id}")
+    public Product updateProduct(@PathVariable Long id, @RequestBody Product updatedProduct) {
+        return productService.updateProduct(id, updatedProduct);
     }
 
-    // Get product by ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getProductById(id));
-    }
-
-    // Update a product by ID
-    @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @Valid @RequestBody Product product) {
-        return ResponseEntity.ok(productService.updateProduct(id, product));
-    }
-
-    // Delete a product by ID
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+    @DeleteMapping("/products/{id}")
+    public void deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
-        return ResponseEntity.noContent().build();
     }
 
-    // Assign features to a product
-    @PutMapping("/{productId}/features")
-    public ResponseEntity<String> assignFeaturesToProduct(
+    @GetMapping("/products/{id}")
+    public Product getProductById(@PathVariable Long id) {
+        return productService.getProductById(id);
+    }
+
+    @GetMapping("/products")
+    public List<Product> listProducts() {
+        return productService.listProducts();
+    }
+
+    // ---------- Advanced Endpoints Sprint 2 ----------
+
+    // a) Productos disponibles
+    @GetMapping("/products/available")
+    public List<Product> getAvailableProducts() {
+        return productService.findAvailableProducts();
+    }
+
+    // b) Productos por ciudad (case insensitive)
+    @GetMapping("/products/city/{cityName}")
+    public List<Product> getProductsByCity(@PathVariable String cityName) {
+        return productService.findProductsByCity(cityName);
+    }
+
+    // c) Productos por rango de precio
+    @GetMapping("/products/price")
+    public List<Product> getProductsByPriceRange(
+            @RequestParam BigDecimal min,
+            @RequestParam BigDecimal max) {
+        return productService.findProductsByPriceRange(min, max);
+    }
+
+    // d) Productos por categoría
+    @GetMapping("/products/category/{categoryId}")
+    public List<Product> getProductsByCategoryId(@PathVariable Long categoryId) {
+        return productService.getProductsByCategoryId(categoryId);
+    }
+
+    // e) Productos por feature
+    @GetMapping("/products/feature/{featureName}")
+    public List<Product> getProductsByFeatureName(@PathVariable String featureName) {
+        return productService.findProductsByFeatureName(featureName);
+    }
+
+    // f) Productos disponibles por ciudad
+    @GetMapping("/products/available/city/{cityName}")
+    public List<Product> getAvailableProductsByCity(@PathVariable String cityName) {
+        return productService.findAvailableProductsByCity(cityName);
+    }
+
+    // g) Asignar features a un producto
+    @PutMapping("/products/{productId}/features")
+    public void assignFeaturesToProduct(
             @PathVariable Long productId,
             @RequestBody Set<Long> featureIds) {
         productService.assignFeaturesToProduct(productId, featureIds);
-        return ResponseEntity.ok("Features assigned successfully to product.");
-    }
-
-    // Get products by category ID
-    @GetMapping("/category/{categoryId}")
-    public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable Long categoryId) {
-        return ResponseEntity.ok(productService.getProductsByCategoryId(categoryId));
-    }
-
-    // Get products by city name
-    @GetMapping("/city/{city}")
-    public ResponseEntity<List<Product>> getProductsByCity(@PathVariable String city) {
-        return ResponseEntity.ok(productService.findProductsByCity(city));
     }
 }
+

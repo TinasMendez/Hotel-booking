@@ -6,10 +6,11 @@ import com.miapp.reservashotel.model.Category;
 import java.util.List;
 
 public interface CategoryService {
-    Category createFromDTO(CategoryRequestDTO dto);
-    Category updateFromDTO(Long id, CategoryRequestDTO dto);
+    Category createCategory(CategoryRequestDTO dto);
+    Category updateCategory(Long id, CategoryRequestDTO dto);
+    void deleteCategory(Long id);
     Category getCategoryById(Long id);
     List<Category> listCategories();
-    void deleteCategory(Long id);
 }
+
 

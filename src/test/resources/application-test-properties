@@ -16,5 +16,3 @@ spring.jpa.hibernate.ddl-auto=create-drop
 # ✅ Show SQL statements in the console (useful for debugging)
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
-
-@TestPropertySource(locations = "classpath:application-test.properties")
