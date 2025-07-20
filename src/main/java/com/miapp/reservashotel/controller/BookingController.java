@@ -3,8 +3,7 @@ package com.miapp.reservashotel.controller;
 import com.miapp.reservashotel.dto.BookingRequestDTO;
 import com.miapp.reservashotel.dto.BookingResponseDTO;
 import com.miapp.reservashotel.service.BookingService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,57 +13,82 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/bookings")
-@RequiredArgsConstructor
 public class BookingController {
 
     private final BookingService bookingService;
 
-    @PostMapping
-    public ResponseEntity<BookingResponseDTO> createBooking(@Valid @RequestBody BookingRequestDTO request) {
-        return ResponseEntity.ok(bookingService.createBooking(request));
+    // Constructor injection
+    public BookingController(BookingService bookingService) {
+        this.bookingService = bookingService;
     }
 
+    // Create a new booking
+    @PostMapping
+    public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody BookingRequestDTO requestDTO) {
+        BookingResponseDTO createdBooking = bookingService.createBooking(requestDTO);
+        return ResponseEntity.ok(createdBooking);
+    }
+
+    // Get all bookings
     @GetMapping
     public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
-        return ResponseEntity.ok(bookingService.getAllBookings());
+        List<BookingResponseDTO> bookings = bookingService.getAllBookings();
+        return ResponseEntity.ok(bookings);
     }
 
+    // Get booking by ID
     @GetMapping("/{id}")
     public ResponseEntity<BookingResponseDTO> getBookingById(@PathVariable Long id) {
-        return ResponseEntity.ok(bookingService.getBookingById(id));
+        BookingResponseDTO booking = bookingService.getBookingById(id);
+        return ResponseEntity.ok(booking);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<BookingResponseDTO> updateBooking(@PathVariable Long id, @Valid @RequestBody BookingRequestDTO request) {
-        return ResponseEntity.ok(bookingService.updateBooking(id, request));
+    // Update status of booking
+    @PutMapping("/{id}/status")
+    public ResponseEntity<BookingResponseDTO> updateBookingStatus(
+            @PathVariable Long id,
+            @RequestParam String status) {
+        BookingResponseDTO updatedBooking = bookingService.updateBookingStatus(id, status);
+        return ResponseEntity.ok(updatedBooking);
     }
 
+    // Delete a booking
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
         bookingService.deleteBooking(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{id}/status")
-    public ResponseEntity<BookingResponseDTO> updateBookingStatus(@PathVariable Long id, @RequestParam String status) {
-        return ResponseEntity.ok(bookingService.updateBookingStatus(id, status));
+    // Get bookings by customer ID
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<List<BookingResponseDTO>> getBookingsByCustomerId(@PathVariable Long customerId) {
+        List<BookingResponseDTO> bookings = bookingService.getBookingsByCustomerId(customerId);
+        return ResponseEntity.ok(bookings);
     }
 
-    @GetMapping("/by-customer/{customerId}")
-    public ResponseEntity<List<BookingResponseDTO>> getBookingsByCustomer(@PathVariable Long customerId) {
-        return ResponseEntity.ok(bookingService.getBookingsByCustomer(customerId));
+    // Get bookings by status
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<BookingResponseDTO>> getBookingsByStatus(@PathVariable String status) {
+        List<BookingResponseDTO> bookings = bookingService.getBookingsByStatus(status);
+        return ResponseEntity.ok(bookings);
     }
 
-    @GetMapping("/by-status")
-    public ResponseEntity<List<BookingResponseDTO>> getBookingsByStatus(@RequestParam String status) {
-        return ResponseEntity.ok(bookingService.getBookingsByStatus(status));
+    // Get bookings between two dates
+    @GetMapping("/dates")
+    public ResponseEntity<List<BookingResponseDTO>> getBookingsBetweenDates(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        List<BookingResponseDTO> bookings = bookingService.getBookingsBetweenDates(startDate, endDate);
+        return ResponseEntity.ok(bookings);
     }
 
-    @GetMapping("/by-date-range")
-    public ResponseEntity<List<BookingResponseDTO>> getBookingsByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut) {
-        return ResponseEntity.ok(bookingService.getBookingsByDateRange(checkIn, checkOut));
+    // Get most booked product IDs
+    @GetMapping("/most-booked-products")
+    public ResponseEntity<List<Long>> getMostBookedProductIds() {
+        List<Long> productIds = bookingService.getMostBookedProductIds();
+        return ResponseEntity.ok(productIds);
     }
 }
+
+
 

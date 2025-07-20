@@ -1,4 +1,3 @@
-
 package com.miapp.reservashotel.dto;
 
 import java.time.LocalDate;
@@ -6,27 +5,32 @@ import java.time.LocalDate;
 public class BookingResponseDTO {
 
     private Long id;
-    private Long customerId;
     private Long productId;
-    private LocalDate checkInDate;
-    private LocalDate checkOutDate;
+    private Long customerId;
+    private LocalDate startDate;
+    private LocalDate endDate;
     private String status;
 
-    // Getters and Setters
+    // Default constructor
+    public BookingResponseDTO() {}
+
+    // Parameterized constructor
+    public BookingResponseDTO(Long id, Long productId, Long customerId, LocalDate startDate, LocalDate endDate, String status) {
+        this.id = id;
+        this.productId = productId;
+        this.customerId = customerId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.status = status;
+    }
+
+    // Getters and setters
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Long getCustomerId() {
-        return customerId;
-    }
-
-    public void setCustomerId(Long customerId) {
-        this.customerId = customerId;
     }
 
     public Long getProductId() {
@@ -37,20 +41,28 @@ public class BookingResponseDTO {
         this.productId = productId;
     }
 
-    public LocalDate getCheckInDate() {
-        return checkInDate;
+    public Long getCustomerId() {
+        return customerId;
     }
 
-    public void setCheckInDate(LocalDate checkInDate) {
-        this.checkInDate = checkInDate;
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
     }
 
-    public LocalDate getCheckOutDate() {
-        return checkOutDate;
+    public LocalDate getStartDate() {
+        return startDate;
     }
 
-    public void setCheckOutDate(LocalDate checkOutDate) {
-        this.checkOutDate = checkOutDate;
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
     }
 
     public String getStatus() {
@@ -61,3 +73,6 @@ public class BookingResponseDTO {
         this.status = status;
     }
 }
+
+
+

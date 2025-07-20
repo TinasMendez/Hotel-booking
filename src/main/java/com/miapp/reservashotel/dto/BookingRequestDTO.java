@@ -1,45 +1,38 @@
-
 package com.miapp.reservashotel.dto;
 
 import java.time.LocalDate;
 
 public class BookingRequestDTO {
 
-    private Long customerId;
     private Long productId;
-    private LocalDate checkInDate;
-    private LocalDate checkOutDate;
+    private Long customerId;
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private String status;
 
-    // Getters and Setters
-    public Long getCustomerId() {
-        return customerId;
-    }
+    public BookingRequestDTO() {}
 
-    public void setCustomerId(Long customerId) {
-        this.customerId = customerId;
-    }
-
-    public Long getProductId() {
-        return productId;
-    }
-
-    public void setProductId(Long productId) {
+    public BookingRequestDTO(Long productId, Long customerId, LocalDate startDate, LocalDate endDate, String status) {
         this.productId = productId;
+        this.customerId = customerId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.status = status;
     }
 
-    public LocalDate getCheckInDate() {
-        return checkInDate;
-    }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
 
-    public void setCheckInDate(LocalDate checkInDate) {
-        this.checkInDate = checkInDate;
-    }
+    public Long getCustomerId() { return customerId; }
+    public void setCustomerId(Long customerId) { this.customerId = customerId; }
 
-    public LocalDate getCheckOutDate() {
-        return checkOutDate;
-    }
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
 
-    public void setCheckOutDate(LocalDate checkOutDate) {
-        this.checkOutDate = checkOutDate;
-    }
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }
+

@@ -7,23 +7,18 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface BookingService {
-
-    BookingResponseDTO createBooking(BookingRequestDTO request);
-
-    BookingResponseDTO getBookingById(Long id);
-
+    BookingResponseDTO createBooking(BookingRequestDTO bookingRequestDTO);
     List<BookingResponseDTO> getAllBookings();
-
-    BookingResponseDTO updateBooking(Long id, BookingRequestDTO request);
-
+    BookingResponseDTO getBookingById(Long id);
+    BookingResponseDTO updateBooking(Long id, BookingRequestDTO bookingRequestDTO);
     void deleteBooking(Long id);
 
     BookingResponseDTO updateBookingStatus(Long id, String status);
-
-    List<BookingResponseDTO> getBookingsByCustomer(Long customerId);
-
+    List<BookingResponseDTO> getBookingsByCustomerId(Long customerId);
     List<BookingResponseDTO> getBookingsByStatus(String status);
-
-    List<BookingResponseDTO> getBookingsByDateRange(LocalDate checkIn, LocalDate checkOut);
+    List<BookingResponseDTO> getBookingsBetweenDates(LocalDate start, LocalDate end);
+    List<Long> getMostBookedProductIds();
 }
+
+
 

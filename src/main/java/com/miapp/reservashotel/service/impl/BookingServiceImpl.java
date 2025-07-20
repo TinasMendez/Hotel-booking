@@ -3,12 +3,10 @@ package com.miapp.reservashotel.service.impl;
 import com.miapp.reservashotel.dto.BookingRequestDTO;
 import com.miapp.reservashotel.dto.BookingResponseDTO;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
-import com.miapp.reservashotel.model.*;
+import com.miapp.reservashotel.model.Booking;
+import com.miapp.reservashotel.model.BookingStatus;
 import com.miapp.reservashotel.repository.BookingRepository;
-import com.miapp.reservashotel.repository.CustomerRepository;
-import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.service.BookingService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -16,110 +14,117 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
-    private final CustomerRepository customerRepository;
-    private final ProductRepository productRepository;
+
+    public BookingServiceImpl(BookingRepository bookingRepository) {
+        this.bookingRepository = bookingRepository;
+    }
 
     @Override
-    public BookingResponseDTO createBooking(BookingRequestDTO request) {
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-        Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
+    public BookingResponseDTO createBooking(BookingRequestDTO requestDTO) {
         Booking booking = new Booking();
-        booking.setCustomer(customer);
-        booking.setProduct(product);
-        booking.setCheckInDate(request.getCheckInDate());
-        booking.setCheckOutDate(request.getCheckOutDate());
+        booking.setProductId(requestDTO.getProductId());
+        booking.setCustomerId(requestDTO.getCustomerId());
+        booking.setStartDate(requestDTO.getStartDate());
+        booking.setEndDate(requestDTO.getEndDate());
         booking.setStatus(BookingStatus.PENDING);
+        bookingRepository.save(booking);
 
-        Booking saved = bookingRepository.save(booking);
-        return mapToResponse(saved);
+        return convertToDTO(booking);
+    }
+
+    @Override
+    public List<BookingResponseDTO> getAllBookings() {
+        return bookingRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     public BookingResponseDTO getBookingById(Long id) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-        return mapToResponse(booking);
-    }
-
-    @Override
-    public List<BookingResponseDTO> getAllBookings() {
-        return bookingRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public BookingResponseDTO updateBooking(Long id, BookingRequestDTO request) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-        Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-        booking.setCustomer(customer);
-        booking.setProduct(product);
-        booking.setCheckInDate(request.getCheckInDate());
-        booking.setCheckOutDate(request.getCheckOutDate());
-
-        return mapToResponse(bookingRepository.save(booking));
-    }
-
-    @Override
-    public void deleteBooking(Long id) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-        bookingRepository.delete(booking);
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+        return convertToDTO(booking);
     }
 
     @Override
     public BookingResponseDTO updateBookingStatus(Long id, String status) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+
         booking.setStatus(BookingStatus.valueOf(status.toUpperCase()));
-        return mapToResponse(bookingRepository.save(booking));
+        bookingRepository.save(booking);
+        return convertToDTO(booking);
     }
 
     @Override
-    public List<BookingResponseDTO> getBookingsByCustomer(Long customerId) {
-        return bookingRepository.findByCustomerId(customerId).stream()
-                .map(this::mapToResponse)
+    public void deleteBooking(Long id) {
+        if (!bookingRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Booking not found with id: " + id);
+        }
+        bookingRepository.deleteById(id);
+    }
+
+    @Override
+    public List<BookingResponseDTO> getBookingsByCustomerId(Long customerId) {
+        return bookingRepository.findByCustomerId(customerId)
+                .stream()
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<BookingResponseDTO> getBookingsByStatus(String status) {
-        BookingStatus bookingStatus = BookingStatus.valueOf(status.toUpperCase());
-        return bookingRepository.findByStatus(bookingStatus).stream()
-                .map(this::mapToResponse)
+        BookingStatus statusEnum = BookingStatus.valueOf(status.toUpperCase());
+        return bookingRepository.findByStatus(statusEnum)
+                .stream()
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<BookingResponseDTO> getBookingsByDateRange(LocalDate checkIn, LocalDate checkOut) {
-        return bookingRepository.findByCheckInDateBetween(checkIn, checkOut).stream()
-                .map(this::mapToResponse)
+    public List<BookingResponseDTO> getBookingsBetweenDates(LocalDate startDate, LocalDate endDate) {
+        return bookingRepository.findByStartDateBetween(startDate, endDate)
+                .stream()
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    // Helper method to convert Booking -> BookingResponseDTO
-    private BookingResponseDTO mapToResponse(Booking booking) {
-        BookingResponseDTO dto = new BookingResponseDTO();
-        dto.setId(booking.getId());
-        dto.setCustomerId(booking.getCustomer().getId());
-        dto.setProductId(booking.getProduct().getId());
-        dto.setCheckInDate(booking.getCheckInDate());
-        dto.setCheckOutDate(booking.getCheckOutDate());
-        dto.setStatus(booking.getStatus().name());
-        return dto;
+    @Override
+    public List<Long> getMostBookedProductIds() {
+        return bookingRepository.findMostBookedProductIds();
+    }
+
+    @Override
+    public BookingResponseDTO updateBooking(Long id, BookingRequestDTO requestDTO) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+
+        booking.setProductId(requestDTO.getProductId());
+        booking.setCustomerId(requestDTO.getCustomerId());
+        booking.setStartDate(requestDTO.getStartDate());
+        booking.setEndDate(requestDTO.getEndDate());
+        booking.setStatus(BookingStatus.valueOf(requestDTO.getStatus().toUpperCase()));
+
+        bookingRepository.save(booking);
+        return convertToDTO(booking);
+    }
+
+    private BookingResponseDTO convertToDTO(Booking booking) {
+        return new BookingResponseDTO(
+                booking.getId(),
+                booking.getProductId(),
+                booking.getCustomerId(),
+                booking.getStartDate(),
+                booking.getEndDate(),
+                booking.getStatus().name() // Convert BookingStatus enum to String
+        );
     }
 }
+
+
+
 

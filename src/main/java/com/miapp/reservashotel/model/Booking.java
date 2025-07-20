@@ -1,32 +1,30 @@
-
 package com.miapp.reservashotel.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "bookings")
 public class Booking {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne
-    @JoinColumn(name = "customer_id")
-    private Customer customer;
-
-    @ManyToOne
-    @JoinColumn(name = "product_id")
-    private Product product;
-
-    private LocalDate checkInDate;
-    private LocalDate checkOutDate;
-
-    @Enumerated(EnumType.STRING)
+    private Long productId;
+    private Long customerId;
+    private LocalDate startDate;
+    private LocalDate endDate;
     private BookingStatus status;
 
-    // Getters and Setters
+    // Default constructor
+    public Booking() {}
+
+    // Parameterized constructor
+    public Booking(Long id, Long productId, Long customerId, LocalDate startDate, LocalDate endDate, BookingStatus status) {
+        this.id = id;
+        this.productId = productId;
+        this.customerId = customerId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.status = status;
+    }
+
+    // Getters and setters
     public Long getId() {
         return id;
     }
@@ -35,36 +33,36 @@ public class Booking {
         this.id = id;
     }
 
-    public Customer getCustomer() {
-        return customer;
+    public Long getProductId() {
+        return productId;
     }
 
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
+    public void setProductId(Long productId) {
+        this.productId = productId;
     }
 
-    public Product getProduct() {
-        return product;
+    public Long getCustomerId() {
+        return customerId;
     }
 
-    public void setProduct(Product product) {
-        this.product = product;
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
     }
 
-    public LocalDate getCheckInDate() {
-        return checkInDate;
+    public LocalDate getStartDate() {
+        return startDate;
     }
 
-    public void setCheckInDate(LocalDate checkInDate) {
-        this.checkInDate = checkInDate;
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
     }
 
-    public LocalDate getCheckOutDate() {
-        return checkOutDate;
+    public LocalDate getEndDate() {
+        return endDate;
     }
 
-    public void setCheckOutDate(LocalDate checkOutDate) {
-        this.checkOutDate = checkOutDate;
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
     }
 
     public BookingStatus getStatus() {
@@ -75,3 +73,7 @@ public class Booking {
         this.status = status;
     }
 }
+
+
+
+
