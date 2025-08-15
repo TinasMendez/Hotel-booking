@@ -1,13 +1,21 @@
 package com.miapp.reservashotel.dto;
 
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 public class BookingRequestDTO {
-
+    @NotNull(message = "Product ID is required")
     private Long productId;
+
+    @NotNull(message = "Customer ID is required")
     private Long customerId;
+
+    @NotNull(message = "Start date is required")
     private LocalDate startDate;
+
+    @NotNull(message = "End date is required")
     private LocalDate endDate;
+
     private String status;
 
     public BookingRequestDTO() {}
@@ -20,19 +28,44 @@ public class BookingRequestDTO {
         this.status = status;
     }
 
-    public Long getProductId() { return productId; }
-    public void setProductId(Long productId) { this.productId = productId; }
+    public Long getProductId() {
+        return productId;
+    }
 
-    public Long getCustomerId() { return customerId; }
-    public void setCustomerId(Long customerId) { this.customerId = customerId; }
+    public void setProductId(Long productId) {
+        this.productId = productId;
+    }
 
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public Long getCustomerId() {
+        return customerId;
+    }
 
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }
 

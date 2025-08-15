@@ -5,40 +5,29 @@ import java.time.LocalDate;
 public class BookingResponseDTO {
 
     private Long id;
-    private Long productId;
     private Long customerId;
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private Long productId;
+    private LocalDate checkInDate;
+    private LocalDate checkOutDate;
     private String status;
 
-    // Default constructor
     public BookingResponseDTO() {}
 
-    // Parameterized constructor
-    public BookingResponseDTO(Long id, Long productId, Long customerId, LocalDate startDate, LocalDate endDate, String status) {
+    public BookingResponseDTO(Long id, Long customerId, Long productId, LocalDate checkInDate, LocalDate checkOutDate, String status) {
         this.id = id;
-        this.productId = productId;
         this.customerId = customerId;
-        this.startDate = startDate;
-        this.endDate = endDate;
+        this.productId = productId;
+        this.checkInDate = checkInDate;
+        this.checkOutDate = checkOutDate;
         this.status = status;
     }
 
-    // Getters and setters
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Long getProductId() {
-        return productId;
-    }
-
-    public void setProductId(Long productId) {
-        this.productId = productId;
     }
 
     public Long getCustomerId() {
@@ -49,20 +38,28 @@ public class BookingResponseDTO {
         this.customerId = customerId;
     }
 
-    public LocalDate getStartDate() {
-        return startDate;
+    public Long getProductId() {
+        return productId;
     }
 
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
+    public void setProductId(Long productId) {
+        this.productId = productId;
     }
 
-    public LocalDate getEndDate() {
-        return endDate;
+    public LocalDate getCheckInDate() {
+        return checkInDate;
     }
 
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
+    public void setCheckInDate(LocalDate checkInDate) {
+        this.checkInDate = checkInDate;
+    }
+
+    public LocalDate getCheckOutDate() {
+        return checkOutDate;
+    }
+
+    public void setCheckOutDate(LocalDate checkOutDate) {
+        this.checkOutDate = checkOutDate;
     }
 
     public String getStatus() {

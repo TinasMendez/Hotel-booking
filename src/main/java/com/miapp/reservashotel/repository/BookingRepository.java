@@ -16,6 +16,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByStartDateBetween(LocalDate startDate, LocalDate endDate);
 
+    List<Booking> findByProductIdAndStatus(Long productId, BookingStatus status); // 👈 MÉTODO QUE FALTABA
+
     @Query("SELECT b.productId FROM Booking b GROUP BY b.productId ORDER BY COUNT(b.id) DESC")
     List<Long> findMostBookedProductIds();
 }

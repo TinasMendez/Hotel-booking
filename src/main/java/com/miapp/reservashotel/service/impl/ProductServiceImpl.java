@@ -11,7 +11,6 @@ import com.miapp.reservashotel.repository.CityRepository;
 import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.service.ProductService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,13 +19,22 @@ import java.util.List;
 import java.util.Set;
 
 @Service
-@RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final FeatureRepository featureRepository;
     private final CategoryRepository categoryRepository;
     private final CityRepository cityRepository;
+
+    public ProductServiceImpl(ProductRepository productRepository,
+                            FeatureRepository featureRepository,
+                            CategoryRepository categoryRepository,
+                            CityRepository cityRepository) {
+        this.productRepository = productRepository;
+        this.featureRepository = featureRepository;
+        this.categoryRepository = categoryRepository;
+        this.cityRepository = cityRepository;
+    }
 
     @Override
     public Product createProductFromDTO(ProductRequestDTO dto) {
@@ -53,8 +61,8 @@ public class ProductServiceImpl implements ProductService {
         product.setName(dto.getName());
         product.setDescription(dto.getDescription());
         product.setImageUrl(dto.getImageUrl());
-        product.setPrice(dto.getPrice());
-        product.setAvailable(dto.getAvailable()); // <--- Boolean usa getAvailable() con Lombok
+        product.setPrice(BigDecimal.valueOf(dto.getPrice()));
+        product.setAvailable(dto.getAvailable());
         product.setCategory(category);
         product.setCity(city);
         product.setFeatures(features);
@@ -71,7 +79,7 @@ public class ProductServiceImpl implements ProductService {
         existing.setDescription(updatedProduct.getDescription());
         existing.setImageUrl(updatedProduct.getImageUrl());
         existing.setPrice(updatedProduct.getPrice());
-        existing.setAvailable(updatedProduct.getAvailable()); // <--- igual que arriba
+        existing.setAvailable(updatedProduct.getAvailable());
         existing.setCategory(updatedProduct.getCategory());
         existing.setCity(updatedProduct.getCity());
         existing.setFeatures(updatedProduct.getFeatures());

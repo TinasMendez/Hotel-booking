@@ -1,16 +1,23 @@
 package com.miapp.reservashotel.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 public class FeatureRequestDTO {
+    @NotBlank(message = "Name is required")
     private String name;
-    private String description;
+
+    @NotBlank(message = "Icon is required")
     private String icon;
+
+    @NotBlank(message = "Description is required")
+    private String description;
 
     public FeatureRequestDTO() {}
 
-    public FeatureRequestDTO(String name, String description, String icon) {
+    public FeatureRequestDTO(String name, String icon, String description) {
         this.name = name;
-        this.description = description;
         this.icon = icon;
+        this.description = description;
     }
 
     public String getName() {
@@ -21,14 +28,6 @@ public class FeatureRequestDTO {
         this.name = name;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
     public String getIcon() {
         return icon;
     }
@@ -36,7 +35,16 @@ public class FeatureRequestDTO {
     public void setIcon(String icon) {
         this.icon = icon;
     }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
 }
+
 
 
 

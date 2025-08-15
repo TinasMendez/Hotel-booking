@@ -51,6 +51,21 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public BookingResponseDTO updateBooking(Long id, BookingRequestDTO requestDTO) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+
+        booking.setProductId(requestDTO.getProductId());
+        booking.setCustomerId(requestDTO.getCustomerId());
+        booking.setStartDate(requestDTO.getStartDate());
+        booking.setEndDate(requestDTO.getEndDate());
+        booking.setStatus(BookingStatus.valueOf(requestDTO.getStatus().toUpperCase()));
+
+        bookingRepository.save(booking);
+        return convertToDTO(booking);
+    }
+
+    @Override
     public BookingResponseDTO updateBookingStatus(Long id, String status) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
@@ -99,19 +114,17 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingResponseDTO updateBooking(Long id, BookingRequestDTO requestDTO) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
-
-        booking.setProductId(requestDTO.getProductId());
-        booking.setCustomerId(requestDTO.getCustomerId());
-        booking.setStartDate(requestDTO.getStartDate());
-        booking.setEndDate(requestDTO.getEndDate());
-        booking.setStatus(BookingStatus.valueOf(requestDTO.getStatus().toUpperCase()));
-
-        bookingRepository.save(booking);
-        return convertToDTO(booking);
+public boolean isProductAvailable(Long productId, LocalDate startDate, LocalDate endDate) {
+    List<Booking> bookings = bookingRepository.findByProductIdAndStatus(productId, BookingStatus.CONFIRMED);
+    for (Booking booking : bookings) {
+        boolean overlaps = !(endDate.isBefore(booking.getStartDate()) || startDate.isAfter(booking.getEndDate()));
+        if (overlaps) {
+            return false; // Dates overlap, not available
+        }
     }
+    return true; // No overlaps found, available
+}
+
 
     private BookingResponseDTO convertToDTO(Booking booking) {
         return new BookingResponseDTO(
@@ -120,7 +133,7 @@ public class BookingServiceImpl implements BookingService {
                 booking.getCustomerId(),
                 booking.getStartDate(),
                 booking.getEndDate(),
-                booking.getStatus().name() // Convert BookingStatus enum to String
+                booking.getStatus().name()
         );
     }
 }

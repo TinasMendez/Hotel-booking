@@ -1,30 +1,50 @@
 package com.miapp.reservashotel.dto;
 
-import java.math.BigDecimal;
-import java.util.Set;
-
-import com.miapp.reservashotel.model.Feature;
-import com.miapp.reservashotel.model.Category;
-import com.miapp.reservashotel.model.City;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class ProductResponseDTO {
     private Long id;
     private String name;
     private String description;
     private String imageUrl;
-    private BigDecimal price;
-    private Boolean available;
-    private Category category;
-    private City city;
-    private Set<Feature> features;
+
+    public ProductResponseDTO() {}
+
+    public ProductResponseDTO(Long id, String name, String description, String imageUrl) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.imageUrl = imageUrl;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
 }
 

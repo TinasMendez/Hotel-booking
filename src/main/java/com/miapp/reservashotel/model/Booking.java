@@ -1,17 +1,35 @@
 package com.miapp.reservashotel.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDate;
 
+@Entity
+@Table(name = "bookings")
 public class Booking {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Foreign key to Product (assuming there's a Product entity)
+    @Column(name = "product_id", nullable = false)
     private Long productId;
+
+    // Foreign key to Customer (assuming there's a Customer entity)
+    @Column(name = "customer_id", nullable = false)
     private Long customerId;
+
+    @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
+
+    @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private BookingStatus status;
 
-    // Default constructor
+    // Default constructor (required by JPA)
     public Booking() {}
 
     // Parameterized constructor
@@ -73,7 +91,4 @@ public class Booking {
         this.status = status;
     }
 }
-
-
-
 
