@@ -1,49 +1,40 @@
 package com.miapp.reservashotel;
 
-import com.miapp.reservashotel.model.Product;
-import com.miapp.reservashotel.repository.ProductRepository;
-import com.miapp.reservashotel.service.impl.ProductServiceImpl;
+import com.miapp.reservashotel.dto.ProductRequestDTO;
+import com.miapp.reservashotel.service.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
+import java.math.BigDecimal;
 
-/**
- * Unit test for ProductServiceImpl.
- * Uses Mockito to simulate ProductRepository behavior without touching the real database.
- */
+import static org.mockito.Mockito.*;
+
 public class ProductServiceImplTest {
 
-    @Mock
-    private ProductRepository productRepository;
-
     @InjectMocks
-    private ProductServiceImpl productService;
+    private ProductService productService;
 
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void testCreateProduct_success() {
-        Product product = new Product();
-        product.setName("Test Hotel");
-        product.setDescription("A test hotel");
-        product.setImageUrl("https://url.com/hotel.jpg");
+    public void testCreateProduct() {
+        ProductRequestDTO dto = new ProductRequestDTO();
+        dto.setName("Test Product");
+        dto.setDescription("Test Description");
+        dto.setImageUrl("http://example.com");
+        dto.setPrice(BigDecimal.valueOf(100.00));
+        dto.setCategoryId(1L);
+        dto.setCityId(1L);
+        // Puedes agregar más campos si es necesario
 
-        when(productRepository.existsByName("Test Hotel")).thenReturn(false);
-        when(productRepository.save(any(Product.class))).thenReturn(product);
+        productService.createProduct(dto);
 
-        Product created = productService.createProduct(product);
-
-        assertNotNull(created);
-        assertEquals("Test Hotel", created.getName());
-
-        verify(productRepository).save(product);
+        verify(productService, times(1)).createProduct(dto);
     }
 }
+

@@ -1,16 +1,18 @@
 package com.miapp.reservashotel.service;
 
 import com.miapp.reservashotel.dto.CategoryRequestDTO;
-import com.miapp.reservashotel.model.Category;
+import com.miapp.reservashotel.dto.CategoryResponseDTO;
 
 import java.util.List;
 
 public interface CategoryService {
-    Category createCategory(CategoryRequestDTO dto);
-    Category updateCategory(Long id, CategoryRequestDTO dto);
+    CategoryResponseDTO createCategory(CategoryRequestDTO requestDTO);
+    CategoryResponseDTO updateCategory(Long id, CategoryRequestDTO requestDTO);
     void deleteCategory(Long id);
-    Category getCategoryById(Long id);
-    List<Category> listCategories();
+    CategoryResponseDTO getCategoryById(Long id);
+    List<CategoryResponseDTO> listCategories();
 }
+
+
 
 

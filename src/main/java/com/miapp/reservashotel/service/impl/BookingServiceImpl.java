@@ -30,9 +30,8 @@ public class BookingServiceImpl implements BookingService {
         booking.setStartDate(requestDTO.getStartDate());
         booking.setEndDate(requestDTO.getEndDate());
         booking.setStatus(BookingStatus.PENDING);
-        bookingRepository.save(booking);
-
-        return convertToDTO(booking);
+        Booking saved = bookingRepository.save(booking);
+        return convertToDTO(saved);
     }
 
     @Override
@@ -61,8 +60,8 @@ public class BookingServiceImpl implements BookingService {
         booking.setEndDate(requestDTO.getEndDate());
         booking.setStatus(BookingStatus.valueOf(requestDTO.getStatus().toUpperCase()));
 
-        bookingRepository.save(booking);
-        return convertToDTO(booking);
+        Booking saved = bookingRepository.save(booking);
+        return convertToDTO(saved);
     }
 
     @Override
@@ -71,8 +70,8 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
 
         booking.setStatus(BookingStatus.valueOf(status.toUpperCase()));
-        bookingRepository.save(booking);
-        return convertToDTO(booking);
+        Booking saved = bookingRepository.save(booking);
+        return convertToDTO(saved);
     }
 
     @Override
@@ -114,17 +113,16 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-public boolean isProductAvailable(Long productId, LocalDate startDate, LocalDate endDate) {
-    List<Booking> bookings = bookingRepository.findByProductIdAndStatus(productId, BookingStatus.CONFIRMED);
-    for (Booking booking : bookings) {
-        boolean overlaps = !(endDate.isBefore(booking.getStartDate()) || startDate.isAfter(booking.getEndDate()));
-        if (overlaps) {
-            return false; // Dates overlap, not available
+    public boolean isProductAvailable(Long productId, LocalDate startDate, LocalDate endDate) {
+        List<Booking> bookings = bookingRepository.findByProductIdAndStatus(productId, BookingStatus.CONFIRMED);
+        for (Booking booking : bookings) {
+            boolean overlaps = !(endDate.isBefore(booking.getStartDate()) || startDate.isAfter(booking.getEndDate()));
+            if (overlaps) {
+                return false; // Dates overlap, not available
+            }
         }
+        return true; // No overlaps found, available
     }
-    return true; // No overlaps found, available
-}
-
 
     private BookingResponseDTO convertToDTO(Booking booking) {
         return new BookingResponseDTO(
@@ -137,6 +135,8 @@ public boolean isProductAvailable(Long productId, LocalDate startDate, LocalDate
         );
     }
 }
+
+
 
 
 

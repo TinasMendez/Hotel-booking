@@ -1,22 +1,15 @@
-package com.miapp.reservashotel.model;
+package com.miapp.reservashotel.dto;
 
-import jakarta.persistence.*;
+public class CategoryResponseDTO {
 
-@Entity
-@Table(name = "categories")
-public class Category {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String name;
     private String description;
     private String imageUrl;
 
-    public Category() {}
+    public CategoryResponseDTO() {}
 
-    public Category(Long id, String name, String description, String imageUrl) {
+    public CategoryResponseDTO(Long id, String name, String description, String imageUrl) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -55,10 +48,4 @@ public class Category {
         this.imageUrl = imageUrl;
     }
 }
-
-
-
-
-
-
 

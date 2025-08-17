@@ -1,39 +1,73 @@
 package com.miapp.reservashotel.service.impl;
 
 import com.miapp.reservashotel.dto.CategoryRequestDTO;
+import com.miapp.reservashotel.dto.CategoryResponseDTO;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.repository.CategoryRepository;
 import com.miapp.reservashotel.service.CategoryService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
 
-    @Override
-    public Category createCategory(CategoryRequestDTO dto) {
-        if (categoryRepository.existsByName(dto.getName())) {
-            throw new ResourceNotFoundException("Category with this name already exists.");
-        }
-        Category category = new Category();
-        category.setName(dto.getName());
-        category.setDescription(dto.getDescription());
-        return categoryRepository.save(category);
+    public CategoryServiceImpl(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
-    public Category updateCategory(Long id, CategoryRequestDTO dto) {
+    public CategoryResponseDTO createCategory(CategoryRequestDTO categoryRequestDTO) {
+        Category category = new Category();
+        category.setName(categoryRequestDTO.getName());
+        category.setDescription(categoryRequestDTO.getDescription());
+        category.setImageUrl(categoryRequestDTO.getImageUrl());
+        category = categoryRepository.save(category);
+
+        return new CategoryResponseDTO(category.getId(), category.getName(), category.getDescription(), category.getImageUrl());
+    }
+
+    @Override
+    public CategoryResponseDTO getCategoryById(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
-        category.setName(dto.getName());
-        category.setDescription(dto.getDescription());
-        return categoryRepository.save(category);
+        return new CategoryResponseDTO(category.getId(), category.getName(), category.getDescription(), category.getImageUrl());
+    }
+
+    @Override
+    public List<CategoryResponseDTO> listCategories() {
+        List<Category> categories = categoryRepository.findAll();
+        List<CategoryResponseDTO> responseDTOList = new ArrayList<>();
+        for (Category category : categories) {
+            responseDTOList.add(new CategoryResponseDTO(
+                    category.getId(),
+                    category.getName(),
+                    category.getDescription(),
+                    category.getImageUrl()
+            ));
+        }
+        return responseDTOList;
+    }
+
+    @Override
+    public CategoryResponseDTO updateCategory(Long id, CategoryRequestDTO categoryRequestDTO) {
+        Optional<Category> optionalCategory = categoryRepository.findById(id);
+        if (optionalCategory.isPresent()) {
+            Category category = optionalCategory.get();
+            category.setName(categoryRequestDTO.getName());
+            category.setDescription(categoryRequestDTO.getDescription());
+            category.setImageUrl(categoryRequestDTO.getImageUrl());
+            category = categoryRepository.save(category);
+
+            return new CategoryResponseDTO(category.getId(), category.getName(), category.getDescription(), category.getImageUrl());
+        } else {
+            throw new ResourceNotFoundException("Category not found with id: " + id);
+        }
     }
 
     @Override
@@ -43,16 +77,11 @@ public class CategoryServiceImpl implements CategoryService {
         }
         categoryRepository.deleteById(id);
     }
-
-    @Override
-    public Category getCategoryById(Long id) {
-        return categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
-    }
-
-    @Override
-    public List<Category> listCategories() {
-        return categoryRepository.findAll();
-    }
 }
+
+
+
+
+
+
 

@@ -2,6 +2,7 @@ package com.miapp.reservashotel.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -13,45 +14,34 @@ public class Product {
     private Long id;
 
     private String name;
-
-    @Column(columnDefinition = "TEXT")
     private String description;
-
     private String imageUrl;
-
     private BigDecimal price;
 
-    private Boolean available;
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "city_id")
     private City city;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "product_feature",
-            joinColumns = @JoinColumn(name = "product_id"),
-            inverseJoinColumns = @JoinColumn(name = "feature_id")
+        name = "product_features",
+        joinColumns = @JoinColumn(name = "product_id"),
+        inverseJoinColumns = @JoinColumn(name = "feature_id")
     )
-    private Set<Feature> features;
+    private Set<Feature> features = new HashSet<>();
 
     public Product() {}
 
-    public Product(Long id, String name, String description, String imageUrl, BigDecimal price, Boolean available,
-                   Category category, City city, Set<Feature> features) {
+    public Product(Long id, String name, String description, String imageUrl, BigDecimal price) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.imageUrl = imageUrl;
         this.price = price;
-        this.available = available;
-        this.category = category;
-        this.city = city;
-        this.features = features;
     }
 
     public Long getId() {
@@ -92,14 +82,6 @@ public class Product {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
-    }
-
-    public Boolean getAvailable() {
-        return available;
-    }
-
-    public void setAvailable(Boolean available) {
-        this.available = available;
     }
 
     public Category getCategory() {

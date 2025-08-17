@@ -1,48 +1,49 @@
 package com.miapp.reservashotel.model;
 
 import jakarta.persistence.*;
-import java.util.HashSet;
-import java.util.Set;
+import org.springframework.security.core.GrantedAuthority;
 
 @Entity
 @Table(name = "roles")
-public class Role {
+public class Role implements GrantedAuthority {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
     private String name;
 
-    @ManyToMany(mappedBy = "roles")
-    private Set<User> users = new HashSet<>();
+    public Role() {}
 
-    // Getters
+    public Role(Long id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    // Getters and setters
+
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getName() {
         return name;
     }
 
-    public Set<User> getUsers() {
-        return users;
-    }
-
-    // Setters
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public void setName(String name) {
         this.name = name;
     }
 
-    public void setUsers(Set<User> users) {
-        this.users = users;
+    // Este método es requerido por GrantedAuthority
+    @Override
+    public String getAuthority() {
+        return name;
     }
 }
+
 
 

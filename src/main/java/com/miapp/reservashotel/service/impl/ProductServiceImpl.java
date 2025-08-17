@@ -1,160 +1,87 @@
 package com.miapp.reservashotel.service.impl;
 
 import com.miapp.reservashotel.dto.ProductRequestDTO;
+import com.miapp.reservashotel.dto.ProductResponseDTO;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
-import com.miapp.reservashotel.model.Category;
-import com.miapp.reservashotel.model.City;
-import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.model.Product;
-import com.miapp.reservashotel.repository.CategoryRepository;
-import com.miapp.reservashotel.repository.CityRepository;
-import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.service.ProductService;
-import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
 
 @Service
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
-    private final FeatureRepository featureRepository;
-    private final CategoryRepository categoryRepository;
-    private final CityRepository cityRepository;
 
-    public ProductServiceImpl(ProductRepository productRepository,
-                            FeatureRepository featureRepository,
-                            CategoryRepository categoryRepository,
-                            CityRepository cityRepository) {
+    public ProductServiceImpl(ProductRepository productRepository) {
         this.productRepository = productRepository;
-        this.featureRepository = featureRepository;
-        this.categoryRepository = categoryRepository;
-        this.cityRepository = cityRepository;
     }
 
     @Override
-    public Product createProductFromDTO(ProductRequestDTO dto) {
-        if (productRepository.existsByName(dto.getName())) {
-            throw new ResourceNotFoundException("Product with this name already exists.");
-        }
-
-        Category category = categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + dto.getCategoryId()));
-
-        City city = cityRepository.findById(dto.getCityId())
-                .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + dto.getCityId()));
-
-        Set<Feature> features = new HashSet<>();
-        if (dto.getFeatureIds() != null) {
-            for (Long featureId : dto.getFeatureIds()) {
-                Feature feature = featureRepository.findById(featureId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Feature not found with ID: " + featureId));
-                features.add(feature);
-            }
-        }
-
+    public ProductResponseDTO createProduct(ProductRequestDTO productRequestDTO) {
         Product product = new Product();
-        product.setName(dto.getName());
-        product.setDescription(dto.getDescription());
-        product.setImageUrl(dto.getImageUrl());
-        product.setPrice(BigDecimal.valueOf(dto.getPrice()));
-        product.setAvailable(dto.getAvailable());
-        product.setCategory(category);
-        product.setCity(city);
-        product.setFeatures(features);
+        product.setName(productRequestDTO.getName());
+        product.setDescription(productRequestDTO.getDescription());
+        product.setPrice(productRequestDTO.getPrice());
 
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+        return convertToResponseDTO(savedProduct);
     }
 
     @Override
-    public Product updateProduct(Long id, Product updatedProduct) {
-        Product existing = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+    public List<ProductResponseDTO> getAllProducts() {
+        List<Product> products = productRepository.findAll();
+        List<ProductResponseDTO> responseDTOs = new ArrayList<>();
+        for (Product product : products) {
+            responseDTOs.add(convertToResponseDTO(product));
+        }
+        return responseDTOs;
+    }
 
-        existing.setName(updatedProduct.getName());
-        existing.setDescription(updatedProduct.getDescription());
-        existing.setImageUrl(updatedProduct.getImageUrl());
-        existing.setPrice(updatedProduct.getPrice());
-        existing.setAvailable(updatedProduct.getAvailable());
-        existing.setCategory(updatedProduct.getCategory());
-        existing.setCity(updatedProduct.getCity());
-        existing.setFeatures(updatedProduct.getFeatures());
+    @Override
+    public ProductResponseDTO getProductById(Long id) {
+        Product product = productRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + id));
+        return convertToResponseDTO(product);
+    }
 
-        return productRepository.save(existing);
+    @Override
+    public ProductResponseDTO updateProduct(Long id, ProductRequestDTO productRequestDTO) {
+        Product product = productRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + id));
+
+        product.setName(productRequestDTO.getName());
+        product.setDescription(productRequestDTO.getDescription());
+        product.setPrice(productRequestDTO.getPrice());
+
+        Product updatedProduct = productRepository.save(product);
+        return convertToResponseDTO(updatedProduct);
     }
 
     @Override
     public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product not found with id: " + id);
-        }
-        productRepository.deleteById(id);
+        Product product = productRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + id));
+        productRepository.delete(product);
     }
 
-    @Override
-    public Product getProductById(Long id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
-    }
-
-    @Override
-    public List<Product> listProducts() {
-        return productRepository.findAll();
-    }
-
-    @Override
-    public void assignFeaturesToProduct(Long productId, Set<Long> featureIds) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
-
-        Set<Feature> features = new HashSet<>();
-        for (Long featureId : featureIds) {
-            Feature feature = featureRepository.findById(featureId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Feature not found with id: " + featureId));
-            features.add(feature);
-        }
-
-        product.setFeatures(features);
-        productRepository.save(product);
-    }
-
-    @Override
-    public List<Product> getProductsByCategoryId(Long categoryId) {
-        return productRepository.findByCategoryId(categoryId);
-    }
-
-    @Override
-    public List<Product> findProductsByCity(String cityName) {
-        return productRepository.findByCity_NameIgnoreCase(cityName);
-    }
-
-    @Override
-    public List<Product> findAvailableProducts() {
-        return productRepository.findByAvailableTrue();
-    }
-
-    @Override
-    public List<Product> findProductsByPriceRange(BigDecimal min, BigDecimal max) {
-        return productRepository.findByPriceBetween(min, max);
-    }
-
-    @Override
-    public List<Product> findProductsByFeatureName(String featureName) {
-        return productRepository.findByFeatures_NameIgnoreCase(featureName);
-    }
-
-    @Override
-    public List<Product> findAvailableProductsByCity(String city) {
-        return productRepository.findByAvailableTrueAndCity_NameIgnoreCase(city);
-    }
-
-    @Override
-    public Product createProduct(Product product) {
-        return productRepository.save(product);
+    private ProductResponseDTO convertToResponseDTO(Product product) {
+        ProductResponseDTO dto = new ProductResponseDTO();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setDescription(product.getDescription());
+        dto.setPrice(product.getPrice());
+        return dto;
     }
 }
+
+
+
+
+
 
