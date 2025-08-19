@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.miapp.reservashotel</groupId>
@@ -14,7 +14,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.3</version>
+    <version>3.5.4</version>
     <relativePath/>
   </parent>
 
@@ -41,7 +41,7 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- Spring Security -->
+    <!-- Security -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
@@ -72,14 +72,14 @@
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
 
-    <!-- Swagger -->
+    <!-- Swagger/OpenAPI -->
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>2.6.0</version>
     </dependency>
 
-    <!-- Lombok -->
+    <!-- Lombok (opcional en tiempo de compilación) -->
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
@@ -87,12 +87,14 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- DevTools -->
+    <!-- DevTools (solo runtime) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-devtools</artifactId>
       <scope>runtime</scope>
     </dependency>
+
+    <!-- ===== TEST ===== -->
 
     <!-- H2 para tests -->
     <dependency>
@@ -101,12 +103,13 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Test sin mockito-core -->
+    <!-- Starter de test (incluye JUnit Jupiter + AssertJ + Spring Test) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
       <exclusions>
+        <!-- Excluimos mockito-core para controlar versiones abajo -->
         <exclusion>
           <groupId>org.mockito</groupId>
           <artifactId>mockito-core</artifactId>
@@ -114,11 +117,19 @@
       </exclusions>
     </dependency>
 
-    <!-- Mockito -->
+    <!-- Mockito Core -->
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>5.3.1</version>
+      <version>5.12.0</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Mockito JUnit Jupiter (necesario para @ExtendWith(MockitoExtension.class)) -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>5.12.0</version>
       <scope>test</scope>
     </dependency>
 
@@ -128,36 +139,24 @@
       <artifactId>spring-security-test</artifactId>
       <scope>test</scope>
     </dependency>
-
-    <!-- Jakarta Persistence -->
-    <dependency>
-      <groupId>jakarta.persistence</groupId>
-      <artifactId>jakarta.persistence-api</artifactId>
-      <version>3.1.0</version>
-    </dependency>
-
-    <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.3</version>
         <configuration>
-          <release>${java.version}</release>
-          <compilerArgs>
-            <arg>-parameters</arg>
-          </compilerArgs>
+          <systemPropertyVariables>
+            <!-- Ejecutar siempre con el perfil 'test' -->
+            <spring.profiles.active>test</spring.profiles.active>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
     </plugins>
   </build>
 
 </project>
+
 

@@ -5,34 +5,39 @@ import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.service.FeatureService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * Feature service without Lombok; manual constructor; basic CRUD.
+ */
 @Service
-@RequiredArgsConstructor
 public class FeatureServiceImpl implements FeatureService {
 
     private final FeatureRepository featureRepository;
 
+    public FeatureServiceImpl(FeatureRepository featureRepository) {
+        this.featureRepository = featureRepository;
+    }
+
     @Override
     public Feature createFromDTO(FeatureRequestDTO dto) {
-        Feature feature = new Feature();
-        feature.setName(dto.getName());
-        feature.setDescription(dto.getDescription());
-        feature.setIcon(dto.getIcon());
-        return featureRepository.save(feature);
+        Feature f = new Feature();
+        f.setName(dto.getName());
+        f.setDescription(dto.getDescription());
+        f.setIcon(dto.getIcon());
+        return featureRepository.save(f);
     }
 
     @Override
     public Feature updateFromDTO(Long id, FeatureRequestDTO dto) {
-        Feature existing = featureRepository.findById(id)
+        Feature f = featureRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Feature not found with id: " + id));
-        existing.setName(dto.getName());
-        existing.setDescription(dto.getDescription());
-        existing.setIcon(dto.getIcon());
-        return featureRepository.save(existing);
+        f.setName(dto.getName());
+        f.setDescription(dto.getDescription());
+        f.setIcon(dto.getIcon());
+        return featureRepository.save(f);
     }
 
     @Override
@@ -46,7 +51,7 @@ public class FeatureServiceImpl implements FeatureService {
         return featureRepository.findAll();
     }
 
-    @Override
+    // Extra helper (not declared in interface) – used by controllers if needed
     public void deleteFeature(Long id) {
         if (!featureRepository.existsById(id)) {
             throw new ResourceNotFoundException("Feature not found with id: " + id);

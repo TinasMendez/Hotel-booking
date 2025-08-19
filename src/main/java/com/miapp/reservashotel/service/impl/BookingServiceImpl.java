@@ -13,98 +13,122 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Booking service implementation designed for:
+ *  - Using productId and customerId as Long (no Product object).
+ *  - Overlap validation on create/update.
+ *  - Filtering by status and date ranges.
+ */
 @Service
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
 
+    // Manual constructor injection
     public BookingServiceImpl(BookingRepository bookingRepository) {
         this.bookingRepository = bookingRepository;
     }
 
     @Override
     public BookingResponseDTO createBooking(BookingRequestDTO requestDTO) {
-        Booking booking = new Booking();
-        booking.setProductId(requestDTO.getProductId());
-        booking.setCustomerId(requestDTO.getCustomerId());
-        booking.setStartDate(requestDTO.getStartDate());
-        booking.setEndDate(requestDTO.getEndDate());
-        booking.setStatus(BookingStatus.PENDING);
-        Booking saved = bookingRepository.save(booking);
-        return convertToDTO(saved);
+        // Validate availability before creating
+        if (!isProductAvailable(requestDTO.getProductId(), requestDTO.getStartDate(), requestDTO.getEndDate())) {
+            throw new IllegalArgumentException("Product is not available for the selected date range");
+        }
+
+        Booking b = new Booking();
+        b.setProductId(requestDTO.getProductId());
+        b.setCustomerId(requestDTO.getCustomerId());
+        b.setStartDate(requestDTO.getStartDate());
+        b.setEndDate(requestDTO.getEndDate());
+
+        // Default status if client didn't send it
+        if (requestDTO.getStatus() == null || requestDTO.getStatus().isBlank()) {
+            b.setStatus(BookingStatus.PENDING);
+        } else {
+            b.setStatus(BookingStatus.valueOf(requestDTO.getStatus().toUpperCase()));
+        }
+
+        Booking saved = bookingRepository.save(b);
+        return toDTO(saved);
     }
 
     @Override
     public List<BookingResponseDTO> getAllBookings() {
-        return bookingRepository.findAll()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return bookingRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     @Override
     public BookingResponseDTO getBookingById(Long id) {
-        Booking booking = bookingRepository.findById(id)
+        Booking b = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
-        return convertToDTO(booking);
+        return toDTO(b);
     }
 
     @Override
     public BookingResponseDTO updateBooking(Long id, BookingRequestDTO requestDTO) {
-        Booking booking = bookingRepository.findById(id)
+        Booking b = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
 
-        booking.setProductId(requestDTO.getProductId());
-        booking.setCustomerId(requestDTO.getCustomerId());
-        booking.setStartDate(requestDTO.getStartDate());
-        booking.setEndDate(requestDTO.getEndDate());
-        booking.setStatus(BookingStatus.valueOf(requestDTO.getStatus().toUpperCase()));
+        // Check availability excluding the current booking
+        boolean available = bookingRepository.findAll().stream()
+                .filter(existing -> !existing.getId().equals(id))
+                .filter(existing -> existing.getProductId().equals(requestDTO.getProductId()))
+                .filter(existing -> existing.getStatus() != BookingStatus.CANCELLED)
+                .anyMatch(existing -> overlaps(existing.getStartDate(), existing.getEndDate(), requestDTO.getStartDate(), requestDTO.getEndDate()))
+                ? false : true;
 
-        Booking saved = bookingRepository.save(booking);
-        return convertToDTO(saved);
+        if (!available) {
+            throw new IllegalArgumentException("Product is not available for the selected date range");
+        }
+
+        b.setProductId(requestDTO.getProductId());
+        b.setCustomerId(requestDTO.getCustomerId());
+        b.setStartDate(requestDTO.getStartDate());
+        b.setEndDate(requestDTO.getEndDate());
+
+        if (requestDTO.getStatus() != null && !requestDTO.getStatus().isBlank()) {
+            b.setStatus(BookingStatus.valueOf(requestDTO.getStatus().toUpperCase()));
+        }
+
+        Booking saved = bookingRepository.save(b);
+        return toDTO(saved);
     }
 
     @Override
     public BookingResponseDTO updateBookingStatus(Long id, String status) {
-        Booking booking = bookingRepository.findById(id)
+        Booking b = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
 
-        booking.setStatus(BookingStatus.valueOf(status.toUpperCase()));
-        Booking saved = bookingRepository.save(booking);
-        return convertToDTO(saved);
+        b.setStatus(BookingStatus.valueOf(status.toUpperCase()));
+        Booking saved = bookingRepository.save(b);
+        return toDTO(saved);
     }
 
     @Override
     public void deleteBooking(Long id) {
-        if (!bookingRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Booking not found with id: " + id);
-        }
-        bookingRepository.deleteById(id);
+        Booking b = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+        bookingRepository.delete(b);
     }
 
     @Override
     public List<BookingResponseDTO> getBookingsByCustomerId(Long customerId) {
         return bookingRepository.findByCustomerId(customerId)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     @Override
     public List<BookingResponseDTO> getBookingsByStatus(String status) {
-        BookingStatus statusEnum = BookingStatus.valueOf(status.toUpperCase());
-        return bookingRepository.findByStatus(statusEnum)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        BookingStatus st = BookingStatus.valueOf(status.toUpperCase());
+        return bookingRepository.findByStatus(st)
+                .stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     @Override
     public List<BookingResponseDTO> getBookingsBetweenDates(LocalDate startDate, LocalDate endDate) {
         return bookingRepository.findByStartDateBetween(startDate, endDate)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     @Override
@@ -114,27 +138,35 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public boolean isProductAvailable(Long productId, LocalDate startDate, LocalDate endDate) {
-        List<Booking> bookings = bookingRepository.findByProductIdAndStatus(productId, BookingStatus.CONFIRMED);
-        for (Booking booking : bookings) {
-            boolean overlaps = !(endDate.isBefore(booking.getStartDate()) || startDate.isAfter(booking.getEndDate()));
-            if (overlaps) {
-                return false; // Dates overlap, not available
-            }
-        }
-        return true; // No overlaps found, available
+        // product is available if there is NO overlapping booking with status != CANCELLED
+        return bookingRepository.findAll().stream()
+                .filter(b -> b.getProductId().equals(productId))
+                .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
+                .noneMatch(b -> overlaps(b.getStartDate(), b.getEndDate(), startDate, endDate));
     }
 
-    private BookingResponseDTO convertToDTO(Booking booking) {
-        return new BookingResponseDTO(
-                booking.getId(),
-                booking.getProductId(),
-                booking.getCustomerId(),
-                booking.getStartDate(),
-                booking.getEndDate(),
-                booking.getStatus().name()
-        );
+    // ===== Helpers =====
+
+    private boolean overlaps(LocalDate aStart, LocalDate aEnd, LocalDate bStart, LocalDate bEnd) {
+        // Two [start,end] ranges overlap if (aStart <= bEnd) and (bStart <= aEnd)
+        return (aStart.isBefore(bEnd) || aStart.equals(bEnd))
+                && (bStart.isBefore(aEnd) || bStart.equals(aEnd));
+    }
+
+    private BookingResponseDTO toDTO(Booking b) {
+        BookingResponseDTO dto = new BookingResponseDTO();
+        dto.setId(b.getId());
+        dto.setCustomerId(b.getCustomerId());
+        dto.setProductId(b.getProductId());
+        // The project uses startDate/endDate in model; DTO historically used checkIn/Out.
+        // Both set as names consistently as "checkInDate"/"checkOutDate".
+        dto.setCheckInDate(b.getStartDate());
+        dto.setCheckOutDate(b.getEndDate());
+        dto.setStatus(b.getStatus() != null ? b.getStatus().name() : null);
+        return dto;
     }
 }
+
 
 
 

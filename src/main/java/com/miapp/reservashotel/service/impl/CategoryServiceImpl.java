@@ -8,66 +8,41 @@ import com.miapp.reservashotel.repository.CategoryRepository;
 import com.miapp.reservashotel.service.CategoryService;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
+/**
+ * Category service without Lombok; DTO mapping included.
+ */
 @Service
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
 
+    // Manual constructor injection
     public CategoryServiceImpl(CategoryRepository categoryRepository) {
         this.categoryRepository = categoryRepository;
     }
 
     @Override
-    public CategoryResponseDTO createCategory(CategoryRequestDTO categoryRequestDTO) {
-        Category category = new Category();
-        category.setName(categoryRequestDTO.getName());
-        category.setDescription(categoryRequestDTO.getDescription());
-        category.setImageUrl(categoryRequestDTO.getImageUrl());
-        category = categoryRepository.save(category);
-
-        return new CategoryResponseDTO(category.getId(), category.getName(), category.getDescription(), category.getImageUrl());
+    public CategoryResponseDTO createCategory(CategoryRequestDTO requestDTO) {
+        Category c = new Category();
+        c.setName(requestDTO.getName());
+        c.setDescription(requestDTO.getDescription());
+        c.setImageUrl(requestDTO.getImageUrl());
+        Category saved = categoryRepository.save(c);
+        return toDTO(saved);
     }
 
     @Override
-    public CategoryResponseDTO getCategoryById(Long id) {
-        Category category = categoryRepository.findById(id)
+    public CategoryResponseDTO updateCategory(Long id, CategoryRequestDTO requestDTO) {
+        Category c = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
-        return new CategoryResponseDTO(category.getId(), category.getName(), category.getDescription(), category.getImageUrl());
-    }
-
-    @Override
-    public List<CategoryResponseDTO> listCategories() {
-        List<Category> categories = categoryRepository.findAll();
-        List<CategoryResponseDTO> responseDTOList = new ArrayList<>();
-        for (Category category : categories) {
-            responseDTOList.add(new CategoryResponseDTO(
-                    category.getId(),
-                    category.getName(),
-                    category.getDescription(),
-                    category.getImageUrl()
-            ));
-        }
-        return responseDTOList;
-    }
-
-    @Override
-    public CategoryResponseDTO updateCategory(Long id, CategoryRequestDTO categoryRequestDTO) {
-        Optional<Category> optionalCategory = categoryRepository.findById(id);
-        if (optionalCategory.isPresent()) {
-            Category category = optionalCategory.get();
-            category.setName(categoryRequestDTO.getName());
-            category.setDescription(categoryRequestDTO.getDescription());
-            category.setImageUrl(categoryRequestDTO.getImageUrl());
-            category = categoryRepository.save(category);
-
-            return new CategoryResponseDTO(category.getId(), category.getName(), category.getDescription(), category.getImageUrl());
-        } else {
-            throw new ResourceNotFoundException("Category not found with id: " + id);
-        }
+        c.setName(requestDTO.getName());
+        c.setDescription(requestDTO.getDescription());
+        c.setImageUrl(requestDTO.getImageUrl());
+        Category saved = categoryRepository.save(c);
+        return toDTO(saved);
     }
 
     @Override
@@ -77,7 +52,30 @@ public class CategoryServiceImpl implements CategoryService {
         }
         categoryRepository.deleteById(id);
     }
+
+    @Override
+    public CategoryResponseDTO getCategoryById(Long id) {
+        Category c = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+        return toDTO(c);
+    }
+
+    @Override
+    public List<CategoryResponseDTO> listCategories() {
+        return categoryRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    // ===== Mapping helper =====
+    private CategoryResponseDTO toDTO(Category c) {
+        CategoryResponseDTO dto = new CategoryResponseDTO();
+        dto.setId(c.getId());
+        dto.setName(c.getName());
+        dto.setDescription(c.getDescription());
+        dto.setImageUrl(c.getImageUrl());
+        return dto;
+    }
 }
+
 
 
 

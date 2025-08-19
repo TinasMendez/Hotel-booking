@@ -9,11 +9,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.miapp.reservashotel.service.ProductService;
+
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
-
-    private final ProductService productService;
+    private final ProductService productService;   
 
     public ProductController(ProductService productService) {
         this.productService = productService;
