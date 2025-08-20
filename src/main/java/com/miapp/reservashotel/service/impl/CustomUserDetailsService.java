@@ -1,52 +1,57 @@
 package com.miapp.reservashotel.service.impl;
 
+import com.miapp.reservashotel.model.Role;
 import com.miapp.reservashotel.model.User;
 import com.miapp.reservashotel.repository.UserRepository;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * CustomUserDetailsService that loads a user by USERNAME (not email),
- * because the current LoginRequest uses "username" and the AuthController authenticates with it.
+ * Custom UserDetailsService implementation.
+ * Loads users by email (username parameter is treated as email).
  */
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
-    // Manual constructor injection (no Lombok)
     public CustomUserDetailsService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
+    // NOTE: We do not declare "throws UsernameNotFoundException" because it's a RuntimeException (unchecked).
     @Override
-    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
-        // Prefer username for now to align with LoginRequest and AuthController
-        User user = userRepository.findByUsername(usernameOrEmail)
-                .orElseGet(() -> userRepository.findByEmail(usernameOrEmail)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not found: " + usernameOrEmail)));
+    public UserDetails loadUserByUsername(String usernameOrEmail) {
+        // Treat the provided username as email; support both finders for robustness.
+        User user = userRepository.findByEmail(usernameOrEmail.toLowerCase())
+                .or(() -> userRepository.findByUsername(usernameOrEmail))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + usernameOrEmail));
 
-        // If your User implements UserDetails, you could return it directly.
-        // Returning Spring's User gives us a clean separation and avoids circular refs.
-        Set<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+        // Map roles to authorities
+        Set<SimpleGrantedAuthority> authorities = user.getRoles()
+                .stream()
+                .map(Role::getName)
+                .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toSet());
 
-        return new org.springframework.security.core.userdetails.User(
-                // subject stored in JWT (see JwtUtil) => username
-                user.getUsername(),
-                user.getPassword(),
-                authorities
-        );
+        // IMPORTANT: Domain User uses email as username for Spring Security
+        return org.springframework.security.core.userdetails.User
+                .withUsername(user.getEmail()) // username = email
+                .password(user.getPassword())
+                .authorities(authorities)
+                .disabled(!user.isEnabled())
+                .accountExpired(false)
+                .accountLocked(false)
+                .credentialsExpired(false)
+                .build();
     }
 }
+
+
 
 
 

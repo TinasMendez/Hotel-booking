@@ -1,27 +1,30 @@
 package com.miapp.reservashotel.model;
 
 import jakarta.persistence.*;
-import org.springframework.security.core.GrantedAuthority;
+import java.io.Serializable;
 
+/**
+ * Role entity without Lombok. Represents application roles like ROLE_USER and ROLE_ADMIN.
+ */
 @Entity
 @Table(name = "roles")
-public class Role implements GrantedAuthority {
+public class Role implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name="name", unique = true, nullable = false, length = 50)
     private String name;
 
-    public Role() {}
+    public Role() {
+    }
 
-    public Role(Long id, String name) {
-        this.id = id;
+    public Role(String name) {
         this.name = name;
     }
 
-    // Getters and setters
-
+    // Getters and setters (manual, no Lombok)
     public Long getId() {
         return id;
     }
@@ -37,13 +40,8 @@ public class Role implements GrantedAuthority {
     public void setName(String name) {
         this.name = name;
     }
-
-    // Este método es requerido por GrantedAuthority
-    @Override
-    public String getAuthority() {
-        return name;
-    }
 }
+
 
 
 
