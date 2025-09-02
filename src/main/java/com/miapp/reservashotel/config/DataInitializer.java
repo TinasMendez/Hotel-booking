@@ -11,15 +11,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Seeds base roles and an admin user on startup if they don't exist.
- * Safe to keep in production because it only creates missing data.
+ * Safe for prod: only creates missing data.
  */
 @Configuration
 public class DataInitializer {
 
     @Bean
     public CommandLineRunner seedBaseData(RoleRepository roleRepository,
-                                        UserRepository userRepository,
-                                        PasswordEncoder passwordEncoder) {
+                                          UserRepository userRepository,
+                                          PasswordEncoder passwordEncoder) {
         return args -> {
             // Ensure roles
             Role roleUser = roleRepository.findByName("ROLE_USER")
@@ -27,14 +27,14 @@ public class DataInitializer {
             Role roleAdmin = roleRepository.findByName("ROLE_ADMIN")
                     .orElseGet(() -> roleRepository.save(new Role("ROLE_ADMIN")));
 
-            // Ensure an admin user for testing
+            // Ensure an admin user
             String adminEmail = "admin@admin.com";
             if (userRepository.findByEmail(adminEmail).isEmpty()) {
                 User admin = new User();
                 admin.setFirstName("Admin");
                 admin.setLastName("User");
                 admin.setEmail(adminEmail);
-                admin.setPassword(passwordEncoder.encode("Admin123*")); // Change in production
+                admin.setPassword(passwordEncoder.encode("Admin123*")); 
                 admin.setEnabled(true);
                 admin.addRole(roleUser);
                 admin.addRole(roleAdmin);
@@ -43,4 +43,3 @@ public class DataInitializer {
         };
     }
 }
-

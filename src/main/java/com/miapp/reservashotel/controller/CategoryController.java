@@ -8,16 +8,17 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Category controller with CRUD endpoints.
+ * DELETE endpoint added to fulfill Sprint 3 #29
+ */
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
 
     private final CategoryService categoryService;
 
-    // Constructor injection of the service
-    public CategoryController(CategoryService categoryService) {
-        this.categoryService = categoryService;
-    }
+    public CategoryController(CategoryService categoryService) { this.categoryService = categoryService; }
 
     @PostMapping
     public ResponseEntity<CategoryResponseDTO> createCategory(@RequestBody CategoryRequestDTO requestDTO) {
@@ -26,9 +27,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryResponseDTO> updateCategory(
-            @PathVariable Long id,
-            @RequestBody CategoryRequestDTO requestDTO) {
+    public ResponseEntity<CategoryResponseDTO> updateCategory(@PathVariable Long id, @RequestBody CategoryRequestDTO requestDTO) {
         CategoryResponseDTO responseDTO = categoryService.updateCategory(id, requestDTO);
         return ResponseEntity.ok(responseDTO);
     }
@@ -40,7 +39,7 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponseDTO> getCategory(@PathVariable Long id) {
+    public ResponseEntity<CategoryResponseDTO> getCategoryById(@PathVariable Long id) {
         CategoryResponseDTO responseDTO = categoryService.getCategoryById(id);
         return ResponseEntity.ok(responseDTO);
     }
@@ -51,6 +50,7 @@ public class CategoryController {
         return ResponseEntity.ok(categories);
     }
 }
+
 
 
 
