@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -39,10 +38,10 @@ public class AuthController {
     private final RoleRepository roleRepository;
 
     public AuthController(AuthenticationManager authenticationManager,
-                          PasswordEncoder passwordEncoder,
-                          JwtService jwtService,
-                          UserRepository userRepository,
-                          RoleRepository roleRepository) {
+                        PasswordEncoder passwordEncoder,
+                        JwtService jwtService,
+                        UserRepository userRepository,
+                        RoleRepository roleRepository) {
         this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;

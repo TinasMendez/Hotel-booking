@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.miapp.reservashotel.service.ProductService;
 
+@SuppressWarnings("unused")
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
