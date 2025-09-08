@@ -109,6 +109,35 @@
   </dependencies>
 
   <build>
+  <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-enforcer-plugin</artifactId>
+      <version>3.4.1</version>
+      <executions>
+        <execution>
+          <id>enforce-no-legacy-swagger</id>
+          <goals>
+            <goal>enforce</goal>
+          </goals>
+          <configuration>
+            <rules>
+              <bannedDependencies>
+                <excludes>
+                  <!-- Springfox (legacy Swagger) -->
+                  <exclude>io.springfox:*</exclude>
+                  <!-- Swagger UI webjar antiguo -->
+                  <exclude>org.webjars:swagger-ui</exclude>
+                  <!-- Artefacto legacy de springdoc (usa el starter webmvc-ui que ya agregaste) -->
+                  <exclude>org.springdoc:springdoc-openapi-ui</exclude>
+                </excludes>
+              </bannedDependencies>
+            </rules>
+            <fail>true</fail>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>
+
     <plugins>
       <!-- Ensure Java 21 compilation -->
       <plugin>
