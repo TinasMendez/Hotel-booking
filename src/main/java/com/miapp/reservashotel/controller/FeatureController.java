@@ -3,52 +3,54 @@ package com.miapp.reservashotel.controller;
 import com.miapp.reservashotel.dto.FeatureRequestDTO;
 import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.service.FeatureService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 
-@Tag(name = "Feature", description = "Feature endpoints for managing hotel features")
+/**
+ * Feature REST API.
+ * No Lombok and no FeatureResponseDTO (service returns Feature entities).
+ * DTOs live in com.miapp.reservashotel.dto.
+ */
 @RestController
 @RequestMapping("/api/features")
-@RequiredArgsConstructor
 public class FeatureController {
 
     private final FeatureService featureService;
 
-    @Operation(summary = "Create a new feature", description = "Creates a new feature based on the provided data.")
-    @PostMapping
-    public ResponseEntity<Feature> createFeature(@Valid @RequestBody FeatureRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(featureService.createFromDTO(dto));
+    public FeatureController(FeatureService featureService) {
+        this.featureService = featureService;
     }
 
-    @Operation(summary = "Get all features", description = "Returns a list of all available features.")
     @GetMapping
-    public ResponseEntity<List<Feature>> getAllFeatures() {
+    public ResponseEntity<List<Feature>> getAll() {
         return ResponseEntity.ok(featureService.listFeatures());
     }
 
-    @Operation(summary = "Get a feature by ID", description = "Returns the feature that matches the provided ID.")
     @GetMapping("/{id}")
-    public ResponseEntity<Feature> getFeatureById(@PathVariable Long id) {
+    public ResponseEntity<Feature> getById(@PathVariable Long id) {
         return ResponseEntity.ok(featureService.getFeatureById(id));
     }
 
-    @Operation(summary = "Update a feature by ID", description = "Updates the feature with the given ID using the new data provided.")
-    @PutMapping("/{id}")
-    public ResponseEntity<Feature> updateFeature(@PathVariable Long id, @Valid @RequestBody FeatureRequestDTO dto) {
-        return ResponseEntity.ok(featureService.updateFromDTO(id, dto));
+    @PostMapping
+    public ResponseEntity<Feature> create(@RequestBody @Valid FeatureRequestDTO dto) {
+        Feature created = featureService.createFromDTO(dto);
+        return ResponseEntity.ok(created);
     }
 
-    @Operation(summary = "Delete a feature by ID", description = "Deletes the feature that matches the provided ID.")
+    @PutMapping("/{id}")
+    public ResponseEntity<Feature> update(@PathVariable Long id,
+                                            @RequestBody @Valid FeatureRequestDTO dto) {
+        Feature updated = featureService.updateFromDTO(id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteFeature(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         featureService.deleteFeature(id);
         return ResponseEntity.noContent().build();
     }
 }
+
