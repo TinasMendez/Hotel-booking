@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 public class BookingRequestDTO {
+    
     @NotNull(message = "Product ID is required")
     private Long productId;
 
@@ -67,5 +68,7 @@ public class BookingRequestDTO {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    
 }
 

@@ -15,9 +15,13 @@ import java.util.stream.Collectors;
 
 /**
  * Booking service implementation designed for:
- *  - Using productId and customerId as Long (no Product object).
- *  - Overlap validation on create/update.
+ *  - Using productId and customerId as Long (no Product relation in the entity).
+ *  - Overlap validation delegated to the repository (DB-side) for efficiency.
  *  - Filtering by status and date ranges.
+ *
+ * IMPORTANT:
+ * - Availability is computed via repository queries (existsOverlapping / existsOverlappingExcludingId)
+ *   which align with the Booking entity fields (productId, startDate, endDate, status).
  */
 @Service
 public class BookingServiceImpl implements BookingService {
@@ -31,7 +35,10 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponseDTO createBooking(BookingRequestDTO requestDTO) {
-        // Validate availability before creating
+        // Validate request dates consistency
+        validateDates(requestDTO.getStartDate(), requestDTO.getEndDate());
+
+        // Validate availability before creating using DB-side overlap check
         if (!isProductAvailable(requestDTO.getProductId(), requestDTO.getStartDate(), requestDTO.getEndDate())) {
             throw new IllegalArgumentException("Product is not available for the selected date range");
         }
@@ -70,18 +77,22 @@ public class BookingServiceImpl implements BookingService {
         Booking b = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
 
-        // Check availability excluding the current booking
-        boolean available = bookingRepository.findAll().stream()
-                .filter(existing -> !existing.getId().equals(id))
-                .filter(existing -> existing.getProductId().equals(requestDTO.getProductId()))
-                .filter(existing -> existing.getStatus() != BookingStatus.CANCELLED)
-                .anyMatch(existing -> overlaps(existing.getStartDate(), existing.getEndDate(), requestDTO.getStartDate(), requestDTO.getEndDate()))
-                ? false : true;
+        // Validate request dates consistency
+        validateDates(requestDTO.getStartDate(), requestDTO.getEndDate());
 
-        if (!available) {
+        // Check availability excluding the current booking to avoid self-overlap
+        boolean overlapExists = bookingRepository.existsOverlappingExcludingId(
+                id,
+                requestDTO.getProductId(),
+                requestDTO.getStartDate(),
+                requestDTO.getEndDate(),
+                BookingStatus.CANCELLED
+        );
+        if (overlapExists) {
             throw new IllegalArgumentException("Product is not available for the selected date range");
         }
 
+        // Update fields
         b.setProductId(requestDTO.getProductId());
         b.setCustomerId(requestDTO.getCustomerId());
         b.setStartDate(requestDTO.getStartDate());
@@ -138,19 +149,32 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public boolean isProductAvailable(Long productId, LocalDate startDate, LocalDate endDate) {
-        // product is available if there is NO overlapping booking with status != CANCELLED
-        return bookingRepository.findAll().stream()
-                .filter(b -> b.getProductId().equals(productId))
-                .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
-                .noneMatch(b -> overlaps(b.getStartDate(), b.getEndDate(), startDate, endDate));
+        // Validate request dates first
+        validateDates(startDate, endDate);
+
+        // Product is available if there is NO overlapping booking with status != CANCELLED
+        boolean overlapExists = bookingRepository.existsOverlapping(
+                productId,
+                startDate,
+                endDate,
+                BookingStatus.CANCELLED
+        );
+        return !overlapExists;
     }
 
     // ===== Helpers =====
 
-    private boolean overlaps(LocalDate aStart, LocalDate aEnd, LocalDate bStart, LocalDate bEnd) {
-        // Two [start,end] ranges overlap if (aStart <= bEnd) and (bStart <= aEnd)
-        return (aStart.isBefore(bEnd) || aStart.equals(bEnd))
-                && (bStart.isBefore(aEnd) || bStart.equals(aEnd));
+    /**
+     * Validates that startDate <= endDate.
+     * This keeps the API defensive against bad client input.
+     */
+    private void validateDates(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new IllegalArgumentException("startDate and endDate are required");
+        }
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("endDate cannot be before startDate");
+        }
     }
 
     private BookingResponseDTO toDTO(Booking b) {
@@ -158,15 +182,13 @@ public class BookingServiceImpl implements BookingService {
         dto.setId(b.getId());
         dto.setCustomerId(b.getCustomerId());
         dto.setProductId(b.getProductId());
-        // The project uses startDate/endDate in model; DTO historically used checkIn/Out.
-        // Both set as names consistently as "checkInDate"/"checkOutDate".
+        // The project uses startDate/endDate in the entity; DTO exposes checkInDate/checkOutDate.
         dto.setCheckInDate(b.getStartDate());
         dto.setCheckOutDate(b.getEndDate());
         dto.setStatus(b.getStatus() != null ? b.getStatus().name() : null);
         return dto;
     }
 }
-
 
 
 
