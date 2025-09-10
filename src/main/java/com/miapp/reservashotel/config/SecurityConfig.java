@@ -11,17 +11,19 @@ import org.springframework.security.web.SecurityFilterChain;
  * Security configuration (no AuthenticationManager bean here).
  *
  * Key points:
- * - Enables CORS (uses WebConfig.corsConfigurationSource()).
- * - Disables CSRF for stateless REST API.
- * - Allows anonymous GET requests to /api/products/** for the public catalog.
- * - Allows Swagger/OpenAPI endpoints.
- * - Allows all OPTIONS requests (CORS preflight).
+ * - Uses the CorsConfigurationSource bean declared in WebConfig (http.cors()).
+ * - Disables CSRF for a stateless REST API with JWT.
+ * - Permits anonymous access to:
+ *   - POST auth endpoints (login/register).
+ *   - GET catalog endpoints (products, categories).
+ *   - GET availability endpoints (availability / blocked-dates) used by the calendar/search.
+ *   - Swagger / OpenAPI docs.
+ *   - All OPTIONS requests (CORS preflight).
  * - All other requests require authentication.
  *
  * Notes:
- * - The AuthenticationManager and PasswordEncoder beans are declared in SecurityBeansConfig.
- * - This file intentionally does NOT declare an authenticationManager() bean to avoid
- *   bean name collisions.
+ * - AuthenticationManager and PasswordEncoder beans live in SecurityBeansConfig.
+ * - If you have a JWT filter, add it in another config with addFilterBefore(...).
  */
 @Configuration
 public class SecurityConfig {
@@ -31,7 +33,7 @@ public class SecurityConfig {
         http
             // Use the CorsConfigurationSource bean defined in WebConfig
             .cors(cors -> {})
-            // Stateless API
+            // Stateless API with JWT
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             // Authorization rules
@@ -39,10 +41,24 @@ public class SecurityConfig {
                 // Permit CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Public catalog (GET only). Admin operations remain protected.
-                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                // ---- Public auth endpoints (login/register) ----
+                .requestMatchers(HttpMethod.POST,
+                    "/api/auth/login", "/auth/login", "/login",
+                    "/api/auth/register", "/auth/register", "/register"
+                ).permitAll()
 
-                // Swagger / OpenAPI docs
+                // ---- Public catalog/search (GET) ----
+                .requestMatchers(HttpMethod.GET,
+                    // products (catalog + search/available variants)
+                    "/api/products/**", "/products/**",
+                    // categories (used by Home filter)
+                    "/api/categories/**", "/categories/**",
+                    // availability for calendar/search
+                    "/api/bookings/availability", "/bookings/availability",
+                    "/api/bookings/blocked-dates", "/bookings/blocked-dates"
+                ).permitAll()
+
+                // ---- Swagger / OpenAPI docs ----
                 .requestMatchers(
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
@@ -58,8 +74,6 @@ public class SecurityConfig {
         return http.build();
     }
 }
-
-
 
 
 

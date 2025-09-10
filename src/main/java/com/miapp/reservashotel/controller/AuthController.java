@@ -10,8 +10,13 @@ import com.miapp.reservashotel.repository.UserRepository;
 import com.miapp.reservashotel.security.JwtService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.*;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException; // <-- IMPORT NECESARIO
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -38,10 +43,10 @@ public class AuthController {
     private final RoleRepository roleRepository;
 
     public AuthController(AuthenticationManager authenticationManager,
-                        PasswordEncoder passwordEncoder,
-                        JwtService jwtService,
-                        UserRepository userRepository,
-                        RoleRepository roleRepository) {
+                          PasswordEncoder passwordEncoder,
+                          JwtService jwtService,
+                          UserRepository userRepository,
+                          RoleRepository roleRepository) {
         this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -93,35 +98,48 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail().toLowerCase(), request.getPassword())
-        );
+        try {
+            String emailLower = request.getEmail().toLowerCase();
+            Authentication auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(emailLower, request.getPassword())
+            );
 
-        org.springframework.security.core.userdetails.User principal =
-                (org.springframework.security.core.userdetails.User) auth.getPrincipal();
+            org.springframework.security.core.userdetails.User principal =
+                    (org.springframework.security.core.userdetails.User) auth.getPrincipal();
 
-        User domainUser = userRepository.findByEmail(principal.getUsername())
-                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+            User domainUser = userRepository.findByEmail(principal.getUsername())
+                    .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("roles", principal.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
-        extraClaims.put("uid", domainUser.getId());
+            Map<String, Object> extraClaims = new HashMap<>();
+            extraClaims.put("roles", principal.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
+            extraClaims.put("uid", domainUser.getId());
 
-        String token = jwtService.generateToken(principal.getUsername(), extraClaims);
-        Instant expiresAt = Instant.ofEpochMilli(System.currentTimeMillis() + jwtService.getJwtExpirationMs());
+            String token = jwtService.generateToken(principal.getUsername(), extraClaims);
+            Instant expiresAt = Instant.ofEpochMilli(System.currentTimeMillis() + jwtService.getJwtExpirationMs());
 
-        LoginResponse body = new LoginResponse(
-                token,
-                "Bearer",
-                expiresAt,
-                domainUser.getId(),
-                domainUser.getFirstName(),
-                domainUser.getLastName(),
-                domainUser.getEmail(),
-                principal.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())
-        );
+            LoginResponse body = new LoginResponse(
+                    token,
+                    "Bearer",
+                    expiresAt,
+                    domainUser.getId(),
+                    domainUser.getFirstName(),
+                    domainUser.getLastName(),
+                    domainUser.getEmail(),
+                    principal.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())
+            );
 
-        return ResponseEntity.ok(body);
+            return ResponseEntity.ok(body);
+        } catch (DisabledException e) {
+            return ResponseEntity.status(403).body(Map.of("message", "User disabled"));
+        } catch (LockedException e) {
+            return ResponseEntity.status(403).body(Map.of("message", "User locked"));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid credentials"));
+        } catch (AuthenticationException e) { // <-- ahora compila
+            return ResponseEntity.status(401).body(Map.of("message", "Authentication failed"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Unexpected error"));
+        }
     }
 
     @GetMapping("/me")
@@ -144,9 +162,3 @@ public class AuthController {
         return ResponseEntity.ok(body);
     }
 }
-
-
-
-
-
-
