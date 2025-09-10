@@ -1,7 +1,11 @@
 package com.miapp.reservashotel.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "bookings")
@@ -11,13 +15,13 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Foreign key to Product (assuming there's a Product entity)
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    // Foreign key to Customer (assuming there's a Customer entity)
-    @Column(name = "customer_id", nullable = false)
-    private Long customerId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
@@ -26,45 +30,35 @@ public class Booking {
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     private BookingStatus status;
 
-    // Default constructor (required by JPA)
-    public Booking() {}
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
-    // Parameterized constructor
-    public Booking(Long id, Long productId, Long customerId, LocalDate startDate, LocalDate endDate, BookingStatus status) {
-        this.id = id;
-        this.productId = productId;
-        this.customerId = customerId;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.status = status;
-    }
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-    // Getters and setters
     public Long getId() {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public User getUser() {
+        return user;
     }
 
-    public Long getProductId() {
-        return productId;
+    public void setUser(User user) {
+        this.user = user;
     }
 
-    public void setProductId(Long productId) {
-        this.productId = productId;
+    public Product getProduct() {
+        return product;
     }
 
-    public Long getCustomerId() {
-        return customerId;
-    }
-
-    public void setCustomerId(Long customerId) {
-        this.customerId = customerId;
+    public void setProduct(Product product) {
+        this.product = product;
     }
 
     public LocalDate getStartDate() {
@@ -90,5 +84,12 @@ public class Booking {
     public void setStatus(BookingStatus status) {
         this.status = status;
     }
-}
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+}

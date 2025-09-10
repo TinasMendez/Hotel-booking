@@ -1,64 +1,47 @@
 package com.miapp.reservashotel.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Security configuration (no AuthenticationManager bean here).
- *
- * Key points:
- * - Uses the CorsConfigurationSource bean declared in WebConfig (http.cors()).
- * - Disables CSRF for a stateless REST API with JWT.
- * - Permits anonymous access to:
- *   - POST auth endpoints (login/register).
- *   - GET catalog endpoints (products, categories).
- *   - GET availability endpoints (availability / blocked-dates) used by the calendar/search.
- *   - Swagger / OpenAPI docs.
- *   - All OPTIONS requests (CORS preflight).
- * - All other requests require authentication.
- *
- * Notes:
- * - AuthenticationManager and PasswordEncoder beans live in SecurityBeansConfig.
- * - If you have a JWT filter, add it in another config with addFilterBefore(...).
- */
+import com.miapp.reservashotel.security.JwtAuthenticationFilter;
+
 @Configuration
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
-            // Use the CorsConfigurationSource bean defined in WebConfig
+            // CORS usa tu CorsConfigurationSource ya definido
             .cors(cors -> {})
-            // Stateless API with JWT
+            // API stateless
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // Authorization rules
+
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((req, res, e) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                .accessDeniedHandler((req, res, e) -> res.sendError(HttpServletResponse.SC_FORBIDDEN))
+            )
+
             .authorizeHttpRequests(auth -> auth
-                // Permit CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // ---- Public auth endpoints (login/register) ----
-                .requestMatchers(HttpMethod.POST,
-                    "/api/auth/login", "/auth/login", "/login",
-                    "/api/auth/register", "/auth/register", "/register"
-                ).permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
 
-                // ---- Public catalog/search (GET) ----
-                .requestMatchers(HttpMethod.GET,
-                    // products (catalog + search/available variants)
-                    "/api/products/**", "/products/**",
-                    // categories (used by Home filter)
-                    "/api/categories/**", "/categories/**",
-                    // availability for calendar/search
-                    "/api/bookings/availability", "/bookings/availability",
-                    "/api/bookings/blocked-dates", "/bookings/blocked-dates"
-                ).permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/cities/**").permitAll()
 
-                // ---- Swagger / OpenAPI docs ----
+                .requestMatchers(HttpMethod.GET, "/api/bookings/availability").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/bookings/*/blocked-dates").permitAll()
+
+                // Swagger
                 .requestMatchers(
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
@@ -67,13 +50,18 @@ public class SecurityConfig {
                     "/openapi.yaml"
                 ).permitAll()
 
-                // Everything else requires authentication
                 .anyRequest().authenticated()
-            );
+            )
+
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 }
+
+
+
+
 
 
 
