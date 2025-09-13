@@ -1,0 +1,9 @@
+/* Tailwind base layers. Keep the order. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App-wide small tweaks. Keep it minimal. */
+html, body, #root { height: 100%; }
+body { @apply bg-white text-gray-900; }
+a { @apply hover:opacity-90; }
