@@ -1,4 +1,4 @@
-import { api } from "./api";
+import Api from "/src/services/api.js";
 
 export async function checkAvailability(a, b, c) {
   let productId, startDate, endDate;
@@ -10,22 +10,22 @@ export async function checkAvailability(a, b, c) {
     productId = a; startDate = b; endDate = c;
   }
   const params = { productId, start: startDate, end: endDate };
-  const { data } = await api.get("/api/bookings/availability", { params });
+  const { data } = await Api.get("/api/bookings/availability", { params });
   return data;
 }
 
 export async function createBooking({ productId, startDate, endDate }) {
   const payload = { productId, startDate, endDate };
-  const { data } = await api.post("/api/bookings", payload);
+  const { data } = await Api.post("/api/bookings", payload);
   return data;
 }
 
 export async function cancelBooking(bookingId) {
-  const { data } = await api.delete(`/api/bookings/${bookingId}`);
+  const { data } = await Api.delete(`/api/bookings/${bookingId}`);
   return data;
 }
 
 export async function getMyBookings() {
-  const { data } = await api.get(`/api/bookings/me`);
+  const { data } = await Api.get(`/api/bookings/me`);
   return data;
 }

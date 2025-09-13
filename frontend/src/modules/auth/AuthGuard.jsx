@@ -1,16 +1,17 @@
+// /frontend/src/modules/auth/AuthGuard.jsx
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 
-/** Route guard for authenticated-only pages. */
+/** Basic guard: if not authenticated, redirect to /login and keep return URL. */
 export function AuthGuard() {
-  const { ready, isAuthenticated } = useAuth();
-  const loc = useLocation();
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
-  // Prevent flicker before AuthProvider loads localStorage.
-  if (!ready) return null;
+  if (loading) return <p className="p-6">Checking session...</p>;
+  if (!isAuthenticated)
+    return <Navigate to="/login" replace state={{ from: location }} />;
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: loc }} />;
-  }
   return <Outlet />;
 }
+
+export default AuthGuard;

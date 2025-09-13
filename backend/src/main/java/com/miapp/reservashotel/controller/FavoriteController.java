@@ -1,44 +1,39 @@
 package com.miapp.reservashotel.controller;
 
-import com.miapp.reservashotel.dto.FavoriteRequestDTO;
-import com.miapp.reservashotel.model.Favorite;
-import com.miapp.reservashotel.service.impl.FavoriteServiceImpl;
+import com.miapp.reservashotel.dto.FavoriteResponseDTO;
+import com.miapp.reservashotel.service.FavoriteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Favorites endpoints for the authenticated user
+ */
 @RestController
-@RequestMapping("/favorites")
+@RequestMapping("/api/favorites")
 public class FavoriteController {
 
-  private final FavoriteServiceImpl favoriteService;
+    private final FavoriteService favoriteService;
 
-  public FavoriteController(FavoriteServiceImpl favoriteService) {
-    this.favoriteService = favoriteService;
-  }
+    public FavoriteController(FavoriteService favoriteService) {
+        this.favoriteService = favoriteService;
+    }
 
-  @PostMapping("/{productId}")
-  public ResponseEntity<Void> add(@PathVariable Long productId, @RequestBody FavoriteRequestDTO dto) {
-    favoriteService.addFavorite(dto.getUserId(), productId);
-    return ResponseEntity.ok().build();
-  }
+    @PostMapping("/{productId}")
+    public ResponseEntity<FavoriteResponseDTO> add(@PathVariable Long productId) {
+        return ResponseEntity.ok(favoriteService.addFavorite(productId));
+    }
 
-  @DeleteMapping("/{productId}")
-  public ResponseEntity<Void> remove(@PathVariable Long productId, @RequestBody FavoriteRequestDTO dto) {
-    favoriteService.removeFavorite(dto.getUserId(), productId);
-    return ResponseEntity.noContent().build();
-  }
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<Void> remove(@PathVariable Long productId) {
+        favoriteService.removeFavorite(productId);
+        return ResponseEntity.noContent().build();
+    }
 
-  @GetMapping
-  public ResponseEntity<List<Favorite>> list(@RequestParam("userId") Long userId) {
-    return ResponseEntity.ok(favoriteService.listFavorites(userId));
-  }
-
-  @GetMapping("/is-favorite/{productId}")
-  public ResponseEntity<Boolean> isFavorite(@PathVariable Long productId, @RequestParam("userId") Long userId) {
-    return ResponseEntity.ok(favoriteService.isFavorite(userId, productId));
-  }
+    @GetMapping
+    public ResponseEntity<List<FavoriteResponseDTO>> listMine() {
+        return ResponseEntity.ok(favoriteService.listMyFavorites());
+    }
 }
-
 

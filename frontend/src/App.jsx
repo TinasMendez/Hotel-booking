@@ -5,10 +5,10 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Booking from "./pages/Booking";
-import ProductDetails from "./pages/ProductDetails";
+import ProductDetail from "./pages/ProductDetail.jsx";
 import { AuthGuard } from "./modules/auth/AuthGuard";
 
-// Admin pages
+// Admin
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminLayout from "./pages/admin/AdminLayout";
 import ProductsAdmin from "./pages/admin/ProductsAdmin";
@@ -33,20 +33,20 @@ function Layout() {
 export default function App() {
   return (
     <Routes>
-      {/* App shell with Header/Footer */}
       <Route element={<Layout />}>
-        {/* Public routes */}
+        {/* Public */}
         <Route index element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/product/:productId" element={<ProductDetails />} />
+        {/* ✅ param name must be productId */}
+        <Route path="/product/:productId" element={<ProductDetail />} />
         <Route path="/booking/:productId" element={<Booking />} />
 
-        {/* Example area for other private routes that use your AuthGuard */}
+        {/* Private area with your AuthGuard (example) */}
         <Route element={<AuthGuard />}>
           {/* e.g. <Route path="/bookings" element={<MyBookings />} /> */}
         </Route>
 
-        {/* ---------------- ADMIN AREA (protected with your ProtectedRoute) ---------------- */}
+        {/* Admin (protected) */}
         <Route element={<ProtectedRoute />}>
           <Route path="/administration" element={<AdminLayout />}>
             <Route index element={<ProductsAdmin />} />
@@ -55,7 +55,6 @@ export default function App() {
             <Route path="features" element={<FeaturesAdmin />} />
           </Route>
         </Route>
-        {/* ------------------------------------------------------------------------------- */}
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

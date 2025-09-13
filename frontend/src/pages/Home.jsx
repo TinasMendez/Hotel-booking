@@ -1,17 +1,16 @@
 // frontend/src/pages/Home.jsx
-// Home page with search (keeps your current UX), first-load shuffle, and client-side pagination (<=10).
-// It does not change your backend contract: it paginates the result set in the client.
+// Home page: search + client-side pagination + safe image handling.
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { httpGet } from "../api/http";
 import Pagination from "../components/Pagination";
-import { Link } from "react-router-dom";
 
 const PAGE_SIZE = 10;
 
-function shuffle(array) {
-  // Fisher–Yates shuffle for honest randomness
-  const a = array.slice();
+/** Small helper to shuffle on first load for a nicer, varied grid. */
+function shuffle(arr) {
+  const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
@@ -19,8 +18,29 @@ function shuffle(array) {
   return a;
 }
 
+/** Robust cover resolver for different backend shapes. */
+function getCover(product) {
+  if (!product) return "https://via.placeholder.com/640x360?text=No+Image";
+
+  // Single url
+  if (product.imageUrl) return product.imageUrl;
+
+  // Array of URLs
+  if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
+    return product.imageUrls[0];
+  }
+
+  // Array of objects or strings
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    const first = product.images[0];
+    return typeof first === "string" ? first : first?.url;
+  }
+
+  return "https://via.placeholder.com/640x360?text=No+Image";
+}
+
 export default function Home() {
-  // Search controls (kept simple; adapt param names to your backend if needed)
+  // Search controls
   const [q, setQ] = useState("");
   const [categoryId, setCategoryId] = useState("all");
   const [cityId, setCityId] = useState("all");
@@ -37,7 +57,7 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const firstLoadRef = useRef(true);
 
-  // Load categories and cities for filters
+  // Load filter data (categories + cities)
   useEffect(() => {
     (async () => {
       try {
@@ -47,7 +67,9 @@ export default function Home() {
         ]);
         setCategories(Array.isArray(cats) ? cats : cats?.content ?? []);
         setCities(Array.isArray(cits) ? cits : cits?.content ?? []);
-      } catch (_) {}
+      } catch {
+        // silent: filters are optional
+      }
     })();
   }, []);
 
@@ -55,29 +77,40 @@ export default function Home() {
     setLoading(true);
     setErr("");
     try {
-      // Build query string conservatively (only send params if they have values)
+      // Only send params that actually have values
       const params = new URLSearchParams();
       if (opts.q) params.set("q", opts.q);
-      if (opts.categoryId && opts.categoryId !== "all") params.set("categoryId", opts.categoryId);
-      if (opts.cityId && opts.cityId !== "all") params.set("cityId", opts.cityId);
+      if (opts.categoryId && opts.categoryId !== "all")
+        params.set("categoryId", opts.categoryId);
+      if (opts.cityId && opts.cityId !== "all")
+        params.set("cityId", opts.cityId);
       if (opts.start) params.set("start", opts.start);
       if (opts.end) params.set("end", opts.end);
 
-      const path = params.toString() ? `/products?${params.toString()}` : "/products";
+      const path = params.toString()
+        ? `/products?${params.toString()}`
+        : "/products";
+
       const data = await httpGet(path);
       let list = Array.isArray(data) ? data : data?.content ?? [];
 
-      // First load (no filters): shuffle for randomness
-      const noFilters = !opts.q && (!opts.categoryId || opts.categoryId === "all") && (!opts.cityId || opts.cityId === "all") && !opts.start && !opts.end;
+      // Shuffle only on the very first load when there are no filters
+      const noFilters =
+        !opts.q &&
+        (!opts.categoryId || opts.categoryId === "all") &&
+        (!opts.cityId || opts.cityId === "all") &&
+        !opts.start &&
+        !opts.end;
+
       if (firstLoadRef.current && noFilters) {
         list = shuffle(list);
         firstLoadRef.current = false;
       }
 
       setItems(list);
-      setPage(1); // reset to first page after a new search
+      setPage(1);
     } catch (e) {
-      setErr(e.message || "Failed to load products");
+      setErr(e?.message || "Failed to load products");
     } finally {
       setLoading(false);
     }
@@ -88,6 +121,7 @@ export default function Home() {
     fetchProducts({});
   }, []);
 
+  // Client-side pagination
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const pageItems = useMemo(() => {
     const startIndex = (page - 1) * PAGE_SIZE;
@@ -105,7 +139,7 @@ export default function Home() {
     setCityId("all");
     setStart("");
     setEnd("");
-    firstLoadRef.current = true; // consider new initial state to reshuffle
+    firstLoadRef.current = true;
     fetchProducts({});
   };
 
@@ -121,19 +155,35 @@ export default function Home() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <select className="border rounded p-2" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+
+        <select
+          className="border rounded p-2"
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+        >
           <option value="all">All</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.title || c.name}</option>
+            <option key={c.id} value={c.id}>
+              {c.title || c.name}
+            </option>
           ))}
         </select>
-        <select className="border rounded p-2" value={cityId} onChange={(e) => setCityId(e.target.value)}>
+
+        <select
+          className="border rounded p-2"
+          value={cityId}
+          onChange={(e) => setCityId(e.target.value)}
+        >
           <option value="all">All</option>
           {cities.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
           ))}
         </select>
-        <div className="hidden md:block" /> {/* spacer to fill 5 columns */}
+
+        {/* spacer to fill 5 columns on md+ */}
+        <div className="hidden md:block" />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:col-span-5">
           <input
@@ -150,8 +200,16 @@ export default function Home() {
             onChange={(e) => setEnd(e.target.value)}
             placeholder="dd.mm.yyyy"
           />
-          <button className="px-4 py-2 rounded bg-gray-900 text-white hover:bg-black">Search</button>
-          <button type="button" onClick={onReset} className="px-4 py-2 rounded border">Reset</button>
+          <button className="px-4 py-2 rounded bg-gray-900 text-white hover:bg-black">
+            Search
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="px-4 py-2 rounded border"
+          >
+            Reset
+          </button>
         </div>
       </form>
 
@@ -162,31 +220,35 @@ export default function Home() {
       {!loading && !err && (
         <>
           <p className="text-sm text-gray-500 mb-3">{items.length} results</p>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {pageItems.map((p) => {
-              // coalesce image(s)
-              const images =
-                (Array.isArray(p.images) && p.images.map((x) => x.url || x)) ||
-                (Array.isArray(p.imageUrls) && p.imageUrls) ||
-                (p.imageUrl ? [p.imageUrl] : []);
-              const cover = images[0] || "https://via.placeholder.com/640x360?text=No+Image";
-
+              const cover = getCover(p);
               return (
                 <div key={p.id} className="bg-white rounded shadow overflow-hidden">
-                  <img src={cover} alt={p.name} className="h-44 w-full object-cover" />
+                  <img
+                    src={cover}
+                    alt={p.name}
+                    className="h-44 w-full object-cover"
+                    loading="lazy"
+                  />
                   <div className="p-4">
                     <h3 className="font-semibold text-lg">{p.name}</h3>
-                    <p className="text-sm text-gray-600 line-clamp-2">{p.description}</p>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {p.description}
+                    </p>
                     <div className="mt-3 flex gap-2">
+                      {/* Single, canonical link to details */}
                       <Link
                         to={`/product/${p.id}`}
                         className="px-3 py-1 rounded border"
                       >
                         Details
                       </Link>
+                      {/* Optional: quick access to booking */}
                       <Link
                         to={`/booking/${p.id}`}
-                        className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+                        className="px-3 py-1 rounded bg-blue-600 text-white"
                       >
                         Book
                       </Link>
@@ -197,7 +259,6 @@ export default function Home() {
             })}
           </div>
 
-          {/* Pagination */}
           <Pagination
             page={page}
             totalPages={totalPages}

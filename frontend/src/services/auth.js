@@ -1,4 +1,4 @@
-    import api from './api'
+    import Api from "/src/services/api.js";
 
     const LOGIN_ENDPOINT = '/api/auth/login' 
 
@@ -26,7 +26,7 @@
     /** Returns { token, username, roles } */
     export async function loginUser({ email, password }) {
     try {
-        const { data } = await api.post(LOGIN_ENDPOINT, { email, password })
+        const { data } = await Api.post(LOGIN_ENDPOINT, { email, password })
         const token = extractToken(data)
         if (!token) throw new Error('No token in response')
         const username =

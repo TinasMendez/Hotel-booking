@@ -1,79 +1,41 @@
 // /frontend/src/services/api.js
-// Axios client + auth helpers used by AuthContext and features.
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
-import axios from "axios";
+export function getToken(){return localStorage.getItem("token") ?? "";}
+export function saveToken(t){ if(t) localStorage.setItem("token", t); }
+export function clearToken(){ localStorage.removeItem("token"); }
 
-export const BASE_URL = import.meta.env.VITE_API_BASE || "http://localhost:8080";
+async function request(path,{method="GET",body,auth=false}={}){ /* ... como te pasé ... */ }
 
-export const api = axios.create({
-  baseURL: BASE_URL,
-  headers: { "Content-Type": "application/json" },
-});
+export const Api = {
+  login:(email,password)=>request(`/api/auth/login`,{method:"POST",body:{email,password}}),
+  register:(payload)=>request(`/api/auth/register`,{method:"POST",body:payload}),
+  me:()=>request(`/api/auth/me`,{auth:true}),
+  getProductById:(id)=>request(`/api/products/${id}`),
+  getProductAvailability:(id,startDate,endDate)=>request(`/api/bookings/availability?productId=${id}&startDate=${startDate}&endDate=${endDate}`),
+  getCategories:()=>request(`/api/categories`),
+  deleteCategory:(id)=>request(`/api/categories/${id}`,{method:"DELETE",auth:true}),
+  getFavorites:()=>request(`/api/favorites`,{auth:true}),
+  addFavorite:(productId)=>request(`/api/favorites`,{method:"POST",auth:true,body:{productId}}),
+  removeFavorite:(productId)=>request(`/api/favorites/${productId}`,{method:"DELETE",auth:true}),
+  getProductRating:(id)=>request(`/api/products/${id}/rating`),
+  rateProduct:(id,stars)=>request(`/api/products/${id}/rating`,{method:"POST",auth:true,body:{rating:stars}})
+};
 
-/* ---------------- token storage helpers ---------------- */
+// ===== Legacy helpers to keep old code working (Axios-like) =====
+// Allow calls like Api.get("/api/products/3")
+Api.get = (path, opts) => request(path, { ...(opts || {}), method: "GET" });
 
-export function getStoredToken() {
-  try {
-    return localStorage.getItem("token") || null;
-  } catch {
-    return null;
-  }
-}
+Api.post = (path, body, opts) =>
+  request(path, { ...(opts || {}), method: "POST", body });
 
-export function getStoredUser() {
-  try {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+Api.put = (path, body, opts) =>
+  request(path, { ...(opts || {}), method: "PUT", body });
 
-export function setAuthToken(token) {
-  try {
-    if (token) localStorage.setItem("token", token);
-    else localStorage.removeItem("token");
-  } catch {}
-}
+Api.delete = (path, opts) =>
+  request(path, { ...(opts || {}), method: "DELETE" });
 
-export function persistAuth(payload) {
-  try {
-    if (!payload) {
-      clearAuth();
-      return;
-    }
-    setAuthToken(payload.token);
-    const user = {
-      id: payload.userId,
-      firstName: payload.firstName ?? "",
-      lastName: payload.lastName ?? "",
-      email: payload.email ?? "",
-      roles: payload.roles ?? [],
-    };
-    localStorage.setItem("user", JSON.stringify(user));
-  } catch {}
-}
+// Optional: keep { api } named import alive
+export const api = Api;
 
-export function clearAuth() {
-  try {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  } catch {}
-}
-
-/* ---------------- auth endpoints ---------------- */
-
-export async function login({ email, password }) {
-  const { data } = await api.post("/api/auth/login", { email, password });
-  return data;
-}
-
-export async function register(payload) {
-  const { data } = await api.post("/api/auth/register", payload);
-  return data;
-}
-
-export async function me() {
-  const { data } = await api.get("/api/auth/me");
-  return data;
-}
+export default Api;

@@ -1,61 +1,78 @@
 package com.miapp.reservashotel.config;
 
-import com.miapp.reservashotel.security.JwtAuthenticationFilter;
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
+/**
+ * Security configuration aligned with Spring Boot 3.x / Spring Security 6.
+ * - Enables CORS for Vite dev servers (5173/5174) and typical localhost ports.
+ * - Opens GET read-only endpoints and auth endpoints.
+ * - Everything else requires authentication.
+ * - Uses stateless sessions so JWT works properly.
+ */
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
-  private final JwtAuthenticationFilter jwtAuthFilter;
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(Customizer.withDefaults())
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(authz -> authz
+                // Auth endpoints
+                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/me").permitAll()
 
-  public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
-    this.jwtAuthFilter = jwtAuthFilter;
-  }
+                // Public read endpoints (adjust as needed)
+                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/cities/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/bookings/availability").permitAll()
 
-  @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .csrf(csrf -> csrf.disable())
-        .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/actuator/**").permitAll()
-            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-            .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
-            .anyRequest().authenticated()
-        )
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                // Swagger and static docs (optional)
+                .requestMatchers("/swagger-ui/**", "/openapi.yaml").permitAll()
 
-    return http.build();
-  }
+                // Everything else requires auth
+                .anyRequest().authenticated()
+            )
+            .httpBasic(Customizer.withDefaults());
 
-  @Bean
-  public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-    return configuration.getAuthenticationManager();
-  }
+        return http.build();
+    }
 
-  @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration cfg = new CorsConfiguration();
-    cfg.setAllowedOrigins(List.of("*"));
-    cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    cfg.setAllowedHeaders(List.of("*"));
-    cfg.setExposedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", cfg);
-    return source;
-  }
+    /**
+     * CORS policy allowing local dev frontends to talk to this backend.
+     * Add more origins if you use different ports.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration cfg = new CorsConfiguration();
+        cfg.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174"
+        ));
+        cfg.setAllowedMethods(Arrays.asList("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+        cfg.setAllowedHeaders(Arrays.asList("Authorization","Content-Type","Accept"));
+        cfg.setExposedHeaders(List.of("Authorization"));
+        cfg.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", cfg);
+        return source;
+    }
 }
