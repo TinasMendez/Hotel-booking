@@ -1,10 +1,19 @@
+// /frontend/src/App.jsx
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Booking from "./pages/Booking";
+import ProductDetails from "./pages/ProductDetails";
 import { AuthGuard } from "./modules/auth/AuthGuard";
+
+// Admin pages
+import ProtectedRoute from "./routes/ProtectedRoute";
+import AdminLayout from "./pages/admin/AdminLayout";
+import ProductsAdmin from "./pages/admin/ProductsAdmin";
+import CategoriesAdmin from "./pages/admin/CategoriesAdmin";
+import FeaturesAdmin from "./pages/admin/FeaturesAdmin";
 
 /** Global layout for header/main/footer using Tailwind container widths. */
 function Layout() {
@@ -24,19 +33,29 @@ function Layout() {
 export default function App() {
   return (
     <Routes>
+      {/* App shell with Header/Footer */}
       <Route element={<Layout />}>
         {/* Public routes */}
         <Route index element={<Home />} />
         <Route path="/login" element={<Login />} />
-
-        {/* Booking details (guard optional; availability is public in your backend) */}
+        <Route path="/product/:productId" element={<ProductDetails />} />
         <Route path="/booking/:productId" element={<Booking />} />
 
-        {/* Example for authenticated-only routes */}
+        {/* Example area for other private routes that use your AuthGuard */}
         <Route element={<AuthGuard />}>
-          {/* Add private pages here if needed */}
-          {/* <Route path="/bookings" element={<MyBookings />} /> */}
+          {/* e.g. <Route path="/bookings" element={<MyBookings />} /> */}
         </Route>
+
+        {/* ---------------- ADMIN AREA (protected with your ProtectedRoute) ---------------- */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/administration" element={<AdminLayout />}>
+            <Route index element={<ProductsAdmin />} />
+            <Route path="products" element={<ProductsAdmin />} />
+            <Route path="categories" element={<CategoriesAdmin />} />
+            <Route path="features" element={<FeaturesAdmin />} />
+          </Route>
+        </Route>
+        {/* ------------------------------------------------------------------------------- */}
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -44,4 +63,5 @@ export default function App() {
     </Routes>
   );
 }
+
 
