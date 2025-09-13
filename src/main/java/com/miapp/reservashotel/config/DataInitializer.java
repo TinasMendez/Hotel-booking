@@ -18,8 +18,8 @@ public class DataInitializer {
 
     @Bean
     public CommandLineRunner seedBaseData(RoleRepository roleRepository,
-                                          UserRepository userRepository,
-                                          PasswordEncoder passwordEncoder) {
+                                            UserRepository userRepository,
+                                            PasswordEncoder passwordEncoder) {
         return args -> {
             // Ensure roles
             Role roleUser = roleRepository.findByName("ROLE_USER")

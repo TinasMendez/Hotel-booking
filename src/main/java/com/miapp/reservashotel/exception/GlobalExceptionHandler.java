@@ -32,6 +32,6 @@ public class GlobalExceptionHandler {
         return (m == null || m.isBlank()) ? cur.getClass().getSimpleName() : m;
     }
 }
- 
+
 
 

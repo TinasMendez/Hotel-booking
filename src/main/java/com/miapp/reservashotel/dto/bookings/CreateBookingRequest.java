@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.time.LocalDate;
 
-/** Payload for creating a booking. Dates are ISO yyyy-MM-dd. */
+/** Payload to create a booking. Dates use ISO yyyy-MM-dd. */
 public class CreateBookingRequest {
 
     @NotNull
@@ -17,15 +17,27 @@ public class CreateBookingRequest {
     @NotNull
     private LocalDate endDate;
 
-    public CreateBookingRequest() {}
+    public CreateBookingRequest() {
+    }
 
-    public Long getProductId() { return productId; }
-    public void setProductId(Long productId) { this.productId = productId; }
+    public Long getProductId() {
+        return productId;
+    }
+    public void setProductId(Long productId) {
+        this.productId = productId;
+    }
 
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
 
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
 }
-

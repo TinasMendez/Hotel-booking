@@ -152,3 +152,16 @@ backend/
 
 ---
 
+### Demo Seed
+Run a one-time demo seed (idempotent):
+
+- `POST http://localhost:8080/api/admin/seed`
+
+It creates:
+- 2 Categories, 2 Cities, 5 Features
+- 2 Products (Bogotá/Medellín) with features & prices
+- 2 Bookings for `demo.user@acme.com`
+
+### Tests (H2)
+```bash
+mvn -Dspring.profiles.active=test -Dtest=*Booking* test

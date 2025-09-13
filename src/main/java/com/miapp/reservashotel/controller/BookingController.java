@@ -1,91 +1,48 @@
 package com.miapp.reservashotel.controller;
 
-import com.miapp.reservashotel.dto.bookings.AvailabilityResponse;
-import com.miapp.reservashotel.dto.bookings.BlockedDatesResponse;
 import com.miapp.reservashotel.dto.bookings.BookingResponse;
 import com.miapp.reservashotel.dto.bookings.CreateBookingRequest;
 import com.miapp.reservashotel.service.BookingService;
-import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/bookings")
 public class BookingController {
 
-    private final BookingService bookingService;
+    private final BookingService service;
 
-    public BookingController(BookingService bookingService) {
-        this.bookingService = bookingService;
+    public BookingController(BookingService service) {
+        this.service = service;
     }
 
-    // GET /api/bookings/availability?productId=2&start=2025-09-14&end=2025-09-15
+    // /api/bookings/availability?productId=12&start=2025-09-14&end=2025-09-21
     @GetMapping("/availability")
-    public AvailabilityResponse availability(
-            @RequestParam Long productId,
-            @RequestParam LocalDate start,
-            @RequestParam LocalDate end
-    ) {
-        return bookingService.checkAvailability(productId, start, end);
+    public ResponseEntity<Map<String, Object>> availability(@RequestParam Long productId,
+                                                            @RequestParam LocalDate start,
+                                                            @RequestParam LocalDate end) {
+        List<LocalDate> blocked = service.getBlockedDates(productId, start, end);
+        return ResponseEntity.ok(Map.of(
+            "productId", productId,
+            "blockedDates", blocked
+        ));
     }
 
-    // GET /api/bookings/{productId}/blocked-dates
-    @GetMapping("/{productId}/blocked-dates")
-    public BlockedDatesResponse blockedDates(@PathVariable Long productId) {
-        return bookingService.blockedDates(productId);
-    }
-
-    // GET /api/bookings/me  (lista de reservas del usuario autenticado)
-    @GetMapping("/me")
-    public ResponseEntity<?> myBookings(@RequestHeader("Authorization") String authHeader) {
-        String email = JwtEmailExtractor.fromAuthorizationHeader(authHeader); // ver helper abajo
-        return ResponseEntity.ok(bookingService.myBookings(email));
-    }
-
-    // POST /api/bookings   body: { "productId": 2, "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" }
     @PostMapping
-    public ResponseEntity<BookingResponse> create(
-            @RequestHeader("Authorization") String authHeader,
-            @Valid @RequestBody CreateBookingRequest req
-    ) {
-        String email = JwtEmailExtractor.fromAuthorizationHeader(authHeader);
-        BookingResponse saved = bookingService.create(email, req);
-        return ResponseEntity
-                .created(URI.create("/api/bookings/" + saved.getId()))
-                .body(saved);
+    public ResponseEntity<BookingResponse> create(@RequestBody CreateBookingRequest req,
+                                                    Authentication auth) {
+        BookingResponse r = service.create(req, auth);
+        return ResponseEntity.ok(r);
     }
 
-    /**
-     * Minimal helper to read the username (email) from the already-validated JWT
-     * that Spring Security put into the SecurityContext. If the header is present
-     * and the token is valid, SecurityContext holds the Authentication.
-     */
-    static final class JwtEmailExtractor {
-        static String fromAuthorizationHeader(String _auth) {
-            // Rely on SecurityContext to have the authenticated principal
-            var auth = org.springframework.security.core.context.SecurityContextHolder
-                    .getContext().getAuthentication();
-            if (auth == null || !auth.isAuthenticated()) {
-                throw new org.springframework.security.access.AccessDeniedException("Unauthorized");
-            }
-            return auth.getName(); // subject = email
-        }
+    @GetMapping("/me")
+    public List<BookingResponse> myBookings(Authentication auth) {
+        return service.getMyBookings(auth);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -2,6 +2,7 @@ package com.miapp.reservashotel.service.impl;
 
 import com.miapp.reservashotel.dto.ProductRequestDTO;
 import com.miapp.reservashotel.dto.ProductResponseDTO;
+import com.miapp.reservashotel.exception.ResourceConflictException;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.model.City;
@@ -11,19 +12,14 @@ import com.miapp.reservashotel.repository.CategoryRepository;
 import com.miapp.reservashotel.repository.CityRepository;
 import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.repository.ProductRepository;
+import com.miapp.reservashotel.repository.BookingRepository;
 import com.miapp.reservashotel.service.ProductService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Product service implementation.
- * Adds an overload createProduct(Product) returning the entity
- * to satisfy the existing unit test.
- */
+/** Product service implementation. */
 @Service
 @Transactional
 public class ProductServiceImpl implements ProductService {
@@ -32,15 +28,18 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final CityRepository cityRepository;
     private final FeatureRepository featureRepository;
+    private final BookingRepository bookingRepository;
 
     public ProductServiceImpl(ProductRepository productRepository,
-                                CategoryRepository categoryRepository,
-                                CityRepository cityRepository,
-                                FeatureRepository featureRepository) {
+                              CategoryRepository categoryRepository,
+                              CityRepository cityRepository,
+                              FeatureRepository featureRepository,
+                              BookingRepository bookingRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.cityRepository = cityRepository;
         this.featureRepository = featureRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     @Override
@@ -51,7 +50,7 @@ public class ProductServiceImpl implements ProductService {
         return toResponseDTO(saved);
     }
 
-    /** Overload used by the test: accepts an entity and returns the entity. */
+    /** Overload used by tests: accepts entity and returns entity. */
     public Product createProduct(Product product) {
         return productRepository.save(product);
     }
@@ -66,12 +65,16 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product not found id=" + id);
-        }
-        productRepository.deleteById(id);
+public void deleteProduct(Long id) {
+    if (!productRepository.existsById(id)) {
+        throw new ResourceNotFoundException("Product not found id=" + id);
     }
+    long refs = bookingRepository.countByProduct_Id(id); // note the _Id for relation
+    if (refs > 0) {
+        throw new ResourceConflictException("Cannot delete product with existing bookings (id=" + id + ", refs=" + refs + ")");
+    }
+    productRepository.deleteById(id);
+}
 
     @Override
     @Transactional(readOnly = true)
@@ -84,10 +87,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductResponseDTO> getAllProducts() {
-        return productRepository.findAll()
-                .stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        return productRepository.findAll().stream().map(this::toResponseDTO).collect(Collectors.toList());
     }
 
     @Override
@@ -95,11 +95,10 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductResponseDTO> searchProducts(Long categoryId,
                                                    Long cityId,
                                                    Long featureId,
-                                                   BigDecimal minPrice,
-                                                   BigDecimal maxPrice,
+                                                   java.math.BigDecimal minPrice,
+                                                   java.math.BigDecimal maxPrice,
                                                    String q) {
         List<Product> all = productRepository.findAll();
-
         return all.stream()
                 .filter(p -> categoryId == null || (p.getCategory() != null && Objects.equals(p.getCategory().getId(), categoryId)))
                 .filter(p -> cityId == null || (p.getCity() != null && Objects.equals(p.getCity().getId(), cityId)))
@@ -117,9 +116,6 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
-    /* -------------------- helpers -------------------- */
-
-    /** Applies fields from a DTO into an entity, resolving relations. */
     private void applyRequest(Product product, ProductRequestDTO request) {
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -143,18 +139,16 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if (request.getFeatureIds() != null) {
-            // Use LinkedHashSet to preserve order and match Set<Long> on DTO.
             Set<Feature> features = request.getFeatureIds().stream()
                     .map(id -> featureRepository.findById(id)
                             .orElseThrow(() -> new ResourceNotFoundException("Feature not found id=" + id)))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                    .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
             product.setFeatures(features);
         } else {
-            product.setFeatures(Collections.emptySet());
+            product.setFeatures(java.util.Collections.emptySet());
         }
     }
 
-    /** Maps entity to response DTO (featureIds as Set<Long>). */
     private ProductResponseDTO toResponseDTO(Product p) {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(p.getId());
@@ -164,26 +158,11 @@ public class ProductServiceImpl implements ProductService {
         dto.setPrice(p.getPrice());
         dto.setCategoryId(p.getCategory() != null ? p.getCategory().getId() : null);
         dto.setCityId(p.getCity() != null ? p.getCity().getId() : null);
-
-        Set<Long> featureIds = (p.getFeatures() == null)
-                ? Collections.emptySet()
-                : p.getFeatures().stream()
-                    .map(Feature::getId)
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        java.util.Set<Long> featureIds = (p.getFeatures() == null)
+                ? java.util.Collections.emptySet()
+                : p.getFeatures().stream().map(Feature::getId)
+                    .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
         dto.setFeatureIds(featureIds);
-
         return dto;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-

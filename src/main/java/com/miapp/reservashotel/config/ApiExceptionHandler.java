@@ -1,81 +1,78 @@
 package com.miapp.reservashotel.config;
 
-import org.hibernate.PropertyValueException;
-import org.hibernate.exception.ConstraintViolationException;
+import com.miapp.reservashotel.exception.ResourceConflictException;
+import com.miapp.reservashotel.exception.ResourceNotFoundException;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.orm.jpa.JpaSystemException;
+import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.annotation.*;
 
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * Global API exception handler with high precedence.
- * Produces RFC7807 ProblemDetail with useful "detail" taken from root cause.
+ * High-precedence API exception handler that maps domain exceptions to proper HTTP codes.
+ * This takes precedence over GlobalExceptionHandler(@Order(100)).
  */
 @RestControllerAdvice
-@Order(1) // Higher precedence than other advices (lower number = higher priority)
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class ApiExceptionHandler {
 
-    @ExceptionHandler({
-            IllegalArgumentException.class,
-            IllegalStateException.class,
-            MethodArgumentNotValidException.class
-    })
-    public ProblemDetail handle400(Exception ex) {
-        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        pd.setTitle("Bad Request");
-        pd.setDetail(safeMessage(ex));
-        pd.setProperty("timestamp", Instant.now().toString());
-        return pd;
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
     }
 
-    @ExceptionHandler({
-            DataIntegrityViolationException.class,
-            ConstraintViolationException.class,
-            SQLIntegrityConstraintViolationException.class,
-            PropertyValueException.class
-    })
-    public ProblemDetail handle409(Exception ex) {
-        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
-        pd.setTitle("Data Integrity Violation");
-        pd.setDetail(safeMessage(ex));
-        pd.setProperty("timestamp", Instant.now().toString());
-        return pd;
+    @ExceptionHandler(ResourceConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleConflict(ResourceConflictException ex) {
+        return build(HttpStatus.CONFLICT, "Conflict", ex.getMessage());
     }
 
-    @ExceptionHandler(JpaSystemException.class)
-    public ProblemDetail handleJpa(JpaSystemException ex) {
-        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-        pd.setTitle("JPA Error");
-        pd.setDetail(safeDeepestMessage(ex));
-        pd.setProperty("timestamp", Instant.now().toString());
-        return pd;
+    @ExceptionHandler({ MethodArgumentNotValidException.class, BindException.class })
+    public ResponseEntity<Map<String, Object>> handleValidation(Exception ex) {
+        String details;
+        if (ex instanceof MethodArgumentNotValidException manv) {
+            details = manv.getBindingResult().getFieldErrors().stream()
+                    .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                    .collect(Collectors.joining("; "));
+        } else if (ex instanceof BindException be) {
+            details = be.getBindingResult().getFieldErrors().stream()
+                    .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                    .collect(Collectors.joining("; "));
+        } else {
+            details = "Validation error";
+        }
+        return build(HttpStatus.BAD_REQUEST, "Bad Request", details);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleBodyParse(HttpMessageNotReadableException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Bad Request", "Malformed JSON request body");
     }
 
     @ExceptionHandler(Exception.class)
-    public ProblemDetail handle500(Exception ex) {
-        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-        pd.setTitle("Internal Server Error");
-        pd.setDetail(safeDeepestMessage(ex));
-        pd.setProperty("timestamp", Instant.now().toString());
-        return pd;
+    public ResponseEntity<Map<String, Object>> handleFallback(Exception ex) {
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", root(ex));
     }
 
-    private String safeMessage(Throwable t) {
-        String m = t.getMessage();
-        return (m == null || m.isBlank()) ? t.getClass().getSimpleName() : m;
+    private ResponseEntity<Map<String, Object>> build(HttpStatus status, String error, String message) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", status.value());
+        body.put("error", error);
+        body.put("message", message);
+        return ResponseEntity.status(status).body(body);
     }
 
-    private String safeDeepestMessage(Throwable t) {
+    private String root(Throwable t) {
         Throwable cur = t;
         while (cur.getCause() != null) cur = cur.getCause();
-        return safeMessage(cur);
+        return cur.getMessage() != null ? cur.getMessage() : cur.getClass().getSimpleName();
     }
 }
 
