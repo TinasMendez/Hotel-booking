@@ -1,77 +1,46 @@
 package com.miapp.reservashotel.service.impl;
 
-import com.miapp.reservashotel.dto.FavoriteResponseDTO;
-import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Favorite;
-import com.miapp.reservashotel.model.User;
 import com.miapp.reservashotel.repository.FavoriteRepository;
 import com.miapp.reservashotel.repository.ProductRepository;
-import com.miapp.reservashotel.repository.UserRepository;
-import com.miapp.reservashotel.service.FavoriteService;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-/**
- * Favorite service:
- * - Authenticated user is retrieved from SecurityContext (username = email)
- * - We validate product existence to avoid orphan favorites
- */
 @Service
-public class FavoriteServiceImpl implements FavoriteService {
+public class FavoriteServiceImpl {
 
-    private final FavoriteRepository favoriteRepository;
-    private final ProductRepository productRepository;
-    private final UserRepository userRepository;
+  private final FavoriteRepository favoriteRepository;
+  private final ProductRepository productRepository;
 
-    public FavoriteServiceImpl(FavoriteRepository favoriteRepository,
-                               ProductRepository productRepository,
-                               UserRepository userRepository) {
-        this.favoriteRepository = favoriteRepository;
-        this.productRepository = productRepository;
-        this.userRepository = userRepository;
+  public FavoriteServiceImpl(FavoriteRepository favoriteRepository, ProductRepository productRepository) {
+    this.favoriteRepository = favoriteRepository;
+    this.productRepository = productRepository;
+  }
+
+  @Transactional
+  public void addFavorite(Long userId, Long productId) {
+    if (!favoriteRepository.existsByUserIdAndProductId(userId, productId)) {
+      Favorite fav = new Favorite();
+      fav.setUserId(userId);
+      fav.setProductId(productId);
+      favoriteRepository.save(fav);
     }
+  }
 
-    @Override
-    public FavoriteResponseDTO addFavorite(Long productId) {
-        Long userId = currentUserId();
-        productRepository.findById(productId).orElseThrow(() ->
-                new ResourceNotFoundException("Product not found with id: " + productId));
+  @Transactional
+  public void removeFavorite(Long userId, Long productId) {
+    favoriteRepository.deleteByUserIdAndProductId(userId, productId);
+  }
 
-        if (!favoriteRepository.existsByUserIdAndProductId(userId, productId)) {
-            Favorite f = new Favorite(userId, productId);
-            f = favoriteRepository.save(f);
-            return new FavoriteResponseDTO(f.getId(), f.getProductId(), f.getCreatedAt());
-        } else {
-            Favorite f = favoriteRepository.findByUserIdAndProductId(userId, productId).get();
-            return new FavoriteResponseDTO(f.getId(), f.getProductId(), f.getCreatedAt());
-        }
-    }
+  public boolean isFavorite(Long userId, Long productId) {
+    return favoriteRepository.existsByUserIdAndProductId(userId, productId);
+  }
 
-    @Override
-    public void removeFavorite(Long productId) {
-        Long userId = currentUserId();
-        favoriteRepository.deleteByUserIdAndProductId(userId, productId);
-    }
-
-    @Override
-    public List<FavoriteResponseDTO> listMyFavorites() {
-        Long userId = currentUserId();
-        return favoriteRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(f -> new FavoriteResponseDTO(f.getId(), f.getProductId(), f.getCreatedAt()))
-                .collect(Collectors.toList());
-    }
-
-    private Long currentUserId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName(); // we set email as username
-        User u = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found: " + email));
-        return u.getId();
-    }
+  public List<Favorite> listFavorites(Long userId) {
+    return favoriteRepository.findByUserId(userId);
+  }
 }
+
 
