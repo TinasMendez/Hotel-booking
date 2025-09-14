@@ -5,9 +5,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Booking entity with explicit relations to Product and User.
- * Includes compatibility accessors (get/setProductId, get/setUserId) so
- * existing services/tests that use IDs continue to compile and work.
+ * Booking entity mapped to 'bookings' table.
+ * Uses plain ids (productId, customerId) instead of heavy object relations.
+ * No Lombok; manual constructors/getters/setters.
  */
 @Entity
 @Table(name = "bookings")
@@ -17,13 +17,13 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    // Product foreign key (no relation object to keep it simple)
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "customer_id", nullable = false) // DB column is customer_id
-    private User user;
+    // Customer foreign key (tests refer to it as "userId"; see alias methods below)
+    @Column(name = "customer_id")
+    private Long customerId;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
@@ -32,82 +32,107 @@ public class Booking {
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private BookingStatus status = BookingStatus.PENDING;
+    @Column(name = "status", nullable = false, length = 30)
+    private BookingStatus status;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    // ---------------- Constructors ----------------
 
-    @PrePersist
-    public void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
+    public Booking() {
+        // Required by JPA
     }
 
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+    public Booking(Long id,
+                   Long productId,
+                   Long customerId,
+                   LocalDate startDate,
+                   LocalDate endDate,
+                   BookingStatus status,
+                   LocalDateTime createdAt) {
+        this.id = id;
+        this.productId = productId;
+        this.customerId = customerId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.status = status;
+        this.createdAt = createdAt;
     }
 
-    // ---------- Standard getters/setters ----------
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    // ---------------- Getters / Setters ----------------
 
-    public Product getProduct() { return product; }
-    public void setProduct(Product product) { this.product = product; }
+    public Long getId() {
+        return id;
+    }
 
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-
-    public BookingStatus getStatus() { return status; }
-    public void setStatus(BookingStatus status) { this.status = status; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-
-    // ---------- Compatibility accessors used by legacy code/tests ----------
-    /** Returns product id or null if product is not set. */
     public Long getProductId() {
-        return (product != null) ? product.getId() : null;
+        return productId;
     }
 
-    /** Sets product by id without loading it (uses a reference entity with only id). */
     public void setProductId(Long productId) {
-        if (productId == null) {
-            this.product = null;
-        } else {
-            Product p = new Product();
-            p.setId(productId);
-            this.product = p;
-        }
+        this.productId = productId;
     }
 
-    /** Returns user id or null if user is not set. */
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    public BookingStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(BookingStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    // ---------------- Alias methods for test compatibility ----------------
+    // Some legacy tests call userId accessors. These delegate to customerId to avoid schema changes.
+
+    /** Returns the same value as getCustomerId(). */
     public Long getUserId() {
-        return (user != null) ? user.getId() : null;
+        return this.customerId;
     }
 
-    /** Sets user by id without loading it (uses a reference entity with only id). */
+    /** Sets the same field as setCustomerId(Long). */
     public void setUserId(Long userId) {
-        if (userId == null) {
-            this.user = null;
-        } else {
-            User u = new User();
-            u.setId(userId);
-            this.user = u;
-        }
+        this.customerId = userId;
+    }
+
+    /** Overload to match tests that pass primitive long. */
+    public void setUserId(long userId) {
+        this.customerId = userId;
     }
 }

@@ -1,12 +1,7 @@
 package com.miapp.reservashotel.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
-/**
- * Policy entity attached to a product via productId (no direct relation to keep Product.java intact).
- */
 @Entity
 @Table(name = "policies")
 public class Policy {
@@ -15,32 +10,25 @@ public class Policy {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    // Many policies belong to one product
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
 
-    @NotBlank
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false)
     private String title;
 
-    @NotBlank
-    @Column(nullable = false, length = 2000)
+    @Column(nullable = false, length = 4000)
     private String description;
 
     public Policy() {}
 
-    public Policy(Long productId, String title, String description) {
-        this.productId = productId;
-        this.title = title;
-        this.description = description;
-    }
-
-    // Getters / setters
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
 
-    public Long getProductId() { return productId; }
-    public void setProductId(Long productId) { this.productId = productId; }
+    public Product getProduct() { return product; }
+    public void setProduct(Product product) { this.product = product; }
+
+    public Long getProductId() { return product != null ? product.getId() : null; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

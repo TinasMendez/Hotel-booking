@@ -16,7 +16,7 @@ This folder contains **unit** and **integration** tests for the backend.
     # JPA/Hibernate for tests
     spring.jpa.hibernate.ddl-auto=create-drop
     spring.jpa.show-sql=false
-    spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+    
 
     # Disable seed & security auto-config in tests
     spring.sql.init.mode=never

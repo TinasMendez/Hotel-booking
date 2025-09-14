@@ -3,7 +3,7 @@ package com.miapp.reservashotel.dto;
 import java.time.LocalDateTime;
 
 /**
- * Response DTO for favorites
+ * Response DTO for favorites.
  */
 public class FavoriteResponseDTO {
     private Long id;
@@ -27,4 +27,5 @@ public class FavoriteResponseDTO {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
+
 

@@ -1,15 +1,13 @@
 package com.miapp.reservashotel.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
-/**
- * Favorite entity mapping user-product bookmarks.
- * We keep only ids to avoid heavy relationships and accidental fetches.
- */
+/** User's favorite product (userId + productId is unique). */
 @Entity
-@Table(name = "favorites",
-       uniqueConstraints = @UniqueConstraint(name = "uk_fav_user_product", columnNames = {"user_id", "product_id"}))
+@Table(name = "favorites", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_favorite_user_product", columnNames = {"user_id", "product_id"})
+})
 public class Favorite {
 
     @Id
@@ -22,30 +20,23 @@ public class Favorite {
     @Column(name = "product_id", nullable = false)
     private Long productId;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
 
-    public Favorite() {
-        // JPA
-    }
+    public Favorite() { }
 
     public Favorite(Long userId, Long productId) {
         this.userId = userId;
         this.productId = productId;
-        this.createdAt = LocalDateTime.now();
     }
 
-    // Getters and setters
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
-
     public Long getProductId() { return productId; }
     public void setProductId(Long productId) { this.productId = productId; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }
+
 
