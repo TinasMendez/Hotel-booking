@@ -1,41 +1,120 @@
-// /frontend/src/services/api.js
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+// Centralized API client.
+// - Default export: `api` (axios-like) para imports legacy (AuthContext, etc).
+// - Named exports: `apiFetch`, `BookingAPI`, `getToken`, `setToken`, `clearToken`.
+// - Adjunta automáticamente el JWT guardado en localStorage ('token' o 'jwt').
+// - Base: '/api' (el proxy de Vite reenvía a http://localhost:8080).
 
-export function getToken(){return localStorage.getItem("token") ?? "";}
-export function saveToken(t){ if(t) localStorage.setItem("token", t); }
-export function clearToken(){ localStorage.removeItem("token"); }
+const API_BASE = '/api';
 
-async function request(path,{method="GET",body,auth=false}={}){ /* ... como te pasé ... */ }
+// ---------------- Token helpers ----------------
 
-export const Api = {
-  login:(email,password)=>request(`/api/auth/login`,{method:"POST",body:{email,password}}),
-  register:(payload)=>request(`/api/auth/register`,{method:"POST",body:payload}),
-  me:()=>request(`/api/auth/me`,{auth:true}),
-  getProductById:(id)=>request(`/api/products/${id}`),
-  getProductAvailability:(id,startDate,endDate)=>request(`/api/bookings/availability?productId=${id}&startDate=${startDate}&endDate=${endDate}`),
-  getCategories:()=>request(`/api/categories`),
-  deleteCategory:(id)=>request(`/api/categories/${id}`,{method:"DELETE",auth:true}),
-  getFavorites:()=>request(`/api/favorites`,{auth:true}),
-  addFavorite:(productId)=>request(`/api/favorites`,{method:"POST",auth:true,body:{productId}}),
-  removeFavorite:(productId)=>request(`/api/favorites/${productId}`,{method:"DELETE",auth:true}),
-  getProductRating:(id)=>request(`/api/products/${id}/rating`),
-  rateProduct:(id,stars)=>request(`/api/products/${id}/rating`,{method:"POST",auth:true,body:{rating:stars}})
+export function getToken() {
+  return localStorage.getItem('token') || localStorage.getItem('jwt') || '';
+}
+
+export function setToken(token) {
+  // Store under both keys for legacy compatibility
+  localStorage.setItem('token', token || '');
+  localStorage.setItem('jwt', token || '');
+}
+
+export function clearToken() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('jwt');
+}
+
+// ---------------- internal utilities ----------------
+
+function joinPath(base, path) {
+  const b = base.endsWith('/') ? base.slice(0, -1) : base;
+  const p = path ? (path.startsWith('/') ? path : `/${path}`) : '';
+  return `${b}${p}`;
+}
+
+function buildHeaders(extraHeaders = {}, body) {
+  const headers = new Headers(extraHeaders);
+  if (!(body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  const token = getToken();
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return headers;
+}
+
+async function coreFetch(url, { method = 'GET', headers = {}, body, ...rest } = {}) {
+  const resp = await fetch(url, {
+    method,
+    headers,
+    body,
+    credentials: 'include',
+    ...rest
+  });
+
+  const contentType = resp.headers.get('Content-Type') || '';
+  const isJson = contentType.includes('application/json');
+  const payload = isJson ? await resp.json().catch(() => null) : null;
+
+  if (!resp.ok) {
+    const message = (payload && (payload.message || payload.error)) || `${resp.status} ${resp.statusText}`;
+    const err = new Error(message);
+    err.status = resp.status;
+    err.payload = payload;
+    throw err;
+  }
+  return payload;
+}
+
+// ---------------- Default export (axios-like) ----------------
+
+const api = {
+  async get(path, config = {}) {
+    const url = joinPath(API_BASE, path);
+    const headers = buildHeaders(config.headers);
+    return coreFetch(url, { method: 'GET', headers, ...config });
+  },
+  async post(path, data, config = {}) {
+    const url = joinPath(API_BASE, path);
+    const isForm = data instanceof FormData;
+    const body = isForm ? data : JSON.stringify(data ?? {});
+    const headers = buildHeaders(config.headers, data);
+    return coreFetch(url, { method: 'POST', headers, body, ...config });
+  },
+  async put(path, data, config = {}) {
+    const url = joinPath(API_BASE, path);
+    const isForm = data instanceof FormData;
+    const body = isForm ? data : JSON.stringify(data ?? {});
+    const headers = buildHeaders(config.headers, data);
+    return coreFetch(url, { method: 'PUT', headers, body, ...config });
+  },
+  async delete(path, config = {}) {
+    const url = joinPath(API_BASE, path);
+    const headers = buildHeaders(config.headers);
+    return coreFetch(url, { method: 'DELETE', headers, ...config });
+  }
 };
 
-// ===== Legacy helpers to keep old code working (Axios-like) =====
-// Allow calls like Api.get("/api/products/3")
-Api.get = (path, opts) => request(path, { ...(opts || {}), method: "GET" });
+export default api;
 
-Api.post = (path, body, opts) =>
-  request(path, { ...(opts || {}), method: "POST", body });
+// ---------------- Named helpers for new code ----------------
 
-Api.put = (path, body, opts) =>
-  request(path, { ...(opts || {}), method: "PUT", body });
+export async function apiFetch(path, options = {}) {
+  const url = joinPath(API_BASE, path);
+  const headers = buildHeaders(options.headers, options.body);
+  return coreFetch(url, { ...options, headers });
+}
 
-Api.delete = (path, opts) =>
-  request(path, { ...(opts || {}), method: "DELETE" });
-
-// Optional: keep { api } named import alive
-export const api = Api;
-
-export default Api;
+export const BookingAPI = {
+  async checkAvailability({ productId, startDate, endDate }) {
+    const params = new URLSearchParams({
+      productId: String(productId),
+      startDate,
+      endDate
+    });
+    return api.get(`/bookings/availability?${params.toString()}`);
+  },
+  async createBooking(payload) {
+    return api.post('/bookings', payload);
+  }
+};

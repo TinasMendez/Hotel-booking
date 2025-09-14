@@ -1,61 +1,71 @@
-// /frontend/src/modules/auth/AuthContext.jsx
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import Api, { saveToken, clearToken, getToken } from "../../services/api";
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import api, { setToken, getToken, clearToken } from '@/services/api'
 
-const AuthContext = createContext(null);
+// AuthContext: keeps JWT and user info in memory and localStorage.
+// Adjust /auth/* endpoints to your backend if needed.
+
+const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [token, setTokenState] = useState(() => getToken())
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        if (!getToken()) return;
-        const me = await Api.me();
-        if (mounted) setUser(me);
-      } catch {
-        clearToken();
-        if (mounted) setUser(null);
-      } finally {
-        if (mounted) setLoading(false);
+    async function loadMe() {
+      if (!token) {
+        setUser(null)
+        setLoading(false)
+        return
       }
-    })();
-    if (!getToken()) setLoading(false);
-    return () => { mounted = false; };
-  }, []);
-
-  async function login(email, password) {
-    const res = await Api.login(email, password);
-    if (!res?.token) throw new Error("Login did not return a token.");
-    saveToken(res.token);
-    const me = await Api.me().catch(() => ({ email }));
-    setUser(me);
-  }
-
-  async function register(payload) {
-    const res = await Api.register(payload);
-    if (res?.token) {
-      saveToken(res.token);
-      const me = await Api.me().catch(() => null);
-      setUser(me);
+      try {
+        const me = await api.get('/auth/me')
+        setUser(me)
+      } catch (_) {
+        doLogout(false)
+      } finally {
+        setLoading(false)
+      }
     }
-    return res;
+    loadMe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
+
+  async function doLogin(credentials) {
+    const res = await api.post('/auth/login', credentials)
+    const jwt = res?.token || res?.jwt || ''
+    if (!jwt) throw new Error('Login did not return a token')
+    setToken(jwt)
+    setTokenState(jwt)
+    try {
+      const me = await api.get('/auth/me')
+      setUser(me)
+    } catch {
+      setUser(null)
+    }
+    return true
   }
 
-  function logout() { clearToken(); setUser(null); }
+  function doLogout(clear = true) {
+    clearToken()
+    setTokenState('')
+    if (clear) setUser(null)
+  }
 
   const value = useMemo(() => ({
-    user, loading, isAuthenticated: !!user, login, register, logout
-  }), [user, loading]);
+    token,
+    user,
+    loading,
+    login: doLogin,
+    logout: doLogout,
+    isAuthenticated: !!token
+  }), [token, user, loading])
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider />");
-  return ctx;
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider')
+  return ctx
 }
-
