@@ -1,79 +1,36 @@
-import { Link, NavLink } from "react-router-dom";
-import { useAuth } from "../modules/auth/AuthContext";
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../modules/auth/AuthContext';
 
-/**
- * Header component with navigation links and user info.
- * - Shows login link when not authenticated.
- * - When authenticated, shows user's avatar with initials and greeting.
- */
 export default function Header() {
-    const { isAuthenticated, user, logout } = useAuth();
-
-    const base =
-        "px-3 py-2 rounded-md text-sm font-medium transition-colors";
-    const active = "bg-gray-800 text-white";
-    const inactive = "text-gray-300 hover:bg-gray-700 hover:text-white";
-
-    // Derive name and initials
-    const displayName =
-        user?.firstName && user?.lastName
-        ? `${user.firstName}`
-        : user?.firstName || user?.email || "User";
-
-    const initials = user?.firstName
-        ? user.firstName[0].toUpperCase()
-        : (user?.email?.[0] || "U").toUpperCase();
+    const { user, logout } = useAuth();
 
     return (
-        <header className="bg-gray-900">
-        <nav className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="flex h-16 items-center justify-between">
-            <Link to="/" className="text-white font-semibold">
-                Digital Booking
+        <header className="bg-[#0f172a] text-white">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <Link to="/" className="text-lg font-semibold">
+            Digital Booking
             </Link>
-
-            <div className="flex items-center space-x-2">
-                <NavLink
-                to="/"
-                className={({ isActive }) =>
-                    `${base} ${isActive ? active : inactive}`
-                }
-                >
-                Home
-                </NavLink>
-
-                {!isAuthenticated ? (
-                <NavLink
-                    to="/login"
-                    className={({ isActive }) =>
-                    `${base} ${isActive ? active : inactive}`
-                    }
-                >
-                    Login
-                </NavLink>
-                ) : (
+            <nav className="flex items-center gap-4">
+            <Link to="/" className="opacity-90 hover:opacity-100">Home</Link>
+            {user ? (
                 <>
-                    <div className="flex items-center space-x-2">
-                    {/* Avatar with initial */}
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
-                        {initials}
-                    </div>
-                    {/* Greeting */}
-                    <span className="text-gray-200 text-sm">
-                        Hello, {displayName}!
-                    </span>
-                    </div>
-                    <button
+                <span className="opacity-90">{user.email || user.username}</span>
+                <button
                     onClick={logout}
-                    className="px-3 py-2 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-700"
-                    >
+                    className="bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1"
+                >
                     Logout
-                    </button>
+                </button>
                 </>
-                )}
-            </div>
-            </div>
-        </nav>
+            ) : (
+                <>
+                <Link to="/login" className="opacity-90 hover:opacity-100">Login</Link>
+                <Link to="/register" className="opacity-90 hover:opacity-100">Register</Link>
+                </>
+            )}
+            </nav>
+        </div>
         </header>
     );
 }

@@ -1,67 +1,54 @@
-import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../modules/auth/AuthContext";
-import { useToast } from "../shared/ToastProvider";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../modules/auth/AuthContext';
 
-/** Simple email/password login that stores the JWT. */
 export default function Login() {
-  const { login } = useAuth();
-  const toast = useToast();
-  const nav = useNavigate();
-  const loc = useLocation();
-  const from = loc.state?.from?.pathname || "/";
+  const { login, loading } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function onSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setBusy(true);
     try {
-      await login({ email, password });
-      toast.success("Logged in successfully");
-      nav(from, { replace: true });
+      await login(email.trim(), password);
+      alert('Login success ✅');
+      navigate('/');
     } catch (err) {
-      toast.error("Invalid email or password");
-    } finally {
-      setBusy(false);
+      const msg = err?.payload?.message || err?.message || 'Login error';
+      alert(`Login failed ❌: ${msg}`);
     }
   }
 
   return (
-    <form onSubmit={onSubmit} className="max-w-md mx-auto space-y-4">
-      <div>
-        <label className="block text-sm font-medium">Email</label>
-        <input
-          type="email"
-          autoComplete="email"
-          required
-          className="mt-1 w-full border rounded-md px-3 py-2"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium">Password</label>
-        <input
-          type="password"
-          autoComplete="current-password"
-          required
-          className="mt-1 w-full border rounded-md px-3 py-2"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-        />
-      </div>
-      <button
-        type="submit"
-        disabled={busy}
-        className="w-full rounded-md bg-gray-900 text-white py-2 hover:bg-gray-800 disabled:opacity-60"
-      >
-        {busy ? "Signing in..." : "Sign in"}
-      </button>
-    </form>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow w-full max-w-sm grid gap-4">
+        <h1 className="text-xl font-semibold">Login</h1>
+        <label className="grid gap-1">
+          <span className="text-sm">Email</span>
+          <input
+            type="email"
+            className="border rounded-lg px-3 py-2"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoFocus
+            placeholder="you@example.com"
+          />
+        </label>
+        <label className="grid gap-1">
+          <span className="text-sm">Password</span>
+          <input
+            type="password"
+            className="border rounded-lg px-3 py-2"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+          />
+        </label>
+        <button type="submit" disabled={loading} className="bg-indigo-600 text-white rounded-lg px-4 py-2 disabled:opacity-60">
+          {loading ? 'Signing in…' : 'Sign in'}
+        </button>
+      </form>
+    </div>
   );
 }
