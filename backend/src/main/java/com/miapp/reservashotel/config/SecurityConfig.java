@@ -1,78 +1,81 @@
 package com.miapp.reservashotel.config;
 
-import java.util.Arrays;
-import java.util.List;
-
+import com.miapp.reservashotel.security.JwtAuthenticationEntryPoint;
+import com.miapp.reservashotel.security.JwtAuthenticationFilter;
+import com.miapp.reservashotel.security.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+import java.util.List;
 
 /**
- * Security configuration aligned with Spring Boot 3.x / Spring Security 6.
- * - Enables CORS for Vite dev servers (5173/5174) and typical localhost ports.
- * - Opens GET read-only endpoints and auth endpoints.
- * - Everything else requires authentication.
- * - Uses stateless sessions so JWT works properly.
+ * Security setup: stateless JWT. No Basic, no FormLogin.
+ * NOTE: We DO NOT declare passwordEncoder() nor authenticationManager() here
+ * because they already exist in SecurityBeansConfig.
  */
 @Configuration
-@EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
+        return new JwtAuthenticationEntryPoint();
+    }
+
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtUtil jwtUtil) {
+        return new JwtAuthenticationFilter(jwtUtil);
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           JwtAuthenticationEntryPoint entryPoint,
+                                           JwtAuthenticationFilter jwtFilter) throws Exception {
         http
-            .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
+            .cors(cors -> {}) // dedicated CorsFilter bean below
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                // Auth endpoints
-                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/me").permitAll()
-
-                // Public read endpoints (adjust as needed)
-                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/cities/**").permitAll()
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
+            .formLogin(form -> form.disable())
+            .httpBasic(basic -> basic.disable())
+            .authorizeHttpRequests(auth -> auth
+                // Public endpoints
+                .requestMatchers("/api/auth/login", "/api/auth/register",
+                                 "/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                // Availability is public (Sprint 3)
                 .requestMatchers(HttpMethod.GET, "/api/bookings/availability").permitAll()
-
-                // Swagger and static docs (optional)
-                .requestMatchers("/swagger-ui/**", "/openapi.yaml").permitAll()
-
-                // Everything else requires auth
+                // Everything else requires JWT
                 .anyRequest().authenticated()
             )
-            .httpBasic(Customizer.withDefaults());
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     /**
-     * CORS policy allowing local dev frontends to talk to this backend.
-     * Add more origins if you use different ports.
+     * CORS for Vite dev server.
      */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsFilter corsFilter() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(Arrays.asList(
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "http://127.0.0.1:5173",
-            "http://127.0.0.1:5174"
-        ));
-        cfg.setAllowedMethods(Arrays.asList("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(Arrays.asList("Authorization","Content-Type","Accept"));
-        cfg.setExposedHeaders(List.of("Authorization"));
         cfg.setAllowCredentials(true);
+        cfg.setAllowedOrigins(List.of("http://localhost:5173"));
+        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS","PATCH"));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        cfg.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);
-        return source;
+        return new CorsFilter(source);
     }
 }
+

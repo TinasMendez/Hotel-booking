@@ -9,18 +9,18 @@ import java.util.Optional;
 
 /**
  * Repository for User entity.
- * We support login by email. For backward-compatibility with prior code that tried "findByUsername",
- * we map it to email via a custom JPQL query.
+ * Login is by email. For backward-compatibility with old code that called
+ * "findByUsername", we provide an alias that actually queries by email.
  */
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    Optional<User> findByEmail(String email);
+    // Canonical lookup used by auth: case-insensitive email match
+    @Query("SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:email)")
+    Optional<User> findByEmail(@Param("email") String email);
 
     boolean existsByEmail(String email);
 
-    // Backward-compatible alias: treat "username" as email.
+    // Backward-compatible alias: treat "username" as email
     @Query("SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:username)")
     Optional<User> findByUsername(@Param("username") String username);
 }
-
-

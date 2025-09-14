@@ -9,16 +9,14 @@ import com.miapp.reservashotel.repository.BookingRepository;
 import com.miapp.reservashotel.service.BookingService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+// import org.springframework.security.core.Authentication;
+// import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Booking service implementation.
- * Aligns strictly with the interface and repository to avoid compile/runtime errors.
- */
 @Service
 @Transactional
 public class BookingServiceImpl implements BookingService {
@@ -29,8 +27,6 @@ public class BookingServiceImpl implements BookingService {
         this.bookingRepository = bookingRepository;
     }
 
-    // ---------------- Availability ----------------
-
     @Override
     @Transactional(readOnly = true)
     public boolean isProductAvailable(Long productId, LocalDate startDate, LocalDate endDate) {
@@ -38,8 +34,6 @@ public class BookingServiceImpl implements BookingService {
         if (startDate.isAfter(endDate)) return false;
         return !bookingRepository.existsOverlapping(productId, startDate, endDate);
     }
-
-    // ---------------- Create ----------------
 
     @Override
     public BookingResponseDTO createBooking(BookingRequestDTO request) {
@@ -55,8 +49,7 @@ public class BookingServiceImpl implements BookingService {
 
         Booking entity = new Booking();
         entity.setProductId(request.getProductId());
-        // customerId may come from JWT in your security layer; here we accept the DTO value if present
-        entity.setCustomerId(request.getCustomerId());
+        entity.setCustomerId(request.getCustomerId()); // si luego derivamos del JWT, lo seteamos allí
         entity.setStartDate(request.getStartDate());
         entity.setEndDate(request.getEndDate());
         entity.setStatus(request.getStatus() != null ? request.getStatus() : BookingStatus.PENDING);
@@ -65,8 +58,6 @@ public class BookingServiceImpl implements BookingService {
         Booking saved = bookingRepository.save(entity);
         return toResponseDTO(saved);
     }
-
-    // ---------------- Read ----------------
 
     @Override
     @Transactional(readOnly = true)
@@ -97,28 +88,16 @@ public class BookingServiceImpl implements BookingService {
         return toResponseList(list);
     }
 
-    // ---------------- Update ----------------
-
     @Override
     public BookingResponseDTO updateBooking(Long id, BookingRequestDTO request) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
 
-        if (request.getProductId() != null) {
-            booking.setProductId(request.getProductId());
-        }
-        if (request.getCustomerId() != null) {
-            booking.setCustomerId(request.getCustomerId());
-        }
-        if (request.getStartDate() != null) {
-            booking.setStartDate(request.getStartDate());
-        }
-        if (request.getEndDate() != null) {
-            booking.setEndDate(request.getEndDate());
-        }
-        if (request.getStatus() != null) {
-            booking.setStatus(request.getStatus());
-        }
+        if (request.getProductId() != null) booking.setProductId(request.getProductId());
+        if (request.getCustomerId() != null) booking.setCustomerId(request.getCustomerId());
+        if (request.getStartDate() != null) booking.setStartDate(request.getStartDate());
+        if (request.getEndDate() != null) booking.setEndDate(request.getEndDate());
+        if (request.getStatus() != null) booking.setStatus(request.getStatus());
 
         Booking saved = bookingRepository.save(booking);
         return toResponseDTO(saved);
@@ -132,8 +111,6 @@ public class BookingServiceImpl implements BookingService {
         Booking saved = bookingRepository.save(booking);
         return toResponseDTO(saved);
     }
-
-    // ---------------- Mappers ----------------
 
     private BookingResponseDTO toResponseDTO(Booking entity) {
         BookingResponseDTO dto = new BookingResponseDTO();
@@ -149,11 +126,7 @@ public class BookingServiceImpl implements BookingService {
 
     private List<BookingResponseDTO> toResponseList(List<Booking> list) {
         List<BookingResponseDTO> out = new ArrayList<>();
-        if (list != null) {
-            for (Booking b : list) {
-                out.add(toResponseDTO(b));
-            }
-        }
+        if (list != null) for (Booking b : list) out.add(toResponseDTO(b));
         return out;
     }
 }
