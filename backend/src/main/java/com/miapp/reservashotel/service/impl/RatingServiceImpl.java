@@ -3,8 +3,10 @@ package com.miapp.reservashotel.service.impl;
 
 import com.miapp.reservashotel.dto.RatingRequestDTO;
 import com.miapp.reservashotel.dto.RatingResponseDTO;
+import com.miapp.reservashotel.exception.ResourceConflictException;
 import com.miapp.reservashotel.model.Rating;
 import com.miapp.reservashotel.model.User;
+import com.miapp.reservashotel.repository.BookingRepository;
 import com.miapp.reservashotel.repository.RatingRepository;
 import com.miapp.reservashotel.repository.UserRepository;
 import com.miapp.reservashotel.service.RatingService;
@@ -13,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -24,15 +27,31 @@ public class RatingServiceImpl implements RatingService {
 
     private final RatingRepository ratingRepo;
     private final UserRepository userRepo;
+    private final BookingRepository bookingRepository;
 
-    public RatingServiceImpl(RatingRepository ratingRepo, UserRepository userRepo) {
+    public RatingServiceImpl(RatingRepository ratingRepo,
+                             UserRepository userRepo,
+                             BookingRepository bookingRepository) {
         this.ratingRepo = ratingRepo;
         this.userRepo = userRepo;
+        this.bookingRepository = bookingRepository;
     }
 
     @Override
     public RatingResponseDTO createOrUpdate(RatingRequestDTO dto) {
+        if (dto == null || dto.getProductId() == null) {
+            throw new IllegalArgumentException("productId is required");
+        }
         Long userId = currentUserId();
+
+        boolean hasCompleted = bookingRepository.existsCompletedBooking(
+                userId,
+                dto.getProductId(),
+                LocalDate.now()
+        );
+        if (!hasCompleted) {
+            throw new ResourceConflictException("Only guests with a completed booking can rate this product");
+        }
 
         Rating rating = ratingRepo.findByUserIdAndProductId(userId, dto.getProductId())
                 .orElseGet(Rating::new);

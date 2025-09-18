@@ -1,81 +1,84 @@
 package com.miapp.reservashotel.config;
 
-import com.miapp.reservashotel.security.JwtAuthenticationEntryPoint;
+import java.util.List;
+
 import com.miapp.reservashotel.security.JwtAuthenticationFilter;
-import com.miapp.reservashotel.security.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
-import java.util.List;
-
-/**
- * Security setup: stateless JWT. No Basic, no FormLogin.
- * NOTE: We DO NOT declare passwordEncoder() nor authenticationManager() here
- * because they already exist in SecurityBeansConfig.
- */
 @Configuration
+@EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Bean
-    public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
-        return new JwtAuthenticationEntryPoint();
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthenticationProvider authenticationProvider;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          AuthenticationProvider authenticationProvider) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.authenticationProvider = authenticationProvider;
     }
 
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtUtil jwtUtil) {
-        return new JwtAuthenticationFilter(jwtUtil);
-    }
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
-                                           JwtAuthenticationEntryPoint entryPoint,
-                                           JwtAuthenticationFilter jwtFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> {}) // dedicated CorsFilter bean below
+            .cors(Customizer.withDefaults())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
-                .requestMatchers("/api/auth/login", "/api/auth/register",
-                                 "/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                // Availability is public (Sprint 3)
-                .requestMatchers(HttpMethod.GET, "/api/bookings/availability").permitAll()
-                // Everything else requires JWT
+                // Public auth endpoints
+                .requestMatchers("/api/auth/**").permitAll()
+                // Public GET resources used by home and product detail
+                .requestMatchers(HttpMethod.GET,
+                        "/api/products/**",
+                        "/api/categories/**",
+                        "/api/cities/**",
+                        "/api/images/**",
+                        "/api/features/**",
+                        "/api/policies/product/**",
+                        "/api/ratings/product/**",
+                        "/api/bookings/availability",
+                        "/api/bookings/product/**"
+                ).permitAll()
+                // Optional Swagger endpoints
+                .requestMatchers(
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html"
+                ).permitAll()
+                // Everything else requires authentication
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .authenticationProvider(authenticationProvider)
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * CORS for Vite dev server.
-     */
+    // CORS configuration for local Vite dev server
     @Bean
-    public CorsFilter corsFilter() {
-        CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowCredentials(true);
-        cfg.setAllowedOrigins(List.of("http://localhost:5173"));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS","PATCH"));
-        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
-        cfg.setExposedHeaders(List.of("Authorization"));
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
-        return new CorsFilter(source);
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }
-

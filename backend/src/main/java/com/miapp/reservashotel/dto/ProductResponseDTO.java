@@ -1,6 +1,7 @@
 package com.miapp.reservashotel.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 
 public class ProductResponseDTO {
@@ -13,12 +14,13 @@ public class ProductResponseDTO {
     private Long categoryId;
     private Long cityId;
     private Set<Long> featureIds;
+    private List<String> imageUrls;
 
     public ProductResponseDTO() {
     }
 
     public ProductResponseDTO(Long id, String name, String description, String imageUrl, BigDecimal price,
-                              Long categoryId, Long cityId, Set<Long> featureIds) {
+                              Long categoryId, Long cityId, Set<Long> featureIds, List<String> imageUrls) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -27,6 +29,7 @@ public class ProductResponseDTO {
         this.categoryId = categoryId;
         this.cityId = cityId;
         this.featureIds = featureIds;
+        this.imageUrls = imageUrls;
     }
 
     // Getters and setters
@@ -53,6 +56,7 @@ public class ProductResponseDTO {
 
     public Set<Long> getFeatureIds() { return featureIds; }
     public void setFeatureIds(Set<Long> featureIds) { this.featureIds = featureIds; }
+    public List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
 }
-
 

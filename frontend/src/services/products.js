@@ -17,7 +17,7 @@ export async function getProducts({
   if (start) params.start = start;   // expected by your backend advanced search
   if (end) params.end = end;
 
-  const { data } = await Api.get("/api/products", { params });
+  const { data } = await Api.get("/products", { params });
 
   const content = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
   return {
@@ -30,7 +30,7 @@ export async function getProducts({
 
 /** Single product by id. */
 export async function getProduct(id) {
-  const { data } = await Api.get(`/api/products/${id}`);
+  const { data } = await Api.get(`/products/${id}`);
   return data;
 }
 

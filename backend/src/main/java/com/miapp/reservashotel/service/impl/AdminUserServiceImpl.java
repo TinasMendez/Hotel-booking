@@ -37,8 +37,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + dto.getEmail()));
 
-        Role admin = roleRepository.findByName("ADMIN")
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found: ADMIN"));
+        Role admin = findAdminRole();
 
         Set<Role> roles = new HashSet<>(user.getRoles() != null ? user.getRoles() : Set.of());
         roles.add(admin);
@@ -55,7 +54,10 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         Set<Role> roles = new HashSet<>(user.getRoles() != null ? user.getRoles() : Set.of());
         roles = roles.stream()
-                .filter(r -> !"ADMIN".equals(r.getName()))
+                .filter(r -> {
+                    String name = r.getName();
+                    return !"ADMIN".equals(name) && !"ROLE_ADMIN".equals(name);
+                })
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         user.setRoles(roles);
         user = userRepository.save(user);
@@ -67,7 +69,11 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional(readOnly = true)
     public List<UserRolesResponseDTO> listAdmins() {
         return userRepository.findAll().stream()
-                .filter(u -> u.getRoles() != null && u.getRoles().stream().anyMatch(r -> "ADMIN".equals(r.getName())))
+                .filter(u -> u.getRoles() != null && u.getRoles().stream()
+                        .anyMatch(r -> {
+                            String name = r.getName();
+                            return "ADMIN".equals(name) || "ROLE_ADMIN".equals(name);
+                        }))
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
@@ -84,4 +90,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         // Build DTO using the all-args constructor
         return new UserRolesResponseDTO(user.getId(), user.getEmail(), roleNames);
     }
-} 
+
+    private Role findAdminRole() {
+        return roleRepository.findByName("ROLE_ADMIN")
+                .or(() -> roleRepository.findByName("ADMIN"))
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found: ROLE_ADMIN"));
+    }
+}

@@ -1,15 +1,20 @@
 package com.miapp.reservashotel.controller;
 
+import com.miapp.reservashotel.dto.ProductRequestDTO;
 import com.miapp.reservashotel.dto.ProductResponseDTO;
 import com.miapp.reservashotel.service.ProductService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/products")
@@ -58,5 +63,27 @@ public class ProductController {
         int to = Math.min(from + size, filtered.size());
         List<ProductResponseDTO> slice = filtered.subList(from, to);
         return new PageImpl<>(slice, PageRequest.of(page, size), filtered.size());
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProductResponseDTO> create(@Valid @RequestBody ProductRequestDTO requestDTO) {
+        ProductResponseDTO created = service.createProduct(requestDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProductResponseDTO> update(@PathVariable Long id,
+                                                     @Valid @RequestBody ProductRequestDTO requestDTO) {
+        ProductResponseDTO updated = service.updateProduct(id, requestDTO);
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.deleteProduct(id);
+        return ResponseEntity.noContent().build();
     }
 }

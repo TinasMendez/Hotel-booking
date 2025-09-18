@@ -10,6 +10,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -20,8 +21,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Extracts Bearer token, validates it, and sets Authentication in the context.
+ * Extracts Bearer token, validates it, and sets Authentication in the SecurityContext.
+ * This class is registered as a Spring bean via @Component so it can be injected in SecurityConfig.
  */
+@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
@@ -38,32 +41,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
             String token = header.substring(7);
-            if (jwtUtil.isTokenValid(token)) {
-                Claims claims = jwtUtil.parseClaims(token);
+            try {
+                if (jwtUtil.isTokenValid(token)) {
+                    Claims claims = jwtUtil.parseClaims(token);
 
-                String subject = claims.getSubject();
-                String email = claims.get("email", String.class);
-                String username = claims.get("username", String.class);
-                Object rolesObj = claims.get("roles");
+                    // subject usually contains user identifier (username or id)
+                    String subject = claims.getSubject();
+                    String email = claims.get("email", String.class);
+                    String username = claims.get("username", String.class);
+                    Object rolesObj = claims.get("roles");
 
-                Collection<SimpleGrantedAuthority> authorities = extractAuthorities(rolesObj);
+                    Collection<SimpleGrantedAuthority> authorities = extractAuthorities(rolesObj);
 
-                String principal = email != null ? email : (username != null ? username : subject);
+                    // choose principal: email > username > subject
+                    String principal = email != null ? email : (username != null ? username : subject);
 
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(principal, null, authorities);
-                auth.setDetails(claims);
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(principal, null, authorities);
+                    auth.setDetails(claims);
 
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
+            } catch (Exception ex) {
+                // do not throw here - let request continue as unauthenticated
+                // you may log the exception in real application (logger omitted for brevity)
             }
         }
 
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Extracts authorities from the 'roles' claim.
+     * Supports when roles claim is a List or a single String.
+     */
     private Collection<SimpleGrantedAuthority> extractAuthorities(Object rolesObj) {
         if (rolesObj == null) return List.of();
-        if (rolesObj instanceof List<?> list) {
+        if (rolesObj instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<Object> list = (List<Object>) rolesObj;
             return list.stream()
                     .filter(Objects::nonNull)
                     .map(Object::toString)
@@ -73,4 +89,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return List.of(new SimpleGrantedAuthority(rolesObj.toString()));
     }
 }
+
 

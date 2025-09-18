@@ -4,12 +4,22 @@
 
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../modules/auth/AuthContext.jsx';
+
+function hasAdminRole(user) {
+  if (!user || !Array.isArray(user.roles)) return false;
+  return user.roles.some((role) => role === 'ADMIN' || role === 'ROLE_ADMIN');
+}
 
 export default function ProtectedAdminRoute({ children }) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const location = useLocation();
+  const { isAuthenticated, isLoadingAuth, user } = useAuth();
 
-  if (!token) {
+  if (isLoadingAuth) {
+    return <div className="p-6">Checking permissions…</div>;
+  }
+
+  if (!isAuthenticated || !hasAdminRole(user)) {
     return <Navigate to="/login" replace state={{ from: location, reason: 'admin-protected' }} />;
   }
 

@@ -22,9 +22,13 @@ public class ProductRequestDTO {
     @Positive(message = "Price must be positive")
     private BigDecimal price;
 
-    @NotBlank(message = "Image URL is required")
     @Size(max = 255, message = "Image URL must be at most 255 characters")
     private String imageUrl;
+
+    @NotNull(message = "Image URLs are required")
+    @Size(min = 1, max = 20, message = "Provide between 1 and 20 images")
+    private List<@NotBlank(message = "Image URL cannot be blank")
+            @Size(max = 512, message = "Image URL must be at most 512 characters") String> imageUrls;
 
     @NotBlank(message = "Address is required")
     @Size(max = 255, message = "Address must be at most 255 characters")
@@ -43,7 +47,8 @@ public class ProductRequestDTO {
     public ProductRequestDTO() {}
 
     public ProductRequestDTO(String name, String description, BigDecimal price, String imageUrl,
-                                String address, Long cityId, Long categoryId, List<Long> featureIds) {
+                                String address, Long cityId, Long categoryId, List<Long> featureIds,
+                                List<String> imageUrls) {
         this.name = name;
         this.description = description;
         this.price = price;
@@ -52,6 +57,7 @@ public class ProductRequestDTO {
         this.cityId = cityId;
         this.categoryId = categoryId;
         this.featureIds = featureIds;
+        this.imageUrls = imageUrls;
     }
 
     // --- Getters & Setters ---
@@ -63,6 +69,8 @@ public class ProductRequestDTO {
     public void setPrice(BigDecimal price) { this.price = price; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
     public Long getCityId() { return cityId; }
@@ -72,4 +80,3 @@ public class ProductRequestDTO {
     public List<Long> getFeatureIds() { return featureIds; }
     public void setFeatureIds(List<Long> featureIds) { this.featureIds = featureIds; }
 }
-

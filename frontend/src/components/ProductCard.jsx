@@ -3,10 +3,13 @@ import { Link } from "react-router-dom";
 
 export default function ProductCard({ product }) {
   const id = product?.id;
+  const imageSrc = product?.imageUrl
+    || (Array.isArray(product?.imageUrls) && product.imageUrls[0])
+    || "https://via.placeholder.com/600x400?text=No+image";
   return (
     <div className="rounded-2xl border overflow-hidden shadow-sm">
       <img
-        src={product.imageUrl}
+        src={imageSrc}
         alt={product.name}
         className="w-full h-56 object-cover"
         loading="lazy"
@@ -30,4 +33,3 @@ export default function ProductCard({ product }) {
     </div>
   );
 }
-

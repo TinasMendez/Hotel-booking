@@ -5,128 +5,165 @@ import com.miapp.reservashotel.dto.BookingResponseDTO;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Booking;
 import com.miapp.reservashotel.model.BookingStatus;
+import com.miapp.reservashotel.model.User;
 import com.miapp.reservashotel.repository.BookingRepository;
+import com.miapp.reservashotel.repository.UserRepository;
 import com.miapp.reservashotel.service.BookingService;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-// import org.springframework.security.core.Authentication;
-// import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+/**
+ * Booking service implementation.
+ * All methods map Booking entity to DTOs and perform simple validations.
+ */
 @Service
-@Transactional
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
+    private final UserRepository userRepository;
 
-    public BookingServiceImpl(BookingRepository bookingRepository) {
+    public BookingServiceImpl(BookingRepository bookingRepository,
+                              UserRepository userRepository) {
         this.bookingRepository = bookingRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean isProductAvailable(Long productId, LocalDate startDate, LocalDate endDate) {
-        if (productId == null || startDate == null || endDate == null) return false;
-        if (startDate.isAfter(endDate)) return false;
-        return !bookingRepository.existsOverlapping(productId, startDate, endDate);
-    }
-
-    @Override
-    public BookingResponseDTO createBooking(BookingRequestDTO request) {
-        if (request.getProductId() == null || request.getStartDate() == null || request.getEndDate() == null) {
-            throw new IllegalArgumentException("productId, startDate and endDate are required");
+        if (productId == null || startDate == null || endDate == null || endDate.isBefore(startDate)) {
+            return false;
         }
-        if (request.getStartDate().isAfter(request.getEndDate())) {
-            throw new IllegalArgumentException("startDate must be before or equal to endDate");
-        }
-        if (!isProductAvailable(request.getProductId(), request.getStartDate(), request.getEndDate())) {
-            throw new IllegalStateException("Product is not available for the selected dates");
-        }
-
-        Booking entity = new Booking();
-        entity.setProductId(request.getProductId());
-        entity.setCustomerId(request.getCustomerId()); // si luego derivamos del JWT, lo seteamos allí
-        entity.setStartDate(request.getStartDate());
-        entity.setEndDate(request.getEndDate());
-        entity.setStatus(request.getStatus() != null ? request.getStatus() : BookingStatus.PENDING);
-        entity.setCreatedAt(LocalDateTime.now());
-
-        Booking saved = bookingRepository.save(entity);
-        return toResponseDTO(saved);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public BookingResponseDTO getBookingById(Long id) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
-        return toResponseDTO(booking);
+        long overlaps = bookingRepository.countOverlapping(productId, startDate, endDate);
+        return overlaps == 0;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getBookingsByCustomerId(Long customerId) {
-        List<Booking> list = bookingRepository.findByCustomerId(customerId);
-        return toResponseList(list);
+        if (customerId == null) return List.of();
+        return bookingRepository.findByCustomerId(customerId)
+                .stream()
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingResponseDTO> getBookingsByStatus(BookingStatus status) {
-        List<Booking> list = bookingRepository.findByStatus(status);
-        return toResponseList(list);
+    public List<BookingResponseDTO> getBookingsByProductId(Long productId) {
+        if (productId == null) return List.of();
+        return bookingRepository.findByProductId(productId)
+                .stream()
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingResponseDTO> getBookingsBetweenDates(LocalDate startDate, LocalDate endDate) {
-        List<Booking> list = bookingRepository.findIntersecting(startDate, endDate);
-        return toResponseList(list);
+    public List<BookingResponseDTO> getBookingsForCurrentUser() {
+        Long userId = currentUserId();
+        return getBookingsByCustomerId(userId);
+    }
+
+    @Transactional
+    @Override
+    public BookingResponseDTO createBooking(BookingRequestDTO request) {
+        if (request == null) throw new IllegalArgumentException("Request cannot be null");
+        if (request.getProductId() == null) throw new IllegalArgumentException("productId is required");
+        if (request.getCustomerId() == null) throw new IllegalArgumentException("customerId is required");
+        if (request.getStartDate() == null || request.getEndDate() == null)
+            throw new IllegalArgumentException("startDate and endDate are required");
+        if (request.getEndDate().isBefore(request.getStartDate()))
+            throw new IllegalArgumentException("endDate must be >= startDate");
+
+        boolean available = isProductAvailable(request.getProductId(), request.getStartDate(), request.getEndDate());
+        if (!available) throw new IllegalStateException("Selected dates are not available for this product");
+
+        Booking entity = new Booking();
+        entity.setProductId(request.getProductId());
+        entity.setCustomerId(request.getCustomerId()); // mapped to user_id column
+        entity.setStartDate(request.getStartDate());
+        entity.setEndDate(request.getEndDate());
+        entity.setStatus(BookingStatus.CONFIRMED); // use PENDING if you prefer manual confirmation
+
+        Booking saved = bookingRepository.save(entity);
+
+        return toResponseDto(saved);
     }
 
     @Override
-    public BookingResponseDTO updateBooking(Long id, BookingRequestDTO request) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+    @Transactional
+    public BookingResponseDTO cancelBooking(Long bookingId) {
+        if (bookingId == null) throw new IllegalArgumentException("bookingId is required");
 
-        if (request.getProductId() != null) booking.setProductId(request.getProductId());
-        if (request.getCustomerId() != null) booking.setCustomerId(request.getCustomerId());
-        if (request.getStartDate() != null) booking.setStartDate(request.getStartDate());
-        if (request.getEndDate() != null) booking.setEndDate(request.getEndDate());
-        if (request.getStatus() != null) booking.setStatus(request.getStatus());
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found id=" + bookingId));
 
-        Booking saved = bookingRepository.save(booking);
-        return toResponseDTO(saved);
+        Long userId = currentUserId();
+        boolean isOwner = booking.getCustomerId() != null && booking.getCustomerId().equals(userId);
+        if (!isOwner && !currentUserIsAdmin()) {
+            throw new AccessDeniedException("You can only cancel your own bookings");
+        }
+
+        if (booking.getStatus() != BookingStatus.CANCELLED) {
+            booking.setStatus(BookingStatus.CANCELLED);
+            bookingRepository.save(booking);
+        }
+
+        return toResponseDto(booking);
     }
 
     @Override
-    public BookingResponseDTO updateBookingStatus(Long id, BookingStatus status) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
-        booking.setStatus(status);
-        Booking saved = bookingRepository.save(booking);
-        return toResponseDTO(saved);
+    @Transactional(readOnly = true)
+    public BookingResponseDTO getBookingAccessibleToCurrentUser(Long bookingId) {
+        if (bookingId == null) throw new IllegalArgumentException("bookingId is required");
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found id=" + bookingId));
+
+        Long userId = currentUserId();
+        boolean isOwner = booking.getCustomerId() != null && booking.getCustomerId().equals(userId);
+        if (!isOwner && !currentUserIsAdmin()) {
+            throw new AccessDeniedException("You can only access your own bookings");
+        }
+
+        return toResponseDto(booking);
     }
 
-    private BookingResponseDTO toResponseDTO(Booking entity) {
-        BookingResponseDTO dto = new BookingResponseDTO();
-        dto.setId(entity.getId());
-        dto.setProductId(entity.getProductId());
-        dto.setCustomerId(entity.getCustomerId());
-        dto.setStartDate(entity.getStartDate());
-        dto.setEndDate(entity.getEndDate());
-        dto.setStatus(entity.getStatus());
-        dto.setCreatedAt(entity.getCreatedAt());
-        return dto;
+    // helper to map entity -> DTO
+    private BookingResponseDTO toResponseDto(Booking b) {
+        if (b == null) return null;
+        return new BookingResponseDTO(
+                b.getId(),
+                b.getProductId(),
+                b.getCustomerId(),
+                b.getStartDate(),
+                b.getEndDate(),
+                b.getStatus()
+        );
     }
 
-    private List<BookingResponseDTO> toResponseList(List<Booking> list) {
-        List<BookingResponseDTO> out = new ArrayList<>();
-        if (list != null) for (Booking b : list) out.add(toResponseDTO(b));
-        return out;
+    private Long currentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth == null ? null : auth.getName();
+        if (email == null) throw new AccessDeniedException("No authenticated user");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found: " + email));
+        return user.getId();
+    }
+
+    private boolean currentUserIsAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> "ROLE_ADMIN".equals(a));
     }
 }

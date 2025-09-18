@@ -1,66 +1,87 @@
 package com.miapp.reservashotel.repository;
 
 import com.miapp.reservashotel.model.Booking;
-import com.miapp.reservashotel.model.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
 
 /**
  * Repository for Booking entity.
- * Includes overlap checks and counters required by services and tests.
+ *
+ * Contains convenience queries used by tests and services:
+ *  - findByCustomerId
+ *  - findByProductId (exclude CANCELLED)
+ *  - countOverlapping / countConflicts (used by tests)
+ *  - countByProductId (used by ProductServiceImpl)
+ *  - findBookingsBetweenDates (returns bookings overlapping a window)
  */
+@Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    /**
-     * Returns true if an overlapping non-cancelled booking exists for the product.
-     * Overlap: (startDate <= :end) AND (endDate >= :start)
-     */
-    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END " +
-           "FROM Booking b " +
-           "WHERE b.productId = :productId " +
-           "AND b.status <> com.miapp.reservashotel.model.BookingStatus.CANCELLED " +
-           "AND b.startDate <= :end " +
-           "AND b.endDate >= :start")
-    boolean existsOverlapping(@Param("productId") Long productId,
-                              @Param("start") LocalDate start,
-                              @Param("end") LocalDate end);
+    // --- simple lookups -------------------------------------------------
 
-    /**
-     * Counts overlapping non-cancelled bookings for tests and analytics.
-     */
-    @Query("SELECT COUNT(b) " +
-           "FROM Booking b " +
-           "WHERE b.productId = :productId " +
-           "AND b.status <> com.miapp.reservashotel.model.BookingStatus.CANCELLED " +
-           "AND b.startDate <= :end " +
-           "AND b.endDate >= :start")
-    long countConflicts(@Param("productId") long productId,
-                        @Param("start") LocalDate start,
-                        @Param("end") LocalDate end);
+    @Query("SELECT b FROM Booking b WHERE b.customerId = :customerId")
+    List<Booking> findByCustomerId(@Param("customerId") Long customerId);
 
-    /**
-     * Compatibility method expected by ProductServiceImpl:
-     * counts non-cancelled bookings for a product.
-     * Note: Method name uses underscore to preserve existing call sites.
-     */
+    @Query("SELECT b FROM Booking b " +
+           "WHERE b.productId = :productId " +
+           "AND b.status <> com.miapp.reservashotel.model.BookingStatus.CANCELLED")
+    List<Booking> findByProductId(@Param("productId") Long productId);
+
+    // --- count of bookings for a product (exclude cancelled) ----------
+    // Used by ProductServiceImpl: countByProductId(Long)
     @Query("SELECT COUNT(b) FROM Booking b " +
            "WHERE b.productId = :productId " +
            "AND b.status <> com.miapp.reservashotel.model.BookingStatus.CANCELLED")
-    long countByProduct_Id(@Param("productId") Long productId);
+    long countByProductId(@Param("productId") Long productId);
 
-    // ---- Filters used elsewhere ----
+    // --- overlapping detection -----------------------------------------
+    // Count bookings for a product that overlap the given date range.
+    // Overlap criterion: NOT (existing.end < start OR existing.start > end)
+    @Query("SELECT COUNT(b) FROM Booking b " +
+           "WHERE b.productId = :productId " +
+           "AND b.status <> com.miapp.reservashotel.model.BookingStatus.CANCELLED " +
+           "AND NOT (b.endDate < :startDate OR b.startDate > :endDate)")
+    long countOverlapping(@Param("productId") Long productId,
+                          @Param("startDate") LocalDate startDate,
+                          @Param("endDate") LocalDate endDate);
 
-    List<Booking> findByCustomerId(Long customerId);
+    /**
+     * Some older tests or code call countConflicts(long, LocalDate, LocalDate).
+     * Provide this method signature to satisfy them (primitive long).
+     * We keep the same JPQL as countOverlapping.
+     */
+    @Query("SELECT COUNT(b) FROM Booking b " +
+           "WHERE b.productId = :productId " +
+           "AND b.status <> com.miapp.reservashotel.model.BookingStatus.CANCELLED " +
+           "AND NOT (b.endDate < :startDate OR b.startDate > :endDate)")
+    long countConflicts(@Param("productId") long productId,
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
 
-    List<Booking> findByStatus(BookingStatus status);
-
+    // --- return actual bookings overlapping a window -------------------
     @Query("SELECT b FROM Booking b " +
-           "WHERE b.startDate <= :end " +
-           "AND b.endDate >= :start")
-    List<Booking> findIntersecting(@Param("start") LocalDate start,
-                                   @Param("end") LocalDate end);
+           "WHERE b.productId = :productId " +
+           "AND (" +
+           "   (b.startDate BETWEEN :startDate AND :endDate) " +
+           "   OR (b.endDate BETWEEN :startDate AND :endDate) " +
+           "   OR (b.startDate <= :startDate AND b.endDate >= :endDate) " +
+           ") " +
+           "AND b.status <> com.miapp.reservashotel.model.BookingStatus.CANCELLED")
+    List<Booking> findBookingsBetweenDates(@Param("productId") Long productId,
+                                           @Param("startDate") LocalDate startDate,
+                                           @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT COUNT(b) > 0 FROM Booking b " +
+           "WHERE b.customerId = :customerId " +
+           "AND b.productId = :productId " +
+           "AND b.status <> com.miapp.reservashotel.model.BookingStatus.CANCELLED " +
+           "AND b.endDate < :referenceDate")
+    boolean existsCompletedBooking(@Param("customerId") Long customerId,
+                                   @Param("productId") Long productId,
+                                   @Param("referenceDate") LocalDate referenceDate);
 }

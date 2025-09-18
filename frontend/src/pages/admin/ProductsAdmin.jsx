@@ -2,6 +2,7 @@
 // Lists products and allows deleting. Pagination client-side (10 per page).
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { httpDelete, httpGet } from '../../api/http';
 
 const PAGE_SIZE = 10;
@@ -48,7 +49,15 @@ export default function ProductsAdmin() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Products</h2>
-        <p className="text-sm text-gray-500">{items.length} total</p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-gray-500">{items.length} total</p>
+          <Link
+            to="/admin/products/new"
+            className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Add product
+          </Link>
+        </div>
       </div>
 
       <div className="overflow-x-auto bg-white rounded shadow">

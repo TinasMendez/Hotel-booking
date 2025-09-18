@@ -1,127 +1,258 @@
-// Centralized API client using fetch with sensible defaults.
-// Adds Authorization: Bearer <token> automatically if present.
-// Base path is '/api' (Vite proxy → backend http://localhost:8080).
+// src/services/api.js
+// Centralized API helper with fetch wrapper and domain-specific utilities.
 
-const API_BASE = '/api';
+const RAW_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:8080/api").replace(/\/$/, "");
+const BASE_HAS_API = RAW_BASE.endsWith("/api");
+const ROOT_BASE = BASE_HAS_API ? RAW_BASE.substring(0, RAW_BASE.length - 4) : RAW_BASE;
+const DEFAULT_API_BASE = BASE_HAS_API ? RAW_BASE : `${RAW_BASE}/api`;
 
-// ---------------- Token helpers ----------------
+function buildSearch(params) {
+  if (!params) return "";
+  if (params instanceof URLSearchParams) {
+    const query = params.toString();
+    return query ? `?${query}` : "";
+  }
+  const usp = new URLSearchParams();
+  Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach((v) => usp.append(key, v));
+      } else {
+        usp.append(key, value);
+      }
+    });
+  const query = usp.toString();
+  return query ? `?${query}` : "";
+}
+
+export function resolveApiUrl(path = "", params) {
+  if (/^https?:\/\//i.test(path)) {
+    const query = buildSearch(params);
+    return `${path}${query}`;
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const pathHasApi = normalizedPath === "/api" || normalizedPath.startsWith("/api/");
+  const base = pathHasApi ? (ROOT_BASE || RAW_BASE) : DEFAULT_API_BASE;
+  const url = `${base}${normalizedPath}`;
+  const query = buildSearch(params);
+  return `${url}${query}`;
+}
 
 export function getToken() {
-  return localStorage.getItem('token') || localStorage.getItem('jwt') || '';
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("token") || "";
 }
 
 export function setToken(token) {
-  localStorage.setItem('token', token || '');
-  localStorage.setItem('jwt', token || '');
+  if (typeof window === "undefined") return;
+  if (!token) {
+    localStorage.removeItem("token");
+    return;
+  }
+  localStorage.setItem("token", token);
 }
 
 export function clearToken() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('jwt');
-  localStorage.removeItem('auth.user');
+  setToken("");
 }
 
-// ---------------- internal utilities ----------------
-
-function joinPath(base, path) {
-  const b = base.endsWith('/') ? base.slice(0, -1) : base;
-  const p = path ? (path.startsWith('/') ? path : `/${path}`) : '';
-  return `${b}${p}`;
-}
-
-function buildHeaders(extraHeaders = {}, body) {
-  const headers = new Headers(extraHeaders);
-  if (!(body instanceof FormData) && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
+function authHeaders() {
   const token = getToken();
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  return headers;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function coreFetch(url, options = {}) {
-  const { method = 'GET', headers, body, ...rest } = options;
+function normalizeOptions(options = {}) {
+  return options && typeof options === "object" ? options : {};
+}
 
-  const resp = await fetch(url, {
+async function request(method, path, options = {}) {
+  const opts = normalizeOptions(options);
+  const { params, data, body, headers: extraHeaders, ...rest } = opts;
+  const url = resolveApiUrl(path, params);
+  const payload = body !== undefined ? body : data;
+
+  const headers = {
+    ...((payload !== undefined && !(payload instanceof FormData)) ? { "Content-Type": "application/json" } : {}),
+    ...authHeaders(),
+    ...extraHeaders,
+  };
+
+  const init = {
     method,
     headers,
-    body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
-    credentials: 'include',
+    credentials: "include",
     ...rest,
-  });
+  };
 
-  const contentType = resp.headers.get('Content-Type') || '';
-  const isJson = contentType.includes('application/json');
-  const payload = isJson ? await resp.json().catch(() => null) : null;
-
-  if (!resp.ok) {
-    const message =
-      (payload && (payload.message || payload.error)) || `${resp.status} ${resp.statusText}`;
-    const err = new Error(message);
-    err.status = resp.status;
-    err.payload = payload;
-    throw err;
+  if (payload !== undefined) {
+    init.body = payload instanceof FormData || typeof payload === "string"
+      ? payload
+      : JSON.stringify(payload);
+    if (payload instanceof FormData) {
+      delete headers["Content-Type"]; // browser will set boundary
+    }
   }
-  return payload;
+
+  const res = await fetch(url, init);
+  const contentType = res.headers.get("content-type") || "";
+  let responseBody = null;
+  if (contentType.includes("application/json")) {
+    try {
+      responseBody = await res.json();
+    } catch {
+      responseBody = null;
+    }
+  } else if (contentType.startsWith("text/")) {
+    responseBody = await res.text();
+  }
+
+  if (!res.ok) {
+    const message = responseBody?.message || responseBody?.error || `${res.status} ${res.statusText}`;
+    const error = new Error(message);
+    error.response = { status: res.status, data: responseBody };
+    throw error;
+  }
+
+  return {
+    data: responseBody,
+    status: res.status,
+    ok: res.ok,
+    headers: res.headers,
+  };
 }
 
-// ---------------- Default export (axios-like) ----------------
+const get = (path, options) => request("GET", path, options);
+const post = (path, data, options) => request("POST", path, { ...normalizeOptions(options), data });
+const put = (path, data, options) => request("PUT", path, { ...normalizeOptions(options), data });
+const del = (path, options) => request("DELETE", path, normalizeOptions(options));
 
-const api = {
-  async get(path, config = {}) {
-    const url = joinPath(API_BASE, path);
-    const headers = buildHeaders(config.headers);
-    return coreFetch(url, { method: 'GET', headers, ...config });
-  },
-  async post(path, data, config = {}) {
-    const url = joinPath(API_BASE, path);
-    const headers = buildHeaders(config.headers, data);
-    return coreFetch(url, { method: 'POST', headers, body: data, ...config });
-  },
-  async put(path, data, config = {}) {
-    const url = joinPath(API_BASE, path);
-    const headers = buildHeaders(config.headers, data);
-    return coreFetch(url, { method: 'PUT', headers, body: data, ...config });
-  },
-  async delete(path, config = {}) {
-    const url = joinPath(API_BASE, path);
-    const headers = buildHeaders(config.headers);
-    return coreFetch(url, { method: 'DELETE', headers, ...config });
-  },
-};
+/* ------------------------------ Domain APIs ------------------------------ */
 
-export default api;
-
-// ---------------- Auth & Booking helpers ----------------
-
-export const AuthAPI = {
-  // Backend expects email + password for login
+const AuthAPI = {
   async login({ email, password }) {
-    return api.post('/auth/login', { email, password });
+    return (await post("/auth/login", { email, password })).data;
   },
-  // Optional: if your backend exposes a "me" endpoint
+  async register(payload) {
+    return (await post("/auth/register", payload)).data;
+  },
   async me() {
-    return api.get('/auth/me');
+    return (await get("/auth/me")).data;
   },
-  // Optional: adjust path if your backend uses a different register endpoint
-  async register({ firstName, lastName, email, password }) {
-    return api.post('/auth/register', { firstName, lastName, email, password });
-  },
+  logout: clearToken,
 };
 
-export const BookingAPI = {
+const BookingAPI = {
   async checkAvailability({ productId, startDate, endDate }) {
-    const params = new URLSearchParams({
-      productId: String(productId),
-      startDate,
-      endDate,
-    });
-    return api.get(`/bookings/availability?${params.toString()}`);
+    const params = { productId, startDate, endDate };
+    return (await get("/bookings/availability", { params })).data;
   },
   async createBooking(payload) {
-    // Expected: { productId, customerId, startDate, endDate }
-    return api.post('/bookings', payload);
+    return (await post("/bookings", payload)).data;
+  },
+  async listMine() {
+    return (await get("/bookings/me")).data || [];
+  },
+  async cancelBooking(bookingId) {
+    return (await del(`/bookings/${bookingId}`)).data;
+  },
+  async listByProduct(productId) {
+    return (await get(`/bookings/product/${productId}`)).data || [];
+  },
+  async getById(bookingId) {
+    return (await get(`/bookings/${bookingId}`)).data;
   },
 };
+
+const FavoritesAPI = {
+  async list() {
+    return (await get("/favorites")).data || [];
+  },
+  async add(productId) {
+    return (await post(`/favorites/${productId}`)).data;
+  },
+  async remove(productId) {
+    await del(`/favorites/${productId}`);
+  },
+};
+
+const RatingsAPI = {
+  async listByProduct(productId) {
+    return (await get(`/ratings/product/${productId}`)).data || [];
+  },
+  async average(productId) {
+    const avg = await get(`/ratings/product/${productId}/average`);
+    return typeof avg.data === "number" ? avg.data : Number(avg.data) || 0;
+  },
+  async rate(productId, score, comment) {
+    return (await post("/ratings", { productId, score, comment })).data;
+  },
+};
+
+const AdminAPI = {
+  async listAdmins() {
+    return (await get("/admin/users/admins")).data || [];
+  },
+  async grantAdmin(email) {
+    return (await post("/admin/users/grant-admin", { email })).data;
+  },
+  async revokeAdmin(email) {
+    return (await post("/admin/users/revoke-admin", { email })).data;
+  },
+};
+
+async function fetchCategories() {
+  return (await get("/categories")).data;
+}
+
+async function removeCategory(id) {
+  await del(`/categories/${id}`);
+}
+
+async function uploadProductImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await post("/uploads/product-image", formData);
+  return res.data;
+}
+
+async function uploadCategoryImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await post("/uploads/category-image", formData);
+  return res.data;
+}
+
+async function createCategory(data) {
+  const res = await post("/categories", data);
+  return res.data;
+}
+
+const Api = {
+  get,
+  post,
+  put,
+  delete: del,
+  getToken,
+  setToken,
+  clearToken,
+  AuthAPI,
+  BookingAPI,
+  FavoritesAPI,
+  RatingsAPI,
+  AdminAPI,
+  getFavorites: FavoritesAPI.list,
+  addFavorite: FavoritesAPI.add,
+  removeFavorite: FavoritesAPI.remove,
+  getProductRating: async (productId) => ({ rating: await RatingsAPI.average(productId) }),
+  rateProduct: (productId, score, comment) => RatingsAPI.rate(productId, score, comment),
+  getCategories: fetchCategories,
+  deleteCategory: removeCategory,
+  uploadProductImage,
+  uploadCategoryImage,
+  createCategory,
+};
+
+export { AuthAPI, BookingAPI, FavoritesAPI, RatingsAPI, AdminAPI };
+export default Api;

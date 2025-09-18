@@ -8,18 +8,29 @@ import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.model.City;
 import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.model.Product;
+import com.miapp.reservashotel.model.ProductImage;
+import com.miapp.reservashotel.repository.BookingRepository;
 import com.miapp.reservashotel.repository.CategoryRepository;
 import com.miapp.reservashotel.repository.CityRepository;
 import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.repository.ProductRepository;
-import com.miapp.reservashotel.repository.BookingRepository;
 import com.miapp.reservashotel.service.ProductService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Product service implementation. */
+/**
+ * Product service implementation.
+ * - No Lombok: manual code only.
+ * - Loads Category, City and Feature relations explicitly.
+ */
 @Service
 @Transactional
 public class ProductServiceImpl implements ProductService {
@@ -42,6 +53,7 @@ public class ProductServiceImpl implements ProductService {
         this.bookingRepository = bookingRepository;
     }
 
+    /** Create a new product from a request DTO. */
     @Override
     public ProductResponseDTO createProduct(ProductRequestDTO request) {
         Product product = new Product();
@@ -50,11 +62,12 @@ public class ProductServiceImpl implements ProductService {
         return toResponseDTO(saved);
     }
 
-    /** Overload used by tests: accepts entity and returns entity. */
+    /** Overload for tests that work directly with entities. */
     public Product createProduct(Product product) {
         return productRepository.save(product);
     }
 
+    /** Update an existing product using a request DTO. */
     @Override
     public ProductResponseDTO updateProduct(Long id, ProductRequestDTO request) {
         Product product = productRepository.findById(id)
@@ -64,18 +77,23 @@ public class ProductServiceImpl implements ProductService {
         return toResponseDTO(saved);
     }
 
+    /** Delete a product only if it has no bookings referencing it. */
     @Override
-public void deleteProduct(Long id) {
-    if (!productRepository.existsById(id)) {
-        throw new ResourceNotFoundException("Product not found id=" + id);
+    public void deleteProduct(Long id) {
+        if (!productRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Product not found id=" + id);
+        }
+        // IMPORTANT: method name is countByProductId (no underscore)
+        long refs = bookingRepository.countByProductId(id);
+        if (refs > 0) {
+            throw new ResourceConflictException(
+                "Cannot delete product with existing bookings (id=" + id + ", refs=" + refs + ")"
+            );
+        }
+        productRepository.deleteById(id);
     }
-    long refs = bookingRepository.countByProduct_Id(id); // note the _Id for relation
-    if (refs > 0) {
-        throw new ResourceConflictException("Cannot delete product with existing bookings (id=" + id + ", refs=" + refs + ")");
-    }
-    productRepository.deleteById(id);
-}
 
+    /** Fetch a product by id and convert to response DTO. */
     @Override
     @Transactional(readOnly = true)
     public ProductResponseDTO getProductById(Long id) {
@@ -84,12 +102,19 @@ public void deleteProduct(Long id) {
         return toResponseDTO(p);
     }
 
+    /** Fetch all products. */
     @Override
     @Transactional(readOnly = true)
     public List<ProductResponseDTO> getAllProducts() {
-        return productRepository.findAll().stream().map(this::toResponseDTO).collect(Collectors.toList());
+        return productRepository.findAll()
+                .stream()
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * In-memory filtering search. For large datasets consider pushing this to the repository.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<ProductResponseDTO> searchProducts(Long categoryId,
@@ -116,12 +141,19 @@ public void deleteProduct(Long id) {
                 .collect(Collectors.toList());
     }
 
+    /* ============================== Helpers =============================== */
+
+    /**
+     * Apply DTO values into the entity.
+     * This method loads referenced entities (Category, City, Features) safely.
+     */
     private void applyRequest(Product product, ProductRequestDTO request) {
+        // Basic attributes
         product.setName(request.getName());
         product.setDescription(request.getDescription());
-        product.setImageUrl(request.getImageUrl());
         product.setPrice(request.getPrice());
 
+        // Category
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Category not found id=" + request.getCategoryId()));
@@ -130,6 +162,7 @@ public void deleteProduct(Long id) {
             product.setCategory(null);
         }
 
+        // City
         if (request.getCityId() != null) {
             City city = cityRepository.findById(request.getCityId())
                     .orElseThrow(() -> new ResourceNotFoundException("City not found id=" + request.getCityId()));
@@ -138,17 +171,67 @@ public void deleteProduct(Long id) {
             product.setCity(null);
         }
 
+        // Features
         if (request.getFeatureIds() != null) {
             Set<Feature> features = request.getFeatureIds().stream()
-                    .map(id -> featureRepository.findById(id)
-                            .orElseThrow(() -> new ResourceNotFoundException("Feature not found id=" + id)))
-                    .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+                    .map(fid -> featureRepository.findById(fid)
+                            .orElseThrow(() -> new ResourceNotFoundException("Feature not found id=" + fid)))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
             product.setFeatures(features);
         } else {
-            product.setFeatures(java.util.Collections.emptySet());
+            product.setFeatures(Collections.emptySet());
+        }
+
+        List<String> normalizedImages = normalizeImageUrls(request);
+        if (normalizedImages != null) {
+            syncProductImages(product, normalizedImages);
+        } else if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            product.setImageUrl(request.getImageUrl());
         }
     }
 
+    private List<String> normalizeImageUrls(ProductRequestDTO request) {
+        if (request == null) return null;
+        List<String> raw = request.getImageUrls();
+        if ((raw == null || raw.isEmpty()) && request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            raw = List.of(request.getImageUrl());
+        }
+        if (raw == null) {
+            return null;
+        }
+        LinkedHashSet<String> dedup = new LinkedHashSet<>();
+        for (String url : raw) {
+            if (url == null) continue;
+            String trimmed = url.trim();
+            if (!trimmed.isEmpty()) {
+                dedup.add(trimmed);
+            }
+        }
+        return new ArrayList<>(dedup);
+    }
+
+    private void syncProductImages(Product product, List<String> imageUrls) {
+        if (product.getImages() == null) {
+            product.setImages(new ArrayList<>());
+        }
+        List<ProductImage> target = product.getImages();
+        target.clear();
+        int order = 0;
+        for (String url : imageUrls) {
+            ProductImage image = new ProductImage();
+            image.setUrl(url);
+            image.setSortOrder(order++);
+            image.setProduct(product);
+            target.add(image);
+        }
+        if (!target.isEmpty()) {
+            product.setImageUrl(target.get(0).getUrl());
+        } else {
+            product.setImageUrl(null);
+        }
+    }
+
+    /** Convert entity to response DTO (IDs only for relations). */
     private ProductResponseDTO toResponseDTO(Product p) {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(p.getId());
@@ -158,11 +241,26 @@ public void deleteProduct(Long id) {
         dto.setPrice(p.getPrice());
         dto.setCategoryId(p.getCategory() != null ? p.getCategory().getId() : null);
         dto.setCityId(p.getCity() != null ? p.getCity().getId() : null);
-        java.util.Set<Long> featureIds = (p.getFeatures() == null)
-                ? java.util.Collections.emptySet()
-                : p.getFeatures().stream().map(Feature::getId)
-                    .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+
+        Set<Long> featureIds = (p.getFeatures() == null)
+                ? Collections.emptySet()
+                : p.getFeatures().stream()
+                    .map(Feature::getId)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
         dto.setFeatureIds(featureIds);
+
+        List<String> imageUrls = p.getImages() == null
+                ? List.of()
+                : p.getImages().stream()
+                    .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
+                    .map(ProductImage::getUrl)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        if ((imageUrls == null || imageUrls.isEmpty()) && p.getImageUrl() != null) {
+            imageUrls = List.of(p.getImageUrl());
+        }
+        dto.setImageUrls(imageUrls);
+
         return dto;
     }
 }

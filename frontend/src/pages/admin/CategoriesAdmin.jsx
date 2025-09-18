@@ -1,4 +1,5 @@
 // /frontend/src/pages/admin/CategoriesAdmin.jsx
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Api from "../../services/api";
 
@@ -38,7 +39,15 @@ export default function CategoriesAdmin() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Categories</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Categories</h2>
+        <Link
+          to="/admin/categories/new"
+          className="px-3 py-1 rounded bg-blue-600 text-white"
+        >
+          Add category
+        </Link>
+      </div>
       {loading && <p>Loading...</p>}
       {err && <p className="text-red-600">Error: {err}</p>}
 
@@ -80,4 +89,3 @@ export default function CategoriesAdmin() {
     </div>
   );
 }
-

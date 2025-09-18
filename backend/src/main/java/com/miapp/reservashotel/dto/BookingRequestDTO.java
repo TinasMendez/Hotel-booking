@@ -1,24 +1,26 @@
 package com.miapp.reservashotel.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.miapp.reservashotel.model.BookingStatus;
-
 import java.time.LocalDate;
 
+/**
+ * Request DTO used by controller. `customerId` is optional:
+ * if not provided, it will be resolved from the authenticated user.
+ */
 public class BookingRequestDTO {
 
     private Long productId;
-    private Long customerId;
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private Long customerId; // optional; resolved from auth if null
     private LocalDate startDate;
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate endDate;
 
-    private BookingStatus status; // opcional: si no viene, el service pone PENDING
-
     public BookingRequestDTO() {}
+
+    public BookingRequestDTO(Long productId, Long customerId, LocalDate startDate, LocalDate endDate) {
+        this.productId = productId;
+        this.customerId = customerId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
 
     public Long getProductId() { return productId; }
     public void setProductId(Long productId) { this.productId = productId; }
@@ -31,7 +33,4 @@ public class BookingRequestDTO {
 
     public LocalDate getEndDate() { return endDate; }
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-
-    public BookingStatus getStatus() { return status; }
-    public void setStatus(BookingStatus status) { this.status = status; }
 }

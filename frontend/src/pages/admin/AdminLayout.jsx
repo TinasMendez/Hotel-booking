@@ -15,7 +15,7 @@ export default function AdminLayout() {
             </div>
             <nav className="p-2">
             <NavLink
-                to="/administration/products"
+                to="products"
                 className={({ isActive }) =>
                 `block px-3 py-2 rounded ${isActive ? 'bg-gray-900 text-white' : 'hover:bg-gray-200'}`
                 }
@@ -23,7 +23,7 @@ export default function AdminLayout() {
                 Products
             </NavLink>
             <NavLink
-                to="/administration/categories"
+                to="categories"
                 className={({ isActive }) =>
                 `block px-3 py-2 rounded ${isActive ? 'bg-gray-900 text-white' : 'hover:bg-gray-200'}`
                 }
@@ -31,12 +31,20 @@ export default function AdminLayout() {
                 Categories
             </NavLink>
             <NavLink
-                to="/administration/features"
+                to="features"
                 className={({ isActive }) =>
                 `block px-3 py-2 rounded ${isActive ? 'bg-gray-900 text-white' : 'hover:bg-gray-200'}`
                 }
             >
                 Features
+            </NavLink>
+            <NavLink
+                to="admins"
+                className={({ isActive }) =>
+                `block px-3 py-2 rounded ${isActive ? 'bg-gray-900 text-white' : 'hover:bg-gray-200'}`
+                }
+            >
+                Admin Roles
             </NavLink>
             </nav>
         </aside>

@@ -2,7 +2,9 @@ package com.miapp.reservashotel.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -33,6 +35,10 @@ public class Product {
         inverseJoinColumns = @JoinColumn(name = "feature_id")
     )
     private Set<Feature> features = new HashSet<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("sortOrder ASC")
+    private List<ProductImage> images = new ArrayList<>();
 
     public Product() {}
 
@@ -107,6 +113,24 @@ public class Product {
     public void setFeatures(Set<Feature> features) {
         this.features = features;
     }
-}
 
+    public List<ProductImage> getImages() {
+        return images;
+    }
+
+    public void setImages(List<ProductImage> images) {
+        this.images = images;
+    }
+
+    public void addImage(ProductImage image) {
+        if (image == null) return;
+        image.setProduct(this);
+        this.images.add(image);
+    }
+
+    public void clearImages() {
+        this.images.forEach(img -> img.setProduct(null));
+        this.images.clear();
+    }
+}
 
