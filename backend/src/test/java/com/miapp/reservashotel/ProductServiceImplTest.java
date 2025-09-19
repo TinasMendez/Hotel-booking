@@ -1,94 +1,109 @@
 package com.miapp.reservashotel;
 
+import com.miapp.reservashotel.dto.ProductRequestDTO;
+import com.miapp.reservashotel.dto.ProductResponseDTO;
+import com.miapp.reservashotel.exception.ResourceConflictException;
 import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.model.City;
+import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.model.Product;
 import com.miapp.reservashotel.repository.CategoryRepository;
 import com.miapp.reservashotel.repository.CityRepository;
+import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.service.impl.ProductServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatcher;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.when;
 
-@DataJpaTest
-@Import(ProductServiceImpl.class)
-public class ProductServiceImplTest {
+/**
+ * Minimal unit tests to cover name uniqueness and random listing.
+ */
+@ExtendWith(MockitoExtension.class)
+class ProductServiceImplTest {
 
-    @Autowired
-    private ProductServiceImpl productService;
+    @Mock private ProductRepository productRepository;
+    @Mock private CategoryRepository categoryRepository;
+    @Mock private CityRepository cityRepository;
+    @Mock private FeatureRepository featureRepository;
 
-    @Autowired
-    private ProductRepository productRepository;
+    @InjectMocks
+    private ProductServiceImpl service;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
-
-    @Autowired
-    private CityRepository cityRepository;
-
-    private Category defaultCategory;
-    private City defaultCity;
+    private Category cat;
+    private City city;
+    private Feature feature;
 
     @BeforeEach
-    void setUp() {
-        // Reset state to ensure deterministic tests
-        productRepository.deleteAll();
-        categoryRepository.deleteAll();
-        cityRepository.deleteAll();
+    void setup() {
+        cat = new Category();
+        cat.setId(1L);
+        cat.setName("Hotels");
 
-        // Seed a Category required by ProductServiceImpl
-        defaultCategory = new Category();
-        defaultCategory.setName("Default Category");
-        defaultCategory.setDescription("Category for tests");
-        defaultCategory = categoryRepository.save(defaultCategory);
+        city = new City();
+        city.setId(1L);
+        city.setName("Bogotá");
 
-        // Seed a City required by ProductServiceImpl
-        defaultCity = new City();
-        defaultCity.setName("Test City");
-        defaultCity.setCountry("Testland");
-        defaultCity = cityRepository.save(defaultCity);
+        feature = new Feature();
+        feature.setId(1L);
+        feature.setName("WiFi");
+
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(cat));
+        when(cityRepository.findById(1L)).thenReturn(Optional.of(city));
+        when(featureRepository.findById(1L)).thenReturn(Optional.of(feature));
     }
 
     @Test
-    void createProduct_returnsEntity_andPersists() {
-        // Build a minimal valid Product for creation
-        Product product = new Product();
-        product.setName("Test Product");
-        product.setDescription("Test description");
-        product.setPrice(BigDecimal.valueOf(100));
-        product.setCategory(defaultCategory);
-        product.setCity(defaultCity);
+    void createProduct_shouldRejectDuplicateName() {
+        Product existing = new Product();
+        existing.setId(99L);
+        existing.setName("Hotel One");
+        when(productRepository.findByNameIgnoreCase("Hotel One"))
+                .thenReturn(Optional.of(existing));
 
-        // Execute
-        Product saved = productService.createProduct(product);
+        ProductRequestDTO dto = new ProductRequestDTO();
+        dto.setName("Hotel One");
+        dto.setDescription("Nice place near the park.");
+        dto.setPrice(new BigDecimal("100.00"));
+        dto.setCityId(1L);
+        dto.setCategoryId(1L);
+        dto.setFeatureIds(List.of(1L));
 
-        // Verify returned entity
-        assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getName()).isEqualTo("Test Product");
-        assertThat(saved.getCategory()).isNotNull();
-        assertThat(saved.getCategory().getName()).isEqualTo("Default Category");
-        assertThat(saved.getCity()).isNotNull();
-        assertThat(saved.getCity().getName()).isEqualTo("Test City");
+        assertThatThrownBy(() -> service.createProduct(dto))
+                .isInstanceOf(ResourceConflictException.class)
+                .hasMessageContaining("Product name is already in use");
+    }
 
-        // Verify it was persisted
-        Product fromDb = productRepository.findById(saved.getId()).orElseThrow();
-        assertThat(fromDb.getName()).isEqualTo("Test Product");
-        assertThat(fromDb.getCategory().getId()).isEqualTo(defaultCategory.getId());
-        assertThat(fromDb.getCity().getId()).isEqualTo(defaultCity.getId());
+    @Test
+    void getRandomProducts_shouldReturnUpTo10UniqueAndValidIds() {
+        // Provide a list of 20 products to pick from
+        List<Product> repo = new ArrayList<>();
+        for (long i = 1; i <= 20; i++) {
+            Product p = new Product();
+            p.setId(i);
+            p.setName("P" + i);
+            repo.add(p);
+        }
+        when(productRepository.findAll()).thenReturn(repo);
+
+        List<ProductResponseDTO> out = service.getRandomProducts(100);
+        assertThat(out).hasSizeLessThanOrEqualTo(10);
+
+        Set<Long> seen = new HashSet<>();
+        for (ProductResponseDTO dto : out) {
+            assertThat(seen.add(dto.getId())).isTrue();
+        }
     }
 }
-
-
-
-
-
-
-
-

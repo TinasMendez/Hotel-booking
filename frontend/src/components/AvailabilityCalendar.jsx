@@ -44,16 +44,38 @@ import { useEffect, useMemo, useState } from 'react'
     endDate,
     onChange
     }) {
-    const [cursor, setCursor] = useState(new Date(initialMonth))
+    const today = useMemo(() => {
+        const now = new Date()
+        now.setHours(0, 0, 0, 0)
+        return now
+    }, [])
+    const minDay = fmt(today)
+
+    const [cursor, setCursor] = useState(new Date(initialMonth < today ? today : initialMonth))
     const [start, setStart] = useState(startDate || '')
     const [end, setEnd] = useState(endDate || '')
 
-    useEffect(() => { if (startDate) setStart(startDate) }, [startDate])
-    useEffect(() => { if (endDate) setEnd(endDate) }, [endDate])
+    useEffect(() => {
+        if (startDate && startDate >= minDay) {
+        setStart(startDate)
+        } else if (!startDate) {
+        setStart('')
+        }
+    }, [startDate, minDay])
+    useEffect(() => {
+        if (endDate && endDate >= minDay) {
+        setEnd(endDate)
+        } else if (!endDate) {
+        setEnd('')
+        }
+    }, [endDate, minDay])
 
     const blockedSet = useMemo(() => new Set(blockedDates || []), [blockedDates])
 
     function handlePick(dayStr) {
+        if (dayStr < minDay) {
+        return
+        }
         // If no start yet, set start.
         if (!start || (start && end)) {
         setStart(dayStr); setEnd('')
@@ -88,7 +110,7 @@ import { useEffect, useMemo, useState } from 'react'
                 {w.map((d, j) => {
                     if (!d) return <div key={j} className="p-1" />
                     const dayStr = fmt(d)
-                    const isBlocked = blockedSet.has(dayStr)
+                    const isBlocked = blockedSet.has(dayStr) || dayStr < minDay
                     const isSelStart = start && dayStr === start
                     const isSelEnd = end && dayStr === end
                     const inRange = isInRange(dayStr, start, end)
@@ -124,13 +146,22 @@ import { useEffect, useMemo, useState } from 'react'
         monthGrids.push(renderMonth(date.getFullYear(), date.getMonth()))
     }
 
+    const minMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    const prevTarget = new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1)
+    const canGoPrev = prevTarget >= minMonth
+
     return (
         <div className="space-y-2">
         <div className="flex items-center justify-between">
             <button
             type="button"
-            className="rounded border px-2 py-1 text-sm"
-            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
+            className="rounded border px-2 py-1 text-sm disabled:opacity-50"
+            onClick={() => {
+                if (canGoPrev) {
+                setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
+                }
+            }}
+            disabled={!canGoPrev}
             >
             ‹ Prev
             </button>

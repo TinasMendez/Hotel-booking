@@ -1,42 +1,46 @@
-// /frontend/src/components/ProductCard.jsx
+// frontend/src/components/ProductCard.jsx
 import { Link } from "react-router-dom";
+import FavoriteButton from "./FavoriteButton.jsx";
 
 export default function ProductCard({ product }) {
   const id = product?.id;
-  const imageSrc = product?.imageUrl
-    || (Array.isArray(product?.imageUrls) && product.imageUrls[0])
-    || "https://via.placeholder.com/600x400?text=No+image";
+  const imageSrc =
+    product?.imageUrl ||
+    (Array.isArray(product?.imageUrls) && product.imageUrls[0]) ||
+    "https://via.placeholder.com/600x400?text=No+image";
   const average = Number(product?.ratingAverage ?? 0);
   const count = Number(product?.ratingCount ?? 0);
+
   return (
-    <div className="rounded-2xl border overflow-hidden shadow-sm">
+    <div className="rounded-2xl border overflow-hidden shadow-sm relative bg-white">
       <img
         src={imageSrc}
-        alt={product.name}
-        className="w-full h-56 object-cover"
+        alt={product?.name || "Product image"}
+        className="w-full h-48 object-cover"
         loading="lazy"
       />
+
+      {/* Favorite should be visible on each card */}
+      <div className="absolute top-3 right-3">
+        <FavoriteButton productId={id} />
+      </div>
+
       <div className="p-4 space-y-2">
-        <h3 className="text-lg font-semibold">{product.name}</h3>
-        {count > 0 ? (
-          <div className="flex items-center gap-2 text-sm text-amber-600">
-            <span className="font-semibold">★ {average.toFixed(1)}</span>
-            <span className="text-xs text-slate-500">({count})</span>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-slate-900 line-clamp-1">{product?.name}</h3>
+          <div className="text-sm text-amber-600">
+            {count > 0 ? `★ ${average.toFixed(1)} (${count})` : "No ratings"}
           </div>
-        ) : (
-          <div className="text-xs text-slate-400">Sin valoraciones todavía</div>
-        )}
-        <p className="text-sm text-gray-600">{product.description}</p>
-        <div className="flex gap-2 pt-2">
-          {/* IMPORTANT: route must be /product/:id (singular) */}
-          <Link to={`/product/${id}`} className="px-3 py-1 rounded-xl border">
-            Details
-          </Link>
+        </div>
+
+        <p className="text-sm text-slate-600 line-clamp-2">{product?.description}</p>
+
+        <div className="pt-2">
           <Link
-            to={`/booking/${id}`}
-            className="px-3 py-1 rounded-xl bg-blue-600 text-white"
+            to={`/product/${id}`}
+            className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border hover:bg-slate-50"
           >
-            Book
+            View details →
           </Link>
         </div>
       </div>

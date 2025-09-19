@@ -93,7 +93,7 @@ mvn spring-boot:run
 
 ## Observabilidad (Actuator)
 - Perfil `dev`: `/actuator/health` y `/actuator/info` están abiertos.
-- Perfil `prod`: sólo `/actuator/health` está expuesto; `/actuator/info` exige `ROLE_ADMIN` y puede deshabilitarse con `MANAGEMENT_INFO_ENABLED=false` (valor por defecto).
+- Perfil `prod`: sólo `/actuator/health` está expuesto; `/actuator/info` exige `ROLE_ADMIN` y puede abrirse con `ACTUATOR_INFO_PUBLIC=true`.
 - Para habilitar `/actuator/info` sin autenticación en otros entornos, exporta `ACTUATOR_INFO_PUBLIC=true`.
 
 ---

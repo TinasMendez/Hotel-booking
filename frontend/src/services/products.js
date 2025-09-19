@@ -1,37 +1,54 @@
-import Api from "/src/services/api.js";
+// frontend/src/services/products.js
+// Centralized product-related API helpers. Keeps responses consistent across the app.
 
-/** Fetch paginated products (backed by Spring Page<>). */
-export async function getProducts({
-  page = 0,
-  size = 12,
-  q,
-  cityId,
-  categoryId,
-  start,
-  end,
-} = {}) {
-  const params = { page, size };
-  if (q) params.q = q;
-  if (cityId) params.cityId = cityId;
-  if (categoryId) params.categoryId = categoryId;
-  if (start) params.start = start;   // expected by your backend advanced search
-  if (end) params.end = end;
+import Api from "./api.js";
 
-  const { data } = await Api.get("/products", { params });
-
-  const content = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
-  return {
-    items: content,
-    total: data?.totalElements ?? content.length ?? 0,
-    page: data?.number ?? page,
-    size: data?.size ?? size,
-  };
-}
-
-/** Single product by id. */
+/** Fetch a single product by id. */
 export async function getProduct(id) {
   const { data } = await Api.get(`/products/${id}`);
   return data;
 }
 
-export default { getProducts, getProduct };
+/** Fetch all categories. Accepts both paged and plain-array backends. */
+export async function getCategories() {
+  const { data } = await Api.get("/categories");
+  if (Array.isArray(data?.content)) return data.content;
+  return Array.isArray(data) ? data : [];
+}
+
+/** Fetch up to 10 random products, guaranteed as an array. */
+export async function getRandomProducts(limit = 10) {
+  const { data } = await Api.get("/products/random", { params: { limit } });
+  return Array.isArray(data) ? data : [];
+}
+
+/** Search products with optional filters; returns the page object from backend. */
+export async function searchProducts(params = {}) {
+  const query = {
+    categoryId: params.categoryId ?? undefined,
+    cityId: params.cityId ?? undefined,
+    featureId: params.featureId ?? undefined,
+    minPrice: params.minPrice ?? undefined,
+    maxPrice: params.maxPrice ?? undefined,
+    q: params.q ?? undefined,
+    page: params.page ?? 0,
+    size: params.size ?? 10,
+  };
+  const { data } = await Api.get("/products/search", { params: query });
+  return data;
+}
+
+/** Admin helpers */
+export async function createProduct(payload) {
+  const { data } = await Api.post("/products", payload);
+  return data;
+}
+
+export async function updateProduct(id, payload) {
+  const { data } = await Api.put(`/products/${id}`, payload);
+  return data;
+}
+
+export async function deleteProduct(id) {
+  await Api.delete(`/products/${id}`);
+}

@@ -58,7 +58,7 @@ This brings up MySQL 8, Mailpit, the Spring Boot API and the Vite frontend. Mail
 | `UPLOADS_MAX_FILES_PER_DIR` | `500` | Safety cap per upload directory (0 = no limit) |
 | `UPLOADS_MAX_FILE_SIZE` | `5242880` | Max image size in bytes (default 5 MB) |
 | `SPRINGDOC_API_DOCS` | `true` | Enables `/v3/api-docs` + Swagger UI |
-| `MANAGEMENT_INFO_ENABLED` | `false` | Expose `/actuator/info` in non-dev environments |
+| `ACTUATOR_INFO_PUBLIC` | `false` | Expose `/actuator/info` without authentication in non-dev environments |
 
 > ℹ️  Copy `.env.example` to `.env` and adjust secrets before running the stack locally.
 
@@ -77,7 +77,7 @@ Running `mvn clean package` (or any build that executes the `build-info` goal) r
 ### 3.3 Observabilidad (Actuator)
 
 - **Dev profile**: `/actuator/health` y `/actuator/info` están abiertos. `curl http://localhost:8080/actuator/info` devuelve versión y timestamp del build.
-- **Prod profile**: sólo se expone `/actuator/health`. Para consultar `/actuator/info` se requiere un usuario con `ROLE_ADMIN` y la propiedad `MANAGEMENT_INFO_ENABLED=true`.
+- **Prod profile**: sólo se expone `/actuator/health`. Para consultar `/actuator/info` se requiere un usuario con `ROLE_ADMIN` y la propiedad `ACTUATOR_INFO_PUBLIC=true`.
 - Variable opcional `ACTUATOR_INFO_PUBLIC=true` permite habilitar `/actuator/info` sin autenticación (ya incluida por defecto en `application-dev`).
 
 ### 3.4 QA seed data

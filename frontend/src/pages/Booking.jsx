@@ -59,6 +59,12 @@ export default function Booking() {
   const [processing, setProcessing] = useState(false);
   const [bookingError, setBookingError] = useState("");
 
+  const todayIso = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now.toISOString().slice(0, 10);
+  }, []);
+
   useEffect(() => {
     if (!Number.isFinite(productId)) {
       setProductError("Invalid product identifier.");
@@ -235,6 +241,7 @@ export default function Booking() {
                       type="date"
                       value={startDate}
                       onChange={(event) => setStartDate(event.target.value)}
+                      min={todayIso}
                       className="rounded-xl border border-gray-200 px-3 py-2"
                     />
                   </label>
@@ -244,6 +251,7 @@ export default function Booking() {
                       type="date"
                       value={endDate}
                       onChange={(event) => setEndDate(event.target.value)}
+                      min={todayIso}
                       className="rounded-xl border border-gray-200 px-3 py-2"
                     />
                   </label>
