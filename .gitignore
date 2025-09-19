@@ -4,6 +4,8 @@
 .env
 .env.*
 !.env.example
+backend.zip
+frontend.zip
 node_modules/
 dist/
 build/
