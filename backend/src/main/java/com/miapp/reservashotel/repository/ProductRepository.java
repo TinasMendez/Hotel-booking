@@ -33,6 +33,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * For now, we keep your original method untouched to avoid ripple effects.
      */
     List<Product> findByFeatures_Id(Long featureId);
+
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByCategory_Id(Long categoryId);
 }
-
-

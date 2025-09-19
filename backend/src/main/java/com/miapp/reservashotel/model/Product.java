@@ -15,6 +15,7 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "name", nullable = false, unique = true, length = 120)
     private String name;
     private String description;
     private String imageUrl;
@@ -133,4 +134,3 @@ public class Product {
         this.images.clear();
     }
 }
-

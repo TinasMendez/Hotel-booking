@@ -7,8 +7,12 @@ import com.miapp.reservashotel.model.Booking;
 import com.miapp.reservashotel.model.BookingStatus;
 import com.miapp.reservashotel.model.User;
 import com.miapp.reservashotel.repository.BookingRepository;
+import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.repository.UserRepository;
+import com.miapp.reservashotel.service.BookingMailService;
 import com.miapp.reservashotel.service.BookingService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -27,13 +31,21 @@ import java.util.stream.Collectors;
 @Service
 public class BookingServiceImpl implements BookingService {
 
+    private static final Logger log = LoggerFactory.getLogger(BookingServiceImpl.class);
+
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
+    private final BookingMailService bookingMailService;
 
     public BookingServiceImpl(BookingRepository bookingRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              ProductRepository productRepository,
+                              BookingMailService bookingMailService) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
+        this.productRepository = productRepository;
+        this.bookingMailService = bookingMailService;
     }
 
     @Override
@@ -94,6 +106,14 @@ public class BookingServiceImpl implements BookingService {
         entity.setStatus(BookingStatus.CONFIRMED); // use PENDING if you prefer manual confirmation
 
         Booking saved = bookingRepository.save(entity);
+
+        try {
+            User customer = userRepository.findById(entity.getCustomerId()).orElse(null);
+            com.miapp.reservashotel.model.Product product = productRepository.findById(entity.getProductId()).orElse(null);
+            bookingMailService.sendBookingConfirmation(customer, product, saved);
+        } catch (Exception ex) {
+            log.error("Failed to dispatch booking confirmation email for booking {}", saved.getId(), ex);
+        }
 
         return toResponseDto(saved);
     }

@@ -1,27 +1,57 @@
 // /frontend/src/components/ShareButtons.jsx
-/** Share buttons using the Web Share API when available, otherwise copying the URL. */
-export default function ShareButtons({ title, className = "" }) {
-    async function share() {
-        const url = window.location.href;
-        try {
-        if (navigator.share) {
-            await navigator.share({ title: title ?? document.title, url });
-        } else {
-            await navigator.clipboard.writeText(url);
-            alert("Link copied to clipboard!");
-        }
-        } catch {
-        // user cancelled
-        }
-    }
+import React, { useState } from "react";
+import ShareModal from "./ShareModal.jsx";
+import { useToast } from "../shared/ToastProvider.jsx";
+import { useIntl } from "react-intl";
 
-    return (
-        <button
-        onClick={share}
-        className={`rounded-2xl px-4 py-2 border bg-white text-blue-600 border-blue-600 ${className}`}
-        title="Share this property"
-        >
-        Share
-        </button>
-    );
+export default function ShareButtons({ title, className = "" }) {
+  const toast = useToast();
+  const { formatMessage } = useIntl();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [data, setData] = useState({ url: "", title: "" });
+
+  async function handleShare() {
+    const url = window.location.href;
+    const shareTitle = title ?? document.title;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, url });
+      } catch {
+        // user cancelled
+      }
+      return;
+    }
+    setData({ url, title: shareTitle });
+    setModalOpen(true);
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(data.url);
+      toast?.success(formatMessage({ id: "modal.share.success" }));
+    } catch (error) {
+      toast?.error(formatMessage({ id: "modal.share.error" }));
+      console.error("Clipboard copy failed", error);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleShare}
+        className={`rounded-2xl px-4 py-2 border bg-white text-blue-600 border-blue-600 hover:bg-blue-50 ${className}`}
+        title={formatMessage({ id: "modal.share.title" })}
+      >
+        {formatMessage({ id: "modal.share.title" })}
+      </button>
+      <ShareModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        shareUrl={data.url}
+        title={data.title}
+        onCopy={handleCopy}
+      />
+    </>
+  );
 }

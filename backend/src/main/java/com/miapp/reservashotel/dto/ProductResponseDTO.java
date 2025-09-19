@@ -12,7 +12,9 @@ public class ProductResponseDTO {
     private String imageUrl;
     private BigDecimal price;
     private Long categoryId;
+    private String categoryName;
     private Long cityId;
+    private String cityName;
     private Set<Long> featureIds;
     private List<String> imageUrls;
 
@@ -20,14 +22,18 @@ public class ProductResponseDTO {
     }
 
     public ProductResponseDTO(Long id, String name, String description, String imageUrl, BigDecimal price,
-                              Long categoryId, Long cityId, Set<Long> featureIds, List<String> imageUrls) {
+                              Long categoryId, String categoryName,
+                              Long cityId, String cityName,
+                              Set<Long> featureIds, List<String> imageUrls) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.imageUrl = imageUrl;
         this.price = price;
         this.categoryId = categoryId;
+        this.categoryName = categoryName;
         this.cityId = cityId;
+        this.cityName = cityName;
         this.featureIds = featureIds;
         this.imageUrls = imageUrls;
     }
@@ -51,12 +57,17 @@ public class ProductResponseDTO {
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
+
     public Long getCityId() { return cityId; }
     public void setCityId(Long cityId) { this.cityId = cityId; }
+
+    public String getCityName() { return cityName; }
+    public void setCityName(String cityName) { this.cityName = cityName; }
 
     public Set<Long> getFeatureIds() { return featureIds; }
     public void setFeatureIds(Set<Long> featureIds) { this.featureIds = featureIds; }
     public List<String> getImageUrls() { return imageUrls; }
     public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
 }
-

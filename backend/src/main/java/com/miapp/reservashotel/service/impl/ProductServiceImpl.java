@@ -56,6 +56,7 @@ public class ProductServiceImpl implements ProductService {
     /** Create a new product from a request DTO. */
     @Override
     public ProductResponseDTO createProduct(ProductRequestDTO request) {
+        validateUniqueName(request.getName(), null);
         Product product = new Product();
         applyRequest(product, request);
         Product saved = productRepository.save(product);
@@ -72,6 +73,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponseDTO updateProduct(Long id, ProductRequestDTO request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found id=" + id));
+        validateUniqueName(request.getName(), id);
         applyRequest(product, request);
         Product saved = productRepository.save(product);
         return toResponseDTO(saved);
@@ -137,6 +139,21 @@ public class ProductServiceImpl implements ProductService {
                     String desc = p.getDescription() == null ? "" : p.getDescription().toLowerCase();
                     return name.contains(needle) || desc.contains(needle);
                 })
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductResponseDTO> getRandomProducts(int limit) {
+        int sanitized = limit <= 0 ? 10 : Math.min(limit, 20);
+        List<Product> all = productRepository.findAll();
+        if (all.isEmpty()) {
+            return List.of();
+        }
+        Collections.shuffle(all);
+        return all.stream()
+                .limit(sanitized)
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -231,6 +248,21 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
+    private void validateUniqueName(String name, Long currentId) {
+        if (name == null || name.isBlank()) return;
+        String trimmed = name.trim();
+        boolean exists = productRepository.existsByNameIgnoreCase(trimmed);
+        if (!exists) return;
+        if (currentId == null) {
+            throw new ResourceConflictException("Product name already exists: " + trimmed);
+        }
+        Product existing = productRepository.findById(currentId).orElse(null);
+        if (existing != null && trimmed.equalsIgnoreCase(existing.getName())) {
+            return;
+        }
+        throw new ResourceConflictException("Product name already exists: " + trimmed);
+    }
+
     /** Convert entity to response DTO (IDs only for relations). */
     private ProductResponseDTO toResponseDTO(Product p) {
         ProductResponseDTO dto = new ProductResponseDTO();
@@ -239,8 +271,20 @@ public class ProductServiceImpl implements ProductService {
         dto.setDescription(p.getDescription());
         dto.setImageUrl(p.getImageUrl());
         dto.setPrice(p.getPrice());
-        dto.setCategoryId(p.getCategory() != null ? p.getCategory().getId() : null);
-        dto.setCityId(p.getCity() != null ? p.getCity().getId() : null);
+        if (p.getCategory() != null) {
+            dto.setCategoryId(p.getCategory().getId());
+            dto.setCategoryName(p.getCategory().getName());
+        } else {
+            dto.setCategoryId(null);
+            dto.setCategoryName(null);
+        }
+        if (p.getCity() != null) {
+            dto.setCityId(p.getCity().getId());
+            dto.setCityName(p.getCity().getName());
+        } else {
+            dto.setCityId(null);
+            dto.setCityName(null);
+        }
 
         Set<Long> featureIds = (p.getFeatures() == null)
                 ? Collections.emptySet()

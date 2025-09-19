@@ -11,6 +11,8 @@ import Favorites from "./pages/Favorites.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import BookingConfirmation from "./pages/BookingConfirmation.jsx";
+import Policies from "./pages/Policies.jsx";
+import Profile from "./pages/Profile.jsx";
 
 // Guard que ya tienes
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute.jsx";
@@ -32,6 +34,7 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="product/:id" element={<ProductDetail />} />
+        <Route path="policies" element={<Policies />} />
 
         {/* Rutas que requieren login */}
         <Route element={<AuthGuard />}>
@@ -40,6 +43,7 @@ export default function App() {
           <Route path="booking/confirmation/:bookingId" element={<BookingConfirmation />} />
           <Route path="bookings" element={<Bookings />} />
           <Route path="favorites" element={<Favorites />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
       </Route>
 
@@ -64,6 +68,8 @@ export default function App() {
         <Route path="features" element={<FeaturesAdmin />} />
         <Route path="admins" element={<AdminRoles />} />
       </Route>
+
+      <Route path="administración" element={<Navigate to="/admin" replace />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

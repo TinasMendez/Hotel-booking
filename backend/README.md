@@ -48,11 +48,21 @@ This project intentionally avoids Lombok — all constructors/getters/setters ar
 
 **Default MySQL dev config (`application.properties`):**
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/reservasdb
-spring.datasource.username=root
-spring.datasource.password=Tina050898
+spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/reservasdb}
+spring.datasource.username=${DB_USERNAME:root}
+spring.datasource.password=${DB_PASSWORD:Tina050898}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 ```
+
+Set your own credentials via environment variables before running the app, for example:
+
+```bash
+export DB_URL=jdbc:mysql://localhost:3306/reservasdb
+export DB_USERNAME=root
+export DB_PASSWORD=Tina050898
+```
+
+> Nota: evita usar el usuario `root` en entornos compartidos. Crea una cuenta dedicada si es posible y sólo otórgale permisos sobre `reservasdb`.
 
 ---
 

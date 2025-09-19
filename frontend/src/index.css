@@ -3,4 +3,25 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; }
-body { @apply bg-slate-900 text-white; }
+body { @apply bg-slate-100 text-slate-900; }
+
+.rdp {
+  margin: 0;
+  color: #0f172a;
+  --rdp-accent-color: #059669;
+  --rdp-accent-color-dark: #047857;
+  --rdp-background-color: #ecfdf5;
+  --rdp-outline: 2px solid rgba(5, 150, 105, 0.4);
+  --rdp-cell-size: 40px;
+  --rdp-font-family: inherit;
+  --rdp-day-radius: 8px;
+}
+
+.rdp-button:hover:not([disabled]) {
+  background-color: rgba(2, 132, 199, 0.08);
+}
+
+.rdp-day_range_start,
+.rdp-day_range_end {
+  color: #fff;
+}

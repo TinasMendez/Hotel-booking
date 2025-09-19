@@ -2,9 +2,11 @@ package com.miapp.reservashotel.service.impl;
 
 import com.miapp.reservashotel.dto.CategoryRequestDTO;
 import com.miapp.reservashotel.dto.CategoryResponseDTO;
+import com.miapp.reservashotel.exception.ResourceConflictException;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.repository.CategoryRepository;
+import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.service.CategoryService;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +20,13 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     // Manual constructor injection
-    public CategoryServiceImpl(CategoryRepository categoryRepository) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository,
+                               ProductRepository productRepository) {
         this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
     }
 
     @Override
@@ -50,6 +55,9 @@ public class CategoryServiceImpl implements CategoryService {
         if (!categoryRepository.existsById(id)) {
             throw new ResourceNotFoundException("Category not found with id: " + id);
         }
+        if (productRepository.existsByCategory_Id(id)) {
+            throw new ResourceConflictException("Cannot delete category " + id + " because products are linked to it");
+        }
         categoryRepository.deleteById(id);
     }
 
@@ -75,7 +83,6 @@ public class CategoryServiceImpl implements CategoryService {
         return dto;
     }
 }
-
 
 
 

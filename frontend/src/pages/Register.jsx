@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthAPI } from '../services/api';
+import { useToast } from '../shared/ToastProvider.jsx';
 
 /**
  * Minimal register page. Adjust fields to match your backend DTO.
  */
 export default function Register() {
     const navigate = useNavigate();
+    const toast = useToast();
     const [firstName, setFirstName] = useState('');
     const [lastName,  setLastName]  = useState('');
     const [email,     setEmail]     = useState('');
@@ -18,11 +20,11 @@ export default function Register() {
         setLoading(true);
         try {
         await AuthAPI.register({ firstName, lastName, email, password });
-        alert('Account created ✅. Please login.');
+        toast?.success('Account created. Please sign in.');
         navigate('/login');
         } catch (err) {
         const msg = err?.payload?.message || err?.message || 'Register error';
-        alert(`Register failed ❌: ${msg}`);
+        toast?.error(`Register failed: ${msg}`);
         } finally {
         setLoading(false);
         }

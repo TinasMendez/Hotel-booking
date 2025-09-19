@@ -46,6 +46,7 @@ public class FileStorageService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File must not be empty");
         }
+        validateFile(file);
 
         String extension = resolveExtension(file.getOriginalFilename());
         String filename = UUID.randomUUID() + extension;
@@ -67,6 +68,7 @@ public class FileStorageService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File must not be empty");
         }
+        validateFile(file);
 
         String extension = resolveExtension(file.getOriginalFilename());
         String filename = UUID.randomUUID() + extension;
@@ -97,5 +99,19 @@ public class FileStorageService {
             case ".jpg", ".jpeg", ".png", ".webp" -> ext;
             default -> "";
         };
+    }
+
+    private void validateFile(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType != null && !contentType.isBlank()) {
+            String lower = contentType.toLowerCase(Locale.ROOT);
+            if (!(lower.equals("image/jpeg") || lower.equals("image/png") || lower.equals("image/webp"))) {
+                throw new IllegalArgumentException("Only JPEG, PNG or WEBP images are allowed");
+            }
+        }
+        long maxBytes = 5 * 1024 * 1024; // 5MB
+        if (file.getSize() > maxBytes) {
+            throw new IllegalArgumentException("Image file size must be 5MB or less");
+        }
     }
 }

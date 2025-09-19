@@ -65,6 +65,11 @@ public class ProductController {
         return new PageImpl<>(slice, PageRequest.of(page, size), filtered.size());
     }
 
+    @GetMapping("/random")
+    public ResponseEntity<List<ProductResponseDTO>> random(@RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(service.getRandomProducts(limit));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductResponseDTO> create(@Valid @RequestBody ProductRequestDTO requestDTO) {

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../modules/auth/AuthContext';
+import { useToast } from '../shared/ToastProvider.jsx';
 
 export default function Login() {
   const { login, isLoadingAuth } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,11 +16,11 @@ export default function Login() {
     try {
       setSubmitting(true);
       await login({ email: email.trim(), password });
-      alert('Login success ✅');
+      toast?.success('Signed in successfully');
       navigate('/');
     } catch (err) {
       const msg = err?.payload?.message || err?.message || 'Login error';
-      alert(`Login failed ❌: ${msg}`);
+      toast?.error(`Login failed: ${msg}`);
     } finally {
       setSubmitting(false);
     }

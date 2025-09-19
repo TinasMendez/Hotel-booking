@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: reservas-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Tina050898}
+      MYSQL_DATABASE: ${DB_NAME:-reservasdb}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: digital-booking-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/${DB_NAME:-reservasdb}?useSSL=false&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD:-Tina050898}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_SMTP_AUTH: "false"
+      MAIL_SMTP_STARTTLS: "false"
+      MAIL_FROM: reservas@digitalbooking.local
+      MAIL_SUPPORT: reservas@digitalbooking.local
+      FRONTEND_BASE_URL: http://localhost:4173
+      SUPPORT_PHONE: "+57 300 000 0000"
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: digital-booking-frontend
+    depends_on:
+      - backend
+    environment:
+      VITE_API_BASE: http://backend:8080/api
+      VITE_WHATSAPP_NUMBER: ${VITE_WHATSAPP_NUMBER:-573000000000}
+      VITE_WHATSAPP_MESSAGE: "Hola! Me gustaría saber más sobre esta propiedad."
+    ports:
+      - "4173:4173"
+
+volumes:
+  mysql-data:

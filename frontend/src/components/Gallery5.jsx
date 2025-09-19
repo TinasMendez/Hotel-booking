@@ -34,7 +34,7 @@ export default function Gallery5({ images = [], onViewMore }) {
           className="col-span-2 justify-self-end px-3 py-1 rounded border text-sm"
           title="Open full gallery"
         >
-          View more
+          View gallery
         </button>
       </div>
     </div>

@@ -34,6 +34,7 @@ public interface ProductService {
             String q
     );
 
-}
+    List<ProductResponseDTO> getRandomProducts(int limit);
 
+}
 

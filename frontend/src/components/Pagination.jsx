@@ -10,8 +10,9 @@ export default function Pagination({ page, totalPages, onPrev, onNext }) {
         className="px-3 py-1 rounded border disabled:opacity-50"
         onClick={onPrev}
         disabled={page <= 1}
+        aria-label="Previous page"
       >
-        Prev
+        Previous
       </button>
       <span className="text-sm">
         Page {page} / {totalPages}
@@ -20,6 +21,7 @@ export default function Pagination({ page, totalPages, onPrev, onNext }) {
         className="px-3 py-1 rounded border disabled:opacity-50"
         onClick={onNext}
         disabled={page >= totalPages}
+        aria-label="Next page"
       >
         Next
       </button>
