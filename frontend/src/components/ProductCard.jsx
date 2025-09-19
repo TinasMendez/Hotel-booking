@@ -6,6 +6,8 @@ export default function ProductCard({ product }) {
   const imageSrc = product?.imageUrl
     || (Array.isArray(product?.imageUrls) && product.imageUrls[0])
     || "https://via.placeholder.com/600x400?text=No+image";
+  const average = Number(product?.ratingAverage ?? 0);
+  const count = Number(product?.ratingCount ?? 0);
   return (
     <div className="rounded-2xl border overflow-hidden shadow-sm">
       <img
@@ -16,6 +18,14 @@ export default function ProductCard({ product }) {
       />
       <div className="p-4 space-y-2">
         <h3 className="text-lg font-semibold">{product.name}</h3>
+        {count > 0 ? (
+          <div className="flex items-center gap-2 text-sm text-amber-600">
+            <span className="font-semibold">★ {average.toFixed(1)}</span>
+            <span className="text-xs text-slate-500">({count})</span>
+          </div>
+        ) : (
+          <div className="text-xs text-slate-400">Sin valoraciones todavía</div>
+        )}
         <p className="text-sm text-gray-600">{product.description}</p>
         <div className="flex gap-2 pt-2">
           {/* IMPORTANT: route must be /product/:id (singular) */}

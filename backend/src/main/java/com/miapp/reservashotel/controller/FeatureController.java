@@ -37,7 +37,7 @@ public class FeatureController {
     @PostMapping
     public ResponseEntity<Feature> create(@RequestBody @Valid FeatureRequestDTO dto) {
         Feature created = featureService.createFromDTO(dto);
-        return ResponseEntity.ok(created);
+        return ResponseEntity.status(201).body(created);
     }
 
     @PutMapping("/{id}")
@@ -53,4 +53,3 @@ public class FeatureController {
         return ResponseEntity.noContent().build();
     }
 }
-

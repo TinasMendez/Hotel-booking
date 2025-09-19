@@ -2,9 +2,12 @@
 // List + create + inline edit (name, icon) + delete
 
 import React, { useEffect, useState } from 'react';
+import { useIntl } from 'react-intl';
 import { httpDelete, httpGet, httpPost, httpPut } from '../../api/http';
+import { useToast } from '../../shared/ToastProvider.jsx';
+import { getApiErrorMessage, normalizeApiError } from '../../utils/apiError.js';
 
-function Row({ f, onSave, onDelete }) {
+function Row({ f, onSave, onDelete, busy }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(f.name || '');
   const [icon, setIcon] = useState(f.icon || '');
@@ -34,13 +37,13 @@ function Row({ f, onSave, onDelete }) {
       <td className="p-3">
         {editing ? (
           <div className="flex gap-2">
-            <button onClick={save} className="px-3 py-1 rounded bg-green-600 text-white">Save</button>
-            <button onClick={() => setEditing(false)} className="px-3 py-1 rounded border">Cancel</button>
+            <button onClick={save} className="px-3 py-1 rounded bg-green-600 text-white" disabled={busy}>Save</button>
+            <button onClick={() => setEditing(false)} className="px-3 py-1 rounded border" disabled={busy}>Cancel</button>
           </div>
         ) : (
           <div className="flex gap-2">
             <button onClick={() => setEditing(true)} className="px-3 py-1 rounded border">Edit</button>
-            <button onClick={() => onDelete(f.id)} className="px-3 py-1 rounded bg-red-600 text-white">Delete</button>
+            <button onClick={() => onDelete(f.id)} className="px-3 py-1 rounded bg-red-600 text-white" disabled={busy}>Delete</button>
           </div>
         )}
       </td>
@@ -49,12 +52,16 @@ function Row({ f, onSave, onDelete }) {
 }
 
 export default function FeaturesAdmin() {
+  const toast = useToast();
+  const { formatMessage } = useIntl();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [rowBusyId, setRowBusyId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -63,7 +70,10 @@ export default function FeaturesAdmin() {
       const data = await httpGet('/features');
       setItems(Array.isArray(data) ? data : data?.content ?? []);
     } catch (e) {
-      setErr(e.message);
+      const normalized = normalizeApiError(e, formatMessage({ id: 'errors.generic' }));
+      const message = getApiErrorMessage(normalized, formatMessage, formatMessage({ id: 'errors.generic' }));
+      setErr(message);
+      toast?.error(message);
     } finally {
       setLoading(false);
     }
@@ -73,31 +83,49 @@ export default function FeaturesAdmin() {
 
   const onCreate = async (e) => {
     e.preventDefault();
+    setSaving(true);
     try {
       await httpPost('/features', { name, icon });
       setName(''); setIcon('');
+      toast?.success(formatMessage({ id: 'admin.features.createSuccess', defaultMessage: 'Feature created successfully.' }));
       await load();
     } catch (e) {
-      alert('Create failed: ' + e.message);
+      const normalized = normalizeApiError(e, formatMessage({ id: 'errors.generic' }));
+      const message = getApiErrorMessage(normalized, formatMessage, e?.message);
+      toast?.error(message || formatMessage({ id: 'errors.generic' }));
     }
+    setSaving(false);
   };
 
   const onSaveRow = async (feat) => {
+    setRowBusyId(feat.id);
     try {
       await httpPut(`/features/${feat.id}`, { name: feat.name, icon: feat.icon });
+      toast?.success(formatMessage({ id: 'admin.features.updateSuccess', defaultMessage: 'Feature updated.' }));
       await load();
     } catch (e) {
-      alert('Update failed: ' + e.message);
+      const normalized = normalizeApiError(e, formatMessage({ id: 'errors.generic' }));
+      const message = getApiErrorMessage(normalized, formatMessage, e?.message);
+      toast?.error(message || formatMessage({ id: 'errors.generic' }));
+    } finally {
+      setRowBusyId(null);
     }
   };
 
   const onDeleteRow = async (id) => {
-    if (!confirm('Delete this feature?')) return;
+    const confirmed = window.confirm(formatMessage({ id: 'admin.features.confirmDelete', defaultMessage: 'Delete this feature?' }));
+    if (!confirmed) return;
+    setRowBusyId(id);
     try {
       await httpDelete(`/features/${id}`);
+      toast?.success(formatMessage({ id: 'admin.features.deleteSuccess', defaultMessage: 'Feature removed.' }));
       setItems(prev => prev.filter(x => x.id !== id));
     } catch (e) {
-      alert('Delete failed: ' + e.message);
+      const normalized = normalizeApiError(e, formatMessage({ id: 'errors.generic' }));
+      const message = getApiErrorMessage(normalized, formatMessage, e?.message);
+      toast?.error(message || formatMessage({ id: 'errors.generic' }));
+    } finally {
+      setRowBusyId(null);
     }
   };
 
@@ -119,7 +147,9 @@ export default function FeaturesAdmin() {
           <input className="border rounded p-2" required value={icon} onChange={e => setIcon(e.target.value)} />
         </div>
         <div>
-          <button className="px-4 py-2 rounded bg-gray-900 text-white hover:bg-black">Create</button>
+          <button className="px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-60" disabled={saving}>
+            {saving ? 'Saving…' : 'Create'}
+          </button>
         </div>
       </form>
 
@@ -136,7 +166,13 @@ export default function FeaturesAdmin() {
           </thead>
           <tbody>
             {items.map(f => (
-              <Row key={f.id} f={f} onSave={onSaveRow} onDelete={onDeleteRow} />
+              <Row
+                key={f.id}
+                f={f}
+                onSave={onSaveRow}
+                onDelete={onDeleteRow}
+                busy={rowBusyId === f.id}
+              />
             ))}
             {items.length === 0 && (
               <tr>

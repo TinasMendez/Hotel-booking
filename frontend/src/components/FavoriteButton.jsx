@@ -1,9 +1,14 @@
 // /frontend/src/components/FavoriteButton.jsx
 import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 import Api, { getToken } from "../services/api";
+import { useToast } from "../shared/ToastProvider.jsx";
+import { getApiErrorMessage, normalizeApiError } from "../utils/apiError.js";
 
 /** Toggle button to add/remove a product from user's favorites. */
 export default function FavoriteButton({ productId, className = "" }) {
+    const toast = useToast();
+    const { formatMessage } = useIntl();
     const [loading, setLoading] = useState(false);
     const [fav, setFav] = useState(false);
     const isLogged = !!getToken();
@@ -28,7 +33,7 @@ export default function FavoriteButton({ productId, className = "" }) {
 
     async function toggle() {
         if (!isLogged) {
-        alert("Please log in to use favorites.");
+        toast?.info(formatMessage({ id: "favorites.loginRequired", defaultMessage: "Please log in to use favorites." }));
         return;
         }
         setLoading(true);
@@ -36,12 +41,16 @@ export default function FavoriteButton({ productId, className = "" }) {
         if (fav) {
             await Api.removeFavorite(productId);
             setFav(false);
+            toast?.info(formatMessage({ id: "favorites.removed", defaultMessage: "Removed from favorites." }));
         } else {
             await Api.addFavorite(productId);
             setFav(true);
+            toast?.success(formatMessage({ id: "favorites.added", defaultMessage: "Added to favorites." }));
         }
         } catch (e) {
-        alert(`Favorite error: ${e.message}`);
+        const normalized = normalizeApiError(e, formatMessage({ id: "errors.generic" }));
+        const message = getApiErrorMessage(normalized, formatMessage, e?.message);
+        toast?.error(message || formatMessage({ id: "errors.generic" }));
         } finally {
         setLoading(false);
         }

@@ -48,19 +48,28 @@ This project intentionally avoids Lombok — all constructors/getters/setters ar
 
 **Dev profile excerpt (`application-dev.properties`):**
 ```properties
-spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/reservasdb?useSSL=false&serverTimezone=UTC}
-spring.datasource.username=${DB_USERNAME:app_user}
+spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/reservasdb?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true}
+spring.datasource.username=${DB_USERNAME:root}
 spring.datasource.password=${DB_PASSWORD:}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+jwt.secret=${JWT_SECRET:change-me-in-dev-32bytes-secret-key!!}
+jwt.expiration=${JWT_EXPIRATION:86400000}
 ```
 
 Export your credentials (or rely on `.env`) before running the app, for example:
 
 ```bash
 export DB_URL=jdbc:mysql://localhost:3306/reservasdb?useSSL=false&serverTimezone=UTC
-export DB_USERNAME=app_user
-export DB_PASSWORD=changeme
-export JWT_SECRET=please-change-this-64-character-secret-string-1234567890abcd
+export DB_USERNAME=root
+export DB_PASSWORD=
+export JWT_SECRET=please-change-this-64-byte-secret-key-1234567890abcdef
+```
+
+También puedes copiar el archivo de ejemplo provisto en la raíz del proyecto:
+
+```bash
+cp ../.env.example ../.env
+# edita ../.env con tus valores reales antes de iniciar backend o docker-compose
 ```
 
 > Nota: evita usar el usuario `root` en entornos compartidos. Crea una cuenta dedicada si es posible y sólo otórgale permisos sobre `reservasdb`.

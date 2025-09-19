@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useIntl } from "react-intl";
 import { getProduct } from "../services/products";
@@ -100,6 +100,17 @@ export default function ProductDetail() {
   const [error, setError] = useState("");
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [selection, setSelection] = useState({ startDate: "", endDate: "" });
+
+  const refreshProduct = useCallback(async () => {
+    try {
+      const data = await getProduct(productId);
+      if (data) {
+        setProduct((prev) => ({ ...prev, ...data }));
+      }
+    } catch (error) {
+      console.warn("Failed to refresh product details", error);
+    }
+  }, [productId]);
 
   useEffect(() => {
     if (!Number.isFinite(productId)) {
@@ -204,6 +215,9 @@ export default function ProductDetail() {
 
   const locationLabel = city?.name ? city.name : (product.cityName || (product.cityId ? `City #${product.cityId}` : ""));
   const categoryLabel = category?.name || product.categoryName || (product.categoryId ? `Category #${product.categoryId}` : "");
+  const ratingAverage = Number(product.ratingAverage ?? 0);
+  const ratingCount = Number(product.ratingCount ?? 0);
+  const hasRatings = ratingCount > 0;
 
   return (
     <div className="space-y-10 pb-16">
@@ -214,7 +228,19 @@ export default function ProductDetail() {
           {locationLabel && <p className="text-gray-600">{locationLabel}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <RatingStars productId={productId} />
+          {hasRatings ? (
+            <div className="flex items-center gap-1 text-sm text-amber-600">
+              <span className="font-semibold">★ {ratingAverage.toFixed(1)}</span>
+              <span className="text-xs text-gray-500">({ratingCount})</span>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500">Sin valoraciones todavía</div>
+          )}
+          <RatingStars
+            productId={productId}
+            initialAverage={ratingAverage}
+            onRated={refreshProduct}
+          />
           <FavoriteButton productId={productId} />
           <ShareButtons title={product.name} />
         </div>

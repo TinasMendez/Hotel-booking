@@ -40,9 +40,9 @@ This brings up MySQL 8, Mailpit, the Spring Boot API and the Vite frontend. Mail
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DB_URL` | `jdbc:mysql://localhost:3306/reservasdb?useSSL=false&serverTimezone=UTC` | JDBC URL when running locally |
-| `DB_USERNAME` | `app_user` | Database user (see `.env.example`) |
-| `DB_PASSWORD` | *(required)* | Database password for `DB_USERNAME` |
-| `JWT_SECRET` | *(required)* | HS256 signing key (≥ 32 ASCII chars) |
+| `DB_USERNAME` | `root` | Database user (override if you created `app_user`) |
+| `DB_PASSWORD` | *(required if user has one)* | Password for the database user |
+| `JWT_SECRET` | *(required)* | HS256 signing key (≥ 32 ASCII chars). Example: `please-change-this-64-byte-secret-key-1234567890abcdef` |
 | `MAIL_HOST` | `localhost` | SMTP host (Mailpit by default) |
 | `MAIL_PORT` | `1025` | SMTP port |
 | `MAIL_USERNAME` | *(empty)* | SMTP user if auth required |
