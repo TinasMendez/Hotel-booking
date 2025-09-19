@@ -26,13 +26,16 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow w-full max-w-sm grid gap-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white text-slate-900 p-6 rounded-xl shadow w-full max-w-sm grid gap-4"
+      >
         <h1 className="text-xl font-semibold">Login</h1>
         <label className="grid gap-1">
           <span className="text-sm">Email</span>
           <input
             type="email"
-            className="border rounded-lg px-3 py-2"
+            className="border rounded-lg px-3 py-2 text-slate-900 placeholder:text-slate-400"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoFocus
@@ -43,7 +46,7 @@ export default function Login() {
           <span className="text-sm">Password</span>
           <input
             type="password"
-            className="border rounded-lg px-3 py-2"
+            className="border rounded-lg px-3 py-2 text-slate-900 placeholder:text-slate-400"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"

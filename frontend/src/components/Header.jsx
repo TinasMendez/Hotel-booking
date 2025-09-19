@@ -62,12 +62,20 @@ export default function Header() {
               </button>
             </div>
           ) : (
-            <Link
-              to="/login"
-              className="px-3 py-1 rounded-lg bg-slate-200 text-slate-900 hover:bg-slate-100"
-            >
-              Login
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/login"
+                className="px-3 py-1 rounded-lg bg-slate-200 text-slate-900 hover:bg-slate-100"
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                className="px-3 py-1 rounded-lg border border-slate-200 text-white bg-slate-800 hover:bg-slate-700"
+              >
+                Register
+              </Link>
+            </div>
           )}
         </nav>
       </div>
