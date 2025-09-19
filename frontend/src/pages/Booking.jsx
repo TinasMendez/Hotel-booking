@@ -1,9 +1,11 @@
 // src/pages/Booking.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useIntl } from "react-intl";
 import { BookingAPI } from "/src/services/api.js";
 import { getProduct } from "../services/products";
 import { useAuth } from "../modules/auth/AuthContext.jsx";
+import { getApiErrorMessage, normalizeApiError } from "../utils/apiError.js";
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/960x540?text=No+image";
 
@@ -43,6 +45,7 @@ export default function Booking() {
   const { productId: productIdParam } = useParams();
   const productId = Number(productIdParam);
   const navigate = useNavigate();
+  const { formatMessage } = useIntl();
   const { user } = useAuth();
 
   const [product, setProduct] = useState(null);
@@ -71,7 +74,10 @@ export default function Booking() {
         const data = await getProduct(productId);
         if (!cancelled) setProduct(data);
       } catch (error) {
-        if (!cancelled) setProductError(error?.message || "Failed to load product.");
+        if (!cancelled) {
+          const normalized = normalizeApiError(error, formatMessage({ id: "errors.generic" }));
+          setProductError(getApiErrorMessage(normalized, formatMessage));
+        }
       } finally {
         if (!cancelled) setLoadingProduct(false);
       }
@@ -113,7 +119,8 @@ export default function Booking() {
       setAvailability(Boolean(res?.available));
     } catch (error) {
       setAvailability(null);
-      setBookingError(error?.message || "Could not verify availability.");
+      const normalized = normalizeApiError(error, formatMessage({ id: "errors.generic" }));
+      setBookingError(getApiErrorMessage(normalized, formatMessage));
     } finally {
       setChecking(false);
     }
@@ -155,7 +162,26 @@ export default function Booking() {
         },
       });
     } catch (error) {
-      setBookingError(error?.message || "Failed to create booking.");
+      const normalized = normalizeApiError(error, formatMessage({ id: "errors.generic" }));
+      if (normalized.code === "BOOKING_DATES_UNAVAILABLE") {
+        const conflicts = Array.isArray(normalized.details?.conflicts)
+          ? normalized.details.conflicts
+          : [];
+        let message = getApiErrorMessage(normalized, formatMessage);
+        if (conflicts.length > 0) {
+          const first = conflicts[0];
+          if (first?.startDate && first?.endDate) {
+            message = `${message} ${formatMessage({ id: "booking.conflictRange" }, {
+              start: first.startDate,
+              end: first.endDate,
+            })}`;
+          }
+        }
+        setAvailability(false);
+        setBookingError(message);
+      } else {
+        setBookingError(getApiErrorMessage(normalized, formatMessage));
+      }
     } finally {
       setProcessing(false);
     }

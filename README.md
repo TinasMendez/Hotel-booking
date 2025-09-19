@@ -25,20 +25,11 @@ Optional utilities for local QA:
 ## 2. Quick infrastructure setup (Docker)
 
 ```bash
-# MySQL
-docker run --name reservas-mysql \
-  -e MYSQL_ROOT_PASSWORD=Tina050898 \
-  -e MYSQL_DATABASE=reservasdb \
-  -p 3306:3306 \
-  -d mysql:8.0
-
-# Mailpit (SMTP + Web UI)
-docker run --name mailpit \
-  -p 1025:1025 -p 8025:8025 \
-  -d axllent/mailpit
+cp .env.example .env   # edit DB_/JWT_ values before booting services
+docker compose up -d
 ```
 
-Mailpit UI is available at http://localhost:8025.
+This brings up MySQL 8, Mailpit, the Spring Boot API and the Vite frontend. Mailpit’s web UI lives at http://localhost:8025.
 
 ---
 
@@ -48,21 +39,28 @@ Mailpit UI is available at http://localhost:8025.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DB_URL` | `jdbc:mysql://localhost:3306/reservasdb` | MySQL connection URL |
-| `DB_USERNAME` | `root` | DB user |
-| `DB_PASSWORD` | `password` | DB password |
-| `MAIL_HOST` | `localhost` | SMTP host (Mailpit) |
+| `DB_URL` | `jdbc:mysql://localhost:3306/reservasdb?useSSL=false&serverTimezone=UTC` | JDBC URL when running locally |
+| `DB_USERNAME` | `app_user` | Database user (see `.env.example`) |
+| `DB_PASSWORD` | *(required)* | Database password for `DB_USERNAME` |
+| `JWT_SECRET` | *(required)* | HS256 signing key (≥ 32 ASCII chars) |
+| `MAIL_HOST` | `localhost` | SMTP host (Mailpit by default) |
 | `MAIL_PORT` | `1025` | SMTP port |
-| `MAIL_USERNAME` | *(empty)* | SMTP user (if required) |
-| `MAIL_PASSWORD` | *(empty)* | SMTP password |
-| `MAIL_SMTP_AUTH` | `false` | SMTP auth flag |
-| `MAIL_SMTP_STARTTLS` | `false` | STARTTLS flag |
-| `MAIL_FROM` | `noreply@digitalbooking.local` | Sender address |
+| `MAIL_USERNAME` | *(empty)* | SMTP user if auth required |
+| `MAIL_PASSWORD` | *(empty)* | SMTP password if auth required |
+| `MAIL_SMTP_AUTH` | `false` | Toggle SMTP auth |
+| `MAIL_SMTP_STARTTLS` | `false` | Toggle STARTTLS |
+| `MAIL_FROM` | `noreply@digitalbooking.local` | Sender address for transactional emails |
 | `MAIL_SUPPORT` | `reservas@digitalbooking.local` | Support contact shown in emails |
 | `FRONTEND_BASE_URL` | `http://localhost:5173` | Used in booking confirmation emails |
-| `SUPPORT_PHONE` | *(empty)* | Optional phone for emails |
-| `SUPPORT_WHATSAPP_URL` | *(empty)* | Optional WhatsApp link for emails |
-| `app.seed.qa` | *(off)* | Set to `true` to load demo data at boot |
+| `SUPPORT_PHONE` | *(empty)* | Optional phone number shown in emails |
+| `SUPPORT_WHATSAPP_URL` | *(empty)* | Optional WhatsApp deeplink |
+| `UPLOADS_BASE_DIR` | `./storage/uploads` | Filesystem root for uploaded images |
+| `UPLOADS_MAX_FILES_PER_DIR` | `500` | Safety cap per upload directory (0 = no limit) |
+| `UPLOADS_MAX_FILE_SIZE` | `5242880` | Max image size in bytes (default 5 MB) |
+| `SPRINGDOC_API_DOCS` | `true` | Enables `/v3/api-docs` + Swagger UI |
+| `MANAGEMENT_INFO_ENABLED` | `false` | Expose `/actuator/info` in non-dev environments |
+
+> ℹ️  Copy `.env.example` to `.env` and adjust secrets before running the stack locally.
 
 ### 3.2 Useful commands
 
@@ -74,11 +72,15 @@ mvn clean package -DskipTests
 mvn spring-boot:run
 ```
 
-Actuator endpoints (enabled by default):
-- Health check: `GET http://localhost:8080/actuator/health`
-- Info: `GET http://localhost:8080/actuator/info`
+Running `mvn clean package` (or any build that executes the `build-info` goal) refreshes the metadata returned by `/actuator/info`.
 
-### 3.3 QA seed data
+### 3.3 Observabilidad (Actuator)
+
+- **Dev profile**: `/actuator/health` y `/actuator/info` están abiertos. `curl http://localhost:8080/actuator/info` devuelve versión y timestamp del build.
+- **Prod profile**: sólo se expone `/actuator/health`. Para consultar `/actuator/info` se requiere un usuario con `ROLE_ADMIN` y la propiedad `MANAGEMENT_INFO_ENABLED=true`.
+- Variable opcional `ACTUATOR_INFO_PUBLIC=true` permite habilitar `/actuator/info` sin autenticación (ya incluida por defecto en `application-dev`).
+
+### 3.4 QA seed data
 
 Launch the application with `app.seed.qa=true` to preload cities, categories, products (with gallery & policies), bookings and demo users.
 

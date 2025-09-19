@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useIntl } from "react-intl";
 import { getProduct } from "../services/products";
 import Api, { BookingAPI } from "../services/api.js";
 
@@ -29,25 +30,42 @@ function collectGallery(product) {
   return deduped.length ? deduped : [FALLBACK_IMAGE];
 }
 
-function mapPolicies(policies) {
+function mapPolicies(policies, formatMessage) {
   if (!Array.isArray(policies) || policies.length === 0) return null;
-  const sections = { rules: [], health: [], cancellation: [] };
+
+  const buckets = [
+    {
+      id: "rules",
+      title: formatMessage({ id: "policies.sections.house.title" }),
+      items: [],
+    },
+    {
+      id: "health",
+      title: formatMessage({ id: "policies.sections.health.title" }),
+      items: [],
+    },
+    {
+      id: "cancellation",
+      title: formatMessage({ id: "policies.sections.cancellation.title" }),
+      items: [],
+    },
+  ];
+
   policies.forEach((policy) => {
     const text = policy?.description || policy?.title;
     if (!text) return;
     const key = (policy?.title || "").toLowerCase();
     if (key.includes("health") || key.includes("safety") || key.includes("salud") || key.includes("seguridad")) {
-      sections.health.push(text);
+      buckets[1].items.push(text);
     } else if (key.includes("cancel")) {
-      sections.cancellation.push(text);
+      buckets[2].items.push(text);
     } else {
-      sections.rules.push(text);
+      buckets[0].items.push(text);
     }
   });
-  if (!sections.rules.length && !sections.health.length && !sections.cancellation.length) {
-    return null;
-  }
-  return sections;
+
+  const filled = buckets.filter((section) => section.items.length > 0);
+  return filled.length ? filled : null;
 }
 
 function expandBookings(bookings) {
@@ -69,6 +87,7 @@ export default function ProductDetail() {
   const { id } = useParams();
   const productId = Number(id);
   const navigate = useNavigate();
+  const { formatMessage } = useIntl();
 
   const [product, setProduct] = useState(null);
   const [features, setFeatures] = useState([]);
@@ -162,7 +181,7 @@ export default function ProductDetail() {
     return features.filter((f) => ids.has(f.id));
   }, [product, features]);
 
-  const policySections = useMemo(() => mapPolicies(policies), [policies]);
+  const policySections = useMemo(() => mapPolicies(policies, formatMessage), [policies, formatMessage]);
   const blockedDates = useMemo(() => expandBookings(bookings), [bookings]);
 
   if (loading) {
@@ -253,7 +272,7 @@ export default function ProductDetail() {
       {policySections && (
         <section className="space-y-3">
           <h2 className="text-2xl font-semibold">Policies</h2>
-          <PolicyBlock policies={policySections} />
+          <PolicyBlock sections={policySections} />
         </section>
       )}
     </div>

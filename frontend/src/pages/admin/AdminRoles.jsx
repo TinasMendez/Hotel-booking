@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 import { AdminAPI } from "../../services/api.js";
+import { getApiErrorMessage, normalizeApiError } from "../../utils/apiError.js";
 
 export default function AdminRoles() {
   const [admins, setAdmins] = useState([]);
@@ -8,6 +10,7 @@ export default function AdminRoles() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const { formatMessage } = useIntl();
 
   async function load() {
     setLoading(true);
@@ -16,7 +19,8 @@ export default function AdminRoles() {
       const list = await AdminAPI.listAdmins();
       setAdmins(Array.isArray(list) ? list : []);
     } catch (e) {
-      setError(e?.message || "Failed to load admins");
+      const normalized = normalizeApiError(e, formatMessage({ id: "errors.generic" }));
+      setError(getApiErrorMessage(normalized, formatMessage));
     } finally {
       setLoading(false);
     }
@@ -36,7 +40,8 @@ export default function AdminRoles() {
       setEmail("");
       await load();
     } catch (e) {
-      setError(e?.message || "Failed to assign role");
+      const normalized = normalizeApiError(e, formatMessage({ id: "errors.generic" }));
+      setError(getApiErrorMessage(normalized, formatMessage));
     } finally {
       setSubmitting(false);
     }
@@ -53,7 +58,8 @@ export default function AdminRoles() {
       setMessage(`Revoked ADMIN role from ${targetEmail}`);
       await load();
     } catch (e) {
-      setError(e?.message || "Failed to revoke role");
+      const normalized = normalizeApiError(e, formatMessage({ id: "errors.generic" }));
+      setError(getApiErrorMessage(normalized, formatMessage));
     } finally {
       setSubmitting(false);
     }

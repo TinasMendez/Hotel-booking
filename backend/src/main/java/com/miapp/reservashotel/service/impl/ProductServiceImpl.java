@@ -15,15 +15,25 @@ import com.miapp.reservashotel.repository.CityRepository;
 import com.miapp.reservashotel.repository.FeatureRepository;
 import com.miapp.reservashotel.repository.ProductRepository;
 import com.miapp.reservashotel.service.ProductService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +50,8 @@ public class ProductServiceImpl implements ProductService {
     private final CityRepository cityRepository;
     private final FeatureRepository featureRepository;
     private final BookingRepository bookingRepository;
+
+    private static final String DUPLICATE_NAME_MESSAGE = "Product name is already in use";
 
     public ProductServiceImpl(ProductRepository productRepository,
                               CategoryRepository categoryRepository,
@@ -89,6 +101,7 @@ public class ProductServiceImpl implements ProductService {
         long refs = bookingRepository.countByProductId(id);
         if (refs > 0) {
             throw new ResourceConflictException(
+                "PRODUCT_HAS_BOOKINGS",
                 "Cannot delete product with existing bookings (id=" + id + ", refs=" + refs + ")"
             );
         }
@@ -104,61 +117,103 @@ public class ProductServiceImpl implements ProductService {
         return toResponseDTO(p);
     }
 
-    /** Fetch all products. */
+    /** Fetch all products using pageable defaults. */
     @Override
     @Transactional(readOnly = true)
-    public List<ProductResponseDTO> getAllProducts() {
-        return productRepository.findAll()
-                .stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+    public Page<ProductResponseDTO> getAllProducts(Pageable pageable) {
+        Pageable safePageable = sanitize(pageable);
+        return productRepository.findAll(safePageable).map(this::toResponseDTO);
     }
 
     /**
-     * In-memory filtering search. For large datasets consider pushing this to the repository.
+     * Search products using optional filters. Delegates to a Specification so the database applies
+     * pagination and avoids loading the full catalogue in memory.
      */
     @Override
     @Transactional(readOnly = true)
-    public List<ProductResponseDTO> searchProducts(Long categoryId,
+    public Page<ProductResponseDTO> searchProducts(Long categoryId,
                                                    Long cityId,
                                                    Long featureId,
                                                    java.math.BigDecimal minPrice,
                                                    java.math.BigDecimal maxPrice,
-                                                   String q) {
-        List<Product> all = productRepository.findAll();
-        return all.stream()
-                .filter(p -> categoryId == null || (p.getCategory() != null && Objects.equals(p.getCategory().getId(), categoryId)))
-                .filter(p -> cityId == null || (p.getCity() != null && Objects.equals(p.getCity().getId(), cityId)))
-                .filter(p -> featureId == null || (p.getFeatures() != null && p.getFeatures().stream().anyMatch(f -> Objects.equals(f.getId(), featureId))))
-                .filter(p -> minPrice == null || (p.getPrice() != null && p.getPrice().compareTo(minPrice) >= 0))
-                .filter(p -> maxPrice == null || (p.getPrice() != null && p.getPrice().compareTo(maxPrice) <= 0))
-                .filter(p -> {
-                    if (q == null || q.isBlank()) return true;
-                    String needle = q.trim().toLowerCase();
-                    String name = p.getName() == null ? "" : p.getName().toLowerCase();
-                    String desc = p.getDescription() == null ? "" : p.getDescription().toLowerCase();
-                    return name.contains(needle) || desc.contains(needle);
-                })
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+                                                   String q,
+                                                   Pageable pageable) {
+        Pageable safePageable = sanitize(pageable);
+        Specification<Product> spec = (root, query, cb) -> cb.conjunction();
+
+        if (categoryId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.join("category", JoinType.LEFT).get("id"), categoryId));
+        }
+        if (cityId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.join("city", JoinType.LEFT).get("id"), cityId));
+        }
+        if (featureId != null) {
+            spec = spec.and((root, query, cb) -> {
+                query.distinct(true);
+                return cb.equal(root.join("features", JoinType.LEFT).get("id"), featureId);
+            });
+        }
+        if (minPrice != null) {
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("price"), minPrice));
+        }
+        if (maxPrice != null) {
+            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("price"), maxPrice));
+        }
+        if (q != null && !q.isBlank()) {
+            String needle = "%" + q.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> {
+                Predicate nameMatch = cb.like(cb.lower(root.get("name")), needle);
+                Predicate descMatch = cb.like(cb.lower(root.get("description")), needle);
+                return cb.or(nameMatch, descMatch);
+            });
+        }
+
+        return productRepository.findAll(spec, safePageable).map(this::toResponseDTO);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ProductResponseDTO> getRandomProducts(int limit) {
-        int sanitized = limit <= 0 ? 10 : Math.min(limit, 20);
-        List<Product> all = productRepository.findAll();
-        if (all.isEmpty()) {
+        int sanitizedLimit = Math.max(1, Math.min(limit, 10));
+        List<Long> ids = productRepository.findAllIds();
+        if (ids.isEmpty()) {
             return List.of();
         }
-        Collections.shuffle(all);
-        return all.stream()
-                .limit(sanitized)
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+
+        List<Long> shuffledIds = new ArrayList<>(ids);
+        Collections.shuffle(shuffledIds, ThreadLocalRandom.current());
+        if (shuffledIds.size() > sanitizedLimit) {
+            shuffledIds = shuffledIds.subList(0, sanitizedLimit);
+        }
+
+        List<Product> products = productRepository.findAllById(shuffledIds);
+        Map<Long, ProductResponseDTO> mapped = products.stream()
+                .collect(Collectors.toMap(Product::getId, this::toResponseDTO));
+
+        List<ProductResponseDTO> ordered = new ArrayList<>(shuffledIds.size());
+        for (Long id : shuffledIds) {
+            ProductResponseDTO dto = mapped.get(id);
+            if (dto != null) {
+                ordered.add(dto);
+            }
+        }
+        return ordered;
     }
 
     /* ============================== Helpers =============================== */
+
+    private Pageable sanitize(Pageable pageable) {
+        if (pageable == null) {
+            return PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "name"));
+        }
+        int pageNumber = Math.max(pageable.getPageNumber(), 0);
+        int pageSize = Math.max(1, Math.min(pageable.getPageSize(), 10));
+        Sort sort = pageable.getSort();
+        if (sort == null || sort.isUnsorted()) {
+            sort = Sort.by(Sort.Direction.ASC, "name");
+        }
+        return PageRequest.of(pageNumber, pageSize, sort);
+    }
 
     /**
      * Apply DTO values into the entity.
@@ -249,18 +304,19 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void validateUniqueName(String name, Long currentId) {
-        if (name == null || name.isBlank()) return;
-        String trimmed = name.trim();
-        boolean exists = productRepository.existsByNameIgnoreCase(trimmed);
-        if (!exists) return;
-        if (currentId == null) {
-            throw new ResourceConflictException("Product name already exists: " + trimmed);
-        }
-        Product existing = productRepository.findById(currentId).orElse(null);
-        if (existing != null && trimmed.equalsIgnoreCase(existing.getName())) {
+        if (name == null) {
             return;
         }
-        throw new ResourceConflictException("Product name already exists: " + trimmed);
+        String normalized = name.trim();
+        if (normalized.isEmpty()) {
+            return;
+        }
+
+        productRepository.findByNameIgnoreCase(normalized)
+                .filter(existing -> currentId == null || !existing.getId().equals(currentId))
+                .ifPresent(existing -> {
+                    throw new ResourceConflictException("PRODUCT_NAME_DUPLICATE", DUPLICATE_NAME_MESSAGE);
+                });
     }
 
     /** Convert entity to response DTO (IDs only for relations). */
@@ -304,6 +360,8 @@ public class ProductServiceImpl implements ProductService {
             imageUrls = List.of(p.getImageUrl());
         }
         dto.setImageUrls(imageUrls);
+        dto.setRatingAverage(p.getRatingAverage());
+        dto.setRatingCount(p.getRatingCount());
 
         return dto;
     }

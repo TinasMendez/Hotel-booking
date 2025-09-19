@@ -7,8 +7,10 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Tina050898}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: ${DB_NAME:-reservasdb}
+      MYSQL_USER: ${DB_USERNAME:-app_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -33,19 +35,30 @@ services:
       mysql:
         condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:mysql://mysql:3306/${DB_NAME:-reservasdb}?useSSL=false&serverTimezone=UTC
-      DB_USERNAME: root
-      DB_PASSWORD: ${DB_PASSWORD:-Tina050898}
-      MAIL_HOST: mailpit
-      MAIL_PORT: 1025
-      MAIL_SMTP_AUTH: "false"
-      MAIL_SMTP_STARTTLS: "false"
-      MAIL_FROM: reservas@digitalbooking.local
-      MAIL_SUPPORT: reservas@digitalbooking.local
-      FRONTEND_BASE_URL: http://localhost:4173
-      SUPPORT_PHONE: "+57 300 000 0000"
+      DB_USERNAME: ${DB_USERNAME:-app_user}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-reservas@digitalbooking.local}
+      MAIL_SUPPORT: ${MAIL_SUPPORT:-reservas@digitalbooking.local}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:4173}
+      SUPPORT_PHONE: ${SUPPORT_PHONE:-}
+      SUPPORT_WHATSAPP_URL: ${SUPPORT_WHATSAPP_URL:-}
+      UPLOADS_BASE_DIR: /data/uploads
+      UPLOADS_MAX_FILES_PER_DIR: ${UPLOADS_MAX_FILES_PER_DIR:-500}
+      UPLOADS_MAX_FILE_SIZE: ${UPLOADS_MAX_FILE_SIZE:-5242880}
+      MANAGEMENT_INFO_ENABLED: ${MANAGEMENT_INFO_ENABLED:-false}
     ports:
       - "8080:8080"
+    volumes:
+      - backend-uploads:/data/uploads
 
   frontend:
     build:
@@ -55,11 +68,12 @@ services:
     depends_on:
       - backend
     environment:
-      VITE_API_BASE: http://backend:8080/api
+      VITE_API_BASE: ${VITE_API_BASE:-http://backend:8080/api}
       VITE_WHATSAPP_NUMBER: ${VITE_WHATSAPP_NUMBER:-573000000000}
-      VITE_WHATSAPP_MESSAGE: "Hola! Me gustaría saber más sobre esta propiedad."
+      VITE_WHATSAPP_MESSAGE: ${VITE_WHATSAPP_MESSAGE:-Hola! Me gustaría saber más sobre esta propiedad.}
     ports:
       - "4173:4173"
 
 volumes:
   mysql-data:
+  backend-uploads:

@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useIntl } from "react-intl";
 import Api from "../../services/api";
 import { useToast } from "../../shared/ToastProvider.jsx";
+import { getApiErrorMessage, normalizeApiError } from "../../utils/apiError.js";
 
 export default function CategoryCreateAdmin() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { formatMessage } = useIntl();
 
   const [form, setForm] = useState({
     name: "",
@@ -44,7 +47,8 @@ export default function CategoryCreateAdmin() {
         toast?.success("Image uploaded");
       }
     } catch (err) {
-      const message = err?.message || "Upload failed";
+      const normalized = normalizeApiError(err, formatMessage({ id: "errors.generic" }));
+      const message = getApiErrorMessage(normalized, formatMessage);
       setError(message);
       toast?.error(message);
     } finally {
@@ -68,7 +72,8 @@ export default function CategoryCreateAdmin() {
       toast?.success("Category created");
       navigate("/admin/categories");
     } catch (err) {
-      const message = err?.response?.data?.message || err?.message || "Create failed";
+      const normalized = normalizeApiError(err, formatMessage({ id: "errors.generic" }));
+      const message = getApiErrorMessage(normalized, formatMessage);
       setError(message);
       toast?.error(message);
     } finally {

@@ -8,7 +8,12 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name = "products")
+@Table(
+    name = "products",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_products_name_ci", columnNames = {"name"})
+    }
+)
 public class Product {
 
     @Id
@@ -40,6 +45,12 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("sortOrder ASC")
     private List<ProductImage> images = new ArrayList<>();
+
+    @Column(name = "rating_average", nullable = false)
+    private Double ratingAverage = 0.0;
+
+    @Column(name = "rating_count", nullable = false)
+    private Long ratingCount = 0L;
 
     public Product() {}
 
@@ -121,6 +132,22 @@ public class Product {
 
     public void setImages(List<ProductImage> images) {
         this.images = images;
+    }
+
+    public Double getRatingAverage() {
+        return ratingAverage;
+    }
+
+    public void setRatingAverage(Double ratingAverage) {
+        this.ratingAverage = ratingAverage;
+    }
+
+    public Long getRatingCount() {
+        return ratingCount;
+    }
+
+    public void setRatingCount(Long ratingCount) {
+        this.ratingCount = ratingCount;
     }
 
     public void addImage(ProductImage image) {

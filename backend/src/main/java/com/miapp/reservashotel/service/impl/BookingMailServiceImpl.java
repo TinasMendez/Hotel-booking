@@ -42,12 +42,17 @@ public class BookingMailServiceImpl implements BookingMailService {
                                   @Value("${app.support.phone:}") String supportPhone,
                                   @Value("${app.whatsapp.support-url:}") String whatsappSupportUrl) {
         this.mailSender = mailSender;
-        this.fromAddress = fromAddress;
-        this.supportEmail = supportEmail;
         this.templateEngine = templateEngine;
-        this.frontBaseUrl = frontBaseUrl;
-        this.supportPhone = supportPhone;
-        this.whatsappSupportUrl = whatsappSupportUrl;
+
+        String sanitizedFrom = sanitize(fromAddress);
+        this.fromAddress = sanitizedFrom != null ? sanitizedFrom : "noreply@digitalbooking.local";
+
+        String sanitizedSupport = sanitize(supportEmail);
+        this.supportEmail = sanitizedSupport != null ? sanitizedSupport : this.fromAddress;
+
+        this.frontBaseUrl = sanitize(frontBaseUrl);
+        this.supportPhone = sanitize(supportPhone);
+        this.whatsappSupportUrl = sanitize(whatsappSupportUrl);
     }
 
     @Override
@@ -86,8 +91,8 @@ public class BookingMailServiceImpl implements BookingMailService {
             context.setVariable("myBookingsUrl", buildMyBookingsUrl());
             context.setVariable("providerName", product.getCategory() != null ? product.getCategory().getName() : "Digital Booking");
             context.setVariable("providerEmail", supportEmail);
-            context.setVariable("providerPhone", supportPhone != null && !supportPhone.isBlank() ? supportPhone : null);
-            context.setVariable("whatsAppUrl", whatsappSupportUrl != null && !whatsappSupportUrl.isBlank() ? whatsappSupportUrl : null);
+            context.setVariable("providerPhone", supportPhone);
+            context.setVariable("whatsAppUrl", whatsappSupportUrl);
             context.setVariable("fromEmail", fromAddress);
 
             String htmlBody = templateEngine.process("email/booking-confirmation.html", context);
@@ -138,5 +143,13 @@ public class BookingMailServiceImpl implements BookingMailService {
         }
         String base = frontBaseUrl.replaceAll("/+$", "");
         return String.format("%s/bookings", base);
+    }
+
+    private static String sanitize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

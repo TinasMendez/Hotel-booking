@@ -15,9 +15,12 @@ import "react-day-picker/dist/style.css";
 import { useIntl, FormattedMessage } from "react-intl";
 import { httpGet } from "../api/http";
 import Pagination from "../components/Pagination";
+import { getApiErrorMessage, normalizeApiError } from "../utils/apiError.js";
 
 const PAGE_SIZE = 10;
+const DEFAULT_PAGE = 1;
 const SUGGESTION_DEBOUNCE = 250;
+const RECOMMENDATION_LIMIT = 8;
 
 function toISO(date) {
   if (!(date instanceof Date)) return "";
@@ -75,7 +78,7 @@ const defaultEndISO = toISO(addDays(today, 2));
 export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { formatMessage, formatNumber } = useIntl();
+  const { formatMessage } = useIntl();
 
   const [q, setQ] = useState("");
   const [categoryId, setCategoryId] = useState("all");
@@ -92,16 +95,21 @@ export default function Home() {
   const [cities, setCities] = useState([]);
 
   const [items, setItems] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(DEFAULT_PAGE);
+  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [recommendationsError, setRecommendationsError] = useState("");
+  const [showMetaSections, setShowMetaSections] = useState(false);
 
   const calendarRef = useRef(null);
   const calendarTriggerRef = useRef(null);
   const suggestionsRef = useRef(null);
   const searchInputRef = useRef(null);
   const debounceRef = useRef(null);
-  const firstLoadRef = useRef(true);
   const suggestionRequestId = useRef(0);
 
   // Autosuggest state
@@ -114,48 +122,74 @@ export default function Home() {
       q: queryValue = "",
       categoryId: catValue = "all",
       cityId: cityValue = "all",
-      start: startValue,
-      end: endValue,
+      page: pageValue = DEFAULT_PAGE,
     } = opts;
 
     setLoading(true);
     setErr("");
+
     try {
-      const params = new URLSearchParams();
-      if (queryValue) params.set("q", queryValue);
-      if (catValue && catValue !== "all") params.set("categoryId", catValue);
-      if (cityValue && cityValue !== "all") params.set("cityId", cityValue);
-      if (startValue) params.set("start", startValue);
-      if (endValue) params.set("end", endValue);
-      const path = params.toString() ? `/products?${params.toString()}` : "/products";
-      const data = await httpGet(path);
-      let list = Array.isArray(data) ? data : data?.content ?? [];
+      const hasFilters = Boolean(
+        queryValue ||
+        (catValue && catValue !== "all") ||
+        (cityValue && cityValue !== "all")
+      );
 
-      const noFilters =
-        !queryValue &&
-        (!catValue || catValue === "all") &&
-        (!cityValue || cityValue === "all") &&
-        (!startValue || startValue === defaultStartISO) &&
-        (!endValue || endValue === defaultEndISO);
+      const params = {
+        page: Math.max(0, Number(pageValue) - 1),
+        size: PAGE_SIZE,
+        sort: "name,asc",
+      };
 
-      if (firstLoadRef.current && noFilters) {
-        const shuffled = list.slice();
-        for (let i = shuffled.length - 1; i > 0; i -= 1) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        list = shuffled;
-      }
-      firstLoadRef.current = false;
+      if (queryValue) params.q = queryValue;
+      if (catValue && catValue !== "all") params.categoryId = catValue;
+      if (cityValue && cityValue !== "all") params.cityId = cityValue;
 
-      setItems(list);
-      setPage(1);
+      const path = hasFilters ? "/products/search" : "/products";
+      const response = await httpGet(path, { params });
+
+      const content = Array.isArray(response)
+        ? response
+        : response?.content ?? [];
+      const total = typeof response?.totalElements === "number"
+        ? response.totalElements
+        : content.length;
+      const pages = typeof response?.totalPages === "number"
+        ? response.totalPages
+        : Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+      setItems(content);
+      setTotalElements(total);
+      setTotalPages(pages);
+
+      return { totalPages: pages, totalElements: total };
     } catch (error) {
-      setErr(error?.message || "Failed to load products");
+      const normalized = normalizeApiError(error, formatMessage({ id: "errors.generic" }));
+      setErr(getApiErrorMessage(normalized, formatMessage));
+      setItems([]);
+      setTotalElements(0);
+      setTotalPages(1);
+      return { totalPages: 1, totalElements: 0, error };
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [formatMessage]);
+
+  const fetchRecommendations = useCallback(async () => {
+    setRecommendationsLoading(true);
+    setRecommendationsError("");
+    try {
+      const data = await httpGet("/products/random", { params: { limit: RECOMMENDATION_LIMIT } });
+      const list = Array.isArray(data) ? data : data?.content ?? [];
+      setRecommendations(list);
+    } catch (error) {
+      setRecommendations([]);
+      const normalized = normalizeApiError(error, formatMessage({ id: "errors.generic" }));
+      setRecommendationsError(getApiErrorMessage(normalized, formatMessage));
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  }, [formatMessage]);
 
   // Fetch categories and cities once
   useEffect(() => {
@@ -173,14 +207,25 @@ export default function Home() {
     })();
   }, []);
 
+  useEffect(() => {
+    fetchRecommendations();
+  }, [fetchRecommendations]);
+
   // Hydrate state from URL and load products when query changes
   useEffect(() => {
+    let cancelled = false;
+
     const params = new URLSearchParams(location.search);
     const qParam = params.get("q") ?? "";
     const catParam = params.get("categoryId") ?? "all";
     const cityParam = params.get("cityId") ?? "all";
     const startParam = params.get("start") ?? defaultStartISO;
     const endParam = params.get("end") ?? defaultEndISO;
+    const pageParamRaw = params.get("page");
+    const parsedPage = Number(pageParamRaw);
+    const safePage = Number.isFinite(parsedPage) && parsedPage > 0
+      ? Math.trunc(parsedPage)
+      : DEFAULT_PAGE;
 
     setQ(qParam);
     setCategoryId(catParam || "all");
@@ -192,14 +237,31 @@ export default function Home() {
       to: parseISODate(endParam) ?? parseISODate(startParam) ?? parseISODate(defaultEndISO),
     });
 
-    loadProducts({
-      q: qParam,
-      categoryId: catParam || "all",
-      cityId: cityParam || "all",
-      start: startParam,
-      end: endParam,
-    });
-  }, [location.search, loadProducts]);
+    (async () => {
+      const meta = await loadProducts({
+        q: qParam,
+        categoryId: catParam || "all",
+        cityId: cityParam || "all",
+        page: safePage,
+      });
+      if (cancelled) return;
+
+      const pages = Math.max(1, meta?.totalPages || 1);
+      const boundedPage = Math.min(Math.max(1, safePage), pages);
+      setPage(boundedPage);
+
+      if (boundedPage !== safePage) {
+        const nextParams = new URLSearchParams(location.search);
+        if (boundedPage === 1) nextParams.delete("page");
+        else nextParams.set("page", String(boundedPage));
+        navigate({ pathname: "/", search: nextParams.toString() ? `?${nextParams.toString()}` : "" }, { replace: true });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.search, loadProducts, navigate]);
 
   // Close calendar on outside click
   useEffect(() => {
@@ -252,19 +314,43 @@ export default function Home() {
     setEnd(toISOValue);
   }
 
-  function updateURL(paramsObj) {
+  function updateURL(paramsObj, options = {}) {
+    const { replace = false } = options;
     const params = new URLSearchParams();
-    if (paramsObj.q) params.set("q", paramsObj.q);
-    if (paramsObj.categoryId && paramsObj.categoryId !== "all") {
-      params.set("categoryId", paramsObj.categoryId);
+    const queryValue = typeof paramsObj.q === "string" ? paramsObj.q.trim() : "";
+    if (queryValue) params.set("q", queryValue);
+    const categoryValue = paramsObj.categoryId ?? "all";
+    if (categoryValue && categoryValue !== "all") {
+      params.set("categoryId", categoryValue);
     }
-    if (paramsObj.cityId && paramsObj.cityId !== "all") {
-      params.set("cityId", paramsObj.cityId);
+    const cityValue = paramsObj.cityId ?? "all";
+    if (cityValue && cityValue !== "all") {
+      params.set("cityId", cityValue);
     }
     if (paramsObj.start) params.set("start", paramsObj.start);
     if (paramsObj.end) params.set("end", paramsObj.end);
+    const pageValue = Number(paramsObj.page ?? DEFAULT_PAGE);
+    if (Number.isFinite(pageValue) && pageValue > 0) {
+      params.set("page", String(Math.trunc(pageValue)));
+    }
     const search = params.toString();
-    navigate({ pathname: "/", search: search ? `?${search}` : "" }, { replace: false });
+    const nextSearch = search ? `?${search}` : "";
+    if (nextSearch === location.search) {
+      return;
+    }
+    navigate({ pathname: "/", search: nextSearch }, { replace });
+  }
+
+  function syncPage(nextPage, { replace = true, scroll = true } = {}) {
+    const maxPage = Math.max(1, totalPages);
+    const target = Math.min(Math.max(1, nextPage), maxPage);
+    if (target !== page) {
+      setPage(target);
+    }
+    updateURL({ q, categoryId, cityId, start, end, page: target }, { replace });
+    if (scroll) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   function handleSearch(event) {
@@ -273,7 +359,7 @@ export default function Home() {
     setHighlightIndex(-1);
     const startISO = start || defaultStartISO;
     const endISO = end || startISO;
-    updateURL({ q: q.trim(), categoryId, cityId, start: startISO, end: endISO });
+    updateURL({ q: q.trim(), categoryId, cityId, start: startISO, end: endISO, page: DEFAULT_PAGE });
   }
 
   function handleReset() {
@@ -285,12 +371,11 @@ export default function Home() {
     setStart(newStart);
     setEnd(newEnd);
     setDateRange({ from: parseISODate(newStart), to: parseISODate(newEnd) });
-    setPage(1);
     setSuggestions([]);
     setShowSuggestions(false);
     setHighlightIndex(-1);
-    firstLoadRef.current = true;
-    navigate({ pathname: "/" }, { replace: false });
+    updateURL({ q: "", categoryId: "all", cityId: "all", start: newStart, end: newEnd, page: DEFAULT_PAGE });
+    fetchRecommendations();
   }
 
   function buildSuggestion(term) {
@@ -407,12 +492,42 @@ export default function Home() {
     }
   }
 
-  const pageItems = useMemo(() => {
-    const startIndex = (page - 1) * PAGE_SIZE;
-    return items.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [items, page]);
-
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  function renderProductCard(product) {
+    const cover = getCover(product);
+    return (
+      <div
+        key={product.id}
+        className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col"
+      >
+        <img
+          src={cover}
+          alt={product.name}
+          className="h-44 w-full object-cover"
+          loading="lazy"
+        />
+        <div className="p-4 space-y-2 flex-1 flex flex-col">
+          <h3 className="font-semibold text-lg text-slate-900">{product.name}</h3>
+          <p className="text-sm text-slate-600 line-clamp-3">
+            {product.description}
+          </p>
+          <div className="mt-auto flex gap-2 pt-3">
+            <Link
+              to={`/product/${product.id}`}
+              className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              Details
+            </Link>
+            <Link
+              to={`/booking/${product.id}`}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            >
+              Book
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const featureCategories = useMemo(() => {
     return categories.slice(0, 4).map((category) => ({
@@ -425,7 +540,7 @@ export default function Home() {
 
   function handleCategoryShortcut(id) {
     setCategoryId(id);
-    updateURL({ q: q.trim(), categoryId: id, cityId, start, end });
+    updateURL({ q: q.trim(), categoryId: id, cityId, start, end, page: DEFAULT_PAGE });
   }
 
   return (
@@ -435,41 +550,93 @@ export default function Home() {
         <p className="text-sm text-slate-600">{formatMessage({ id: "home.subtitle" })}</p>
       </header>
 
-      {featureCategories.length > 0 && (
-        <section className="bg-white rounded-2xl shadow p-6 space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900">{formatMessage({ id: "home.explore.title" })}</h2>
-              <p className="text-sm text-slate-600">{formatMessage({ id: "home.explore.subtitle" })}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {featureCategories.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => handleCategoryShortcut(category.id)}
-                className="group text-left bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:border-emerald-500 hover:shadow-md transition-all"
-              >
-                <div className="h-32 bg-slate-200 overflow-hidden">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    loading="lazy"
-                  />
+      <div className="space-y-4">
+        <div className="md:hidden flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowMetaSections((open) => !open)}
+            className="text-sm text-emerald-600 font-medium"
+          >
+            {showMetaSections
+              ? formatMessage({ id: "home.meta.toggle.hide" })
+              : formatMessage({ id: "home.meta.toggle.show" })}
+          </button>
+        </div>
+        <div className={`${showMetaSections ? "space-y-6" : "hidden"} md:block md:space-y-6`}>
+          {featureCategories.length > 0 && (
+            <section className="bg-white rounded-2xl shadow p-6 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">{formatMessage({ id: "home.explore.title" })}</h2>
+                  <p className="text-sm text-slate-600">{formatMessage({ id: "home.explore.subtitle" })}</p>
                 </div>
-                <div className="p-4 space-y-1">
-                  <h3 className="font-semibold text-slate-900">{category.name}</h3>
-                  <p className="text-xs text-slate-600 line-clamp-2">
-                    {category.description || formatMessage({ id: "home.explore.subtitle" })}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {featureCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => handleCategoryShortcut(category.id)}
+                    className="group text-left bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:border-emerald-500 hover:shadow-md transition-all"
+                  >
+                    <div className="h-32 bg-slate-200 overflow-hidden">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="p-4 space-y-1">
+                      <h3 className="font-semibold text-slate-900">{category.name}</h3>
+                      <p className="text-xs text-slate-600 line-clamp-2">
+                        {category.description || formatMessage({ id: "home.explore.subtitle" })}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {(recommendationsLoading || recommendations.length > 0 || recommendationsError) && (
+            <section className="bg-white rounded-2xl shadow p-6 space-y-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {formatMessage({ id: "home.recommendations.title" })}
+                  </h2>
+                  <p className="text-sm text-slate-600">
+                    {formatMessage({ id: "home.recommendations.subtitle" })}
                   </p>
                 </div>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+                <button
+                  type="button"
+                  onClick={fetchRecommendations}
+                  disabled={recommendationsLoading}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
+                >
+                  {recommendationsLoading
+                    ? formatMessage({ id: "home.recommendations.loading" })
+                    : formatMessage({ id: "home.recommendations.refresh" })}
+                </button>
+              </div>
+              {recommendationsError && (
+                <p className="text-sm text-red-600">{recommendationsError}</p>
+              )}
+              {recommendationsLoading && recommendations.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  {formatMessage({ id: "home.recommendations.loading" })}
+                </p>
+              ) : recommendations.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {recommendations.map((product) => renderProductCard(product))}
+                </div>
+              ) : null}
+            </section>
+          )}
+        </div>
+      </div>
 
       <section className="bg-white rounded-2xl shadow p-6 space-y-4">
         <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -596,59 +763,33 @@ export default function Home() {
       </section>
 
       {loading && <p className="text-slate-600">Loading…</p>}
-      {err && <p className="text-red-600">Error: {err}</p>}
+      {err && <p className="text-red-600">{err}</p>}
 
       {!loading && !err && (
         <section className="space-y-4">
           <p className="text-sm text-slate-600">
-            <FormattedMessage id="home.results" values={{ count: items.length }} />
+            <FormattedMessage id="home.results" values={{ count: totalElements }} />
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {pageItems.map((p) => {
-              const cover = getCover(p);
-              return (
-                <div
-                  key={p.id}
-                  className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col"
-                >
-                  <img
-                    src={cover}
-                    alt={p.name}
-                    className="h-44 w-full object-cover"
-                    loading="lazy"
-                  />
-                  <div className="p-4 space-y-2 flex-1 flex flex-col">
-                    <h3 className="font-semibold text-lg text-slate-900">{p.name}</h3>
-                    <p className="text-sm text-slate-600 line-clamp-3">
-                      {p.description}
-                    </p>
-                    <div className="mt-auto flex gap-2 pt-3">
-                      <Link
-                        to={`/product/${p.id}`}
-                        className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors"
-                      >
-                        Details
-                      </Link>
-                      <Link
-                        to={`/booking/${p.id}`}
-                        className="px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                      >
-                        Book
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {items.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              {formatMessage({ id: "home.results.empty" })}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {items.map((product) => renderProductCard(product))}
+            </div>
+          )}
 
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPrev={() => setPage((x) => Math.max(1, x - 1))}
-            onNext={() => setPage((x) => Math.min(totalPages, x + 1))}
-          />
+          {totalPages > 1 && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onFirst={() => syncPage(DEFAULT_PAGE)}
+              onPrev={() => syncPage(page - 1)}
+              onNext={() => syncPage(page + 1)}
+            />
+          )}
         </section>
       )}
     </div>

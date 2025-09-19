@@ -2,6 +2,7 @@ package com.miapp.reservashotel.service.impl;
 
 import com.miapp.reservashotel.dto.BookingRequestDTO;
 import com.miapp.reservashotel.dto.BookingResponseDTO;
+import com.miapp.reservashotel.exception.BookingNotAvailableException;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
 import com.miapp.reservashotel.model.Booking;
 import com.miapp.reservashotel.model.BookingStatus;
@@ -95,8 +96,7 @@ public class BookingServiceImpl implements BookingService {
         if (request.getEndDate().isBefore(request.getStartDate()))
             throw new IllegalArgumentException("endDate must be >= startDate");
 
-        boolean available = isProductAvailable(request.getProductId(), request.getStartDate(), request.getEndDate());
-        if (!available) throw new IllegalStateException("Selected dates are not available for this product");
+        ensureAvailabilityOrThrow(request.getProductId(), request.getStartDate(), request.getEndDate());
 
         Booking entity = new Booking();
         entity.setProductId(request.getProductId());
@@ -185,5 +185,28 @@ public class BookingServiceImpl implements BookingService {
         return auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(a -> "ROLE_ADMIN".equals(a));
+    }
+
+    private void ensureAvailabilityOrThrow(Long productId, LocalDate start, LocalDate end) {
+        List<Booking> conflicts = bookingRepository.findConflictingBookingsForUpdate(productId, start, end);
+        if (conflicts.isEmpty()) {
+            return;
+        }
+
+        List<BookingNotAvailableException.BookingConflict> details = conflicts.stream()
+                .map(conflict -> new BookingNotAvailableException.BookingConflict(
+                        conflict.getId(),
+                        conflict.getStartDate(),
+                        conflict.getEndDate()
+                ))
+                .collect(Collectors.toList());
+
+        throw new BookingNotAvailableException(
+                "Selected dates are no longer available for this product.",
+                productId,
+                start,
+                end,
+                details
+        );
     }
 }

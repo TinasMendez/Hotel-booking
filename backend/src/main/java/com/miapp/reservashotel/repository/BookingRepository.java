@@ -1,7 +1,9 @@
 package com.miapp.reservashotel.repository;
 
 import com.miapp.reservashotel.model.Booking;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -75,6 +77,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findBookingsBetweenDates(@Param("productId") Long productId,
                                            @Param("startDate") LocalDate startDate,
                                            @Param("endDate") LocalDate endDate);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b " +
+           "WHERE b.productId = :productId " +
+           "AND b.status <> com.miapp.reservashotel.model.BookingStatus.CANCELLED " +
+           "AND NOT (b.endDate < :startDate OR b.startDate > :endDate)")
+    List<Booking> findConflictingBookingsForUpdate(@Param("productId") Long productId,
+                                                   @Param("startDate") LocalDate startDate,
+                                                   @Param("endDate") LocalDate endDate);
 
     @Query("SELECT COUNT(b) > 0 FROM Booking b " +
            "WHERE b.customerId = :customerId " +

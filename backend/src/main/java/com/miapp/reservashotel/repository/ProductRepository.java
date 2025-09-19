@@ -2,17 +2,19 @@ package com.miapp.reservashotel.repository;
 
 import com.miapp.reservashotel.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for Product entity.
  * Uses explicit JPQL to filter by related entity ids (city.id, feature.id) while
  * keeping current method signatures to avoid changes elsewhere.
  */
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     /**
      * Finds products by city id using the relationship field 'city'.
@@ -34,7 +36,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     List<Product> findByFeatures_Id(Long featureId);
 
-    boolean existsByNameIgnoreCase(String name);
+    Optional<Product> findByNameIgnoreCase(String name);
 
     boolean existsByCategory_Id(Long categoryId);
+
+    @Query("SELECT p.id FROM Product p")
+    List<Long> findAllIds();
 }

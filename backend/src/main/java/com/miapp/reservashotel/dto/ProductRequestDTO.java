@@ -26,7 +26,7 @@ public class ProductRequestDTO {
     private String imageUrl;
 
     @NotNull(message = "Image URLs are required")
-    @Size(min = 1, max = 20, message = "Provide between 1 and 20 images")
+    @Size(min = 1, max = 5, message = "Provide between 1 and 5 images")
     private List<@NotBlank(message = "Image URL cannot be blank")
             @Size(max = 512, message = "Image URL must be at most 512 characters") String> imageUrls;
 

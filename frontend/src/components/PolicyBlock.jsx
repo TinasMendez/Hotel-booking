@@ -1,23 +1,41 @@
 // /frontend/src/components/PolicyBlock.jsx
-/** Simple policy block showing house rules, health & safety, and cancellation policy. */
-export default function PolicyBlock({ policies }) {
-  // `policies` is an object: { rules: string[], health: string[], cancellation: string[] }
-    if (!policies) return null;
+/**
+ * Policy block that renders an array of sections, each with a title, optional summary and bullet list.
+ */
+export default function PolicyBlock({ sections = [] }) {
+  if (!Array.isArray(sections) || sections.length === 0) {
+    return null;
+  }
 
-    const Section = ({ title, items }) => (
-        <div className="border rounded-2xl p-5">
-        <h4 className="text-lg font-semibold mb-3">{title}</h4>
-        <ul className="list-disc pl-6 space-y-1 text-sm">
-            {items?.map((it, idx) => <li key={idx}>{it}</li>)}
-        </ul>
-        </div>
-    );
+  return (
+    <section className="grid gap-4 md:grid-cols-3">
+      {sections.map((section) => (
+        <article
+          key={section.id || section.title}
+          className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4"
+        >
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold text-slate-900">{section.title}</h2>
+            {section.summary ? (
+              <p className="text-sm text-slate-600">{section.summary}</p>
+            ) : null}
+          </div>
 
-    return (
-        <section className="grid md:grid-cols-3 gap-4">
-        <Section title="House rules" items={policies.rules} />
-        <Section title="Health & safety" items={policies.health} />
-        <Section title="Cancellation policy" items={policies.cancellation} />
-        </section>
-    );
+          {Array.isArray(section.items) && section.items.length > 0 ? (
+            <ul className="space-y-2 text-sm text-slate-700">
+              {section.items.map((item, index) => (
+                <li key={index} className="flex gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500 flex-shrink-0"
+                  />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </article>
+      ))}
+    </section>
+  );
 }

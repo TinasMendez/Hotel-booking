@@ -46,20 +46,21 @@ This project intentionally avoids Lombok — all constructors/getters/setters ar
 - Maven 3.9+ (or use the Wrapper `./mvnw`)
 - MySQL running locally
 
-**Default MySQL dev config (`application.properties`):**
+**Dev profile excerpt (`application-dev.properties`):**
 ```properties
-spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/reservasdb}
-spring.datasource.username=${DB_USERNAME:root}
-spring.datasource.password=${DB_PASSWORD:Tina050898}
+spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/reservasdb?useSSL=false&serverTimezone=UTC}
+spring.datasource.username=${DB_USERNAME:app_user}
+spring.datasource.password=${DB_PASSWORD:}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 ```
 
-Set your own credentials via environment variables before running the app, for example:
+Export your credentials (or rely on `.env`) before running the app, for example:
 
 ```bash
-export DB_URL=jdbc:mysql://localhost:3306/reservasdb
-export DB_USERNAME=root
-export DB_PASSWORD=Tina050898
+export DB_URL=jdbc:mysql://localhost:3306/reservasdb?useSSL=false&serverTimezone=UTC
+export DB_USERNAME=app_user
+export DB_PASSWORD=changeme
+export JWT_SECRET=please-change-this-64-character-secret-string-1234567890abcd
 ```
 
 > Nota: evita usar el usuario `root` en entornos compartidos. Crea una cuenta dedicada si es posible y sólo otórgale permisos sobre `reservasdb`.
@@ -78,6 +79,13 @@ mvn clean package -DskipTests
 # 3. Run Spring Boot
 mvn spring-boot:run
 ```
+
+> Tip: el goal `build-info` se ejecuta junto al build y alimenta `/actuator/info` con versión y timestamp.
+
+## Observabilidad (Actuator)
+- Perfil `dev`: `/actuator/health` y `/actuator/info` están abiertos.
+- Perfil `prod`: sólo `/actuator/health` está expuesto; `/actuator/info` exige `ROLE_ADMIN` y puede deshabilitarse con `MANAGEMENT_INFO_ENABLED=false` (valor por defecto).
+- Para habilitar `/actuator/info` sin autenticación en otros entornos, exporta `ACTUATOR_INFO_PUBLIC=true`.
 
 ---
 

@@ -4,9 +4,8 @@ import com.miapp.reservashotel.dto.ProductRequestDTO;
 import com.miapp.reservashotel.dto.ProductResponseDTO;
 import com.miapp.reservashotel.service.ProductService;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,14 +23,8 @@ public class ProductController {
     public ProductController(ProductService service) { this.service = service; }
 
     @GetMapping
-    public Page<ProductResponseDTO> list(Pageable pageable) {
-        List<ProductResponseDTO> all = service.getAllProducts();
-        int page = pageable.getPageNumber();
-        int size = pageable.getPageSize();
-        int from = Math.min(page * size, all.size());
-        int to = Math.min(from + size, all.size());
-        List<ProductResponseDTO> slice = all.subList(from, to);
-        return new PageImpl<>(slice, PageRequest.of(page, size), all.size());
+    public Page<ProductResponseDTO> list(@PageableDefault(size = 10) Pageable pageable) {
+        return service.getAllProducts(pageable);
     }
 
     @GetMapping("/{id}")
@@ -40,8 +33,8 @@ public class ProductController {
     }
 
     @GetMapping("/available")
-    public Page<ProductResponseDTO> available(Pageable pageable) {
-        return list(pageable);
+    public Page<ProductResponseDTO> available(@PageableDefault(size = 10) Pageable pageable) {
+        return service.getAllProducts(pageable);
     }
 
     @GetMapping("/search")
@@ -52,22 +45,17 @@ public class ProductController {
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) String q,
-            Pageable pageable
+            @PageableDefault(size = 10) Pageable pageable
     ) {
-        List<ProductResponseDTO> filtered = service.searchProducts(
-                categoryId, cityId, featureId, minPrice, maxPrice, q
+        return service.searchProducts(
+                categoryId, cityId, featureId, minPrice, maxPrice, q, pageable
         );
-        int page = pageable.getPageNumber();
-        int size = pageable.getPageSize();
-        int from = Math.min(page * size, filtered.size());
-        int to = Math.min(from + size, filtered.size());
-        List<ProductResponseDTO> slice = filtered.subList(from, to);
-        return new PageImpl<>(slice, PageRequest.of(page, size), filtered.size());
     }
 
     @GetMapping("/random")
     public ResponseEntity<List<ProductResponseDTO>> random(@RequestParam(defaultValue = "10") int limit) {
-        return ResponseEntity.ok(service.getRandomProducts(limit));
+        int sanitized = Math.max(1, Math.min(limit, 10));
+        return ResponseEntity.ok(service.getRandomProducts(sanitized));
     }
 
     @PostMapping

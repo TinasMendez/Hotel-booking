@@ -3,6 +3,7 @@ package com.miapp.reservashotel.config;
 import java.util.List;
 
 import com.miapp.reservashotel.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -12,6 +13,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -25,11 +27,14 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationProvider authenticationProvider;
+    private final boolean actuatorInfoPublic;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          AuthenticationProvider authenticationProvider) {
+                          AuthenticationProvider authenticationProvider,
+                          @Value("${app.security.actuator.info-public:false}") boolean actuatorInfoPublic) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.authenticationProvider = authenticationProvider;
+        this.actuatorInfoPublic = actuatorInfoPublic;
     }
 
     @Bean
@@ -51,7 +56,8 @@ public class SecurityConfig {
                         "/api/policies/product/**",
                         "/api/ratings/product/**",
                         "/api/bookings/availability",
-                        "/api/bookings/product/**"
+                        "/api/bookings/product/**",
+                        "/actuator/health/**"
                 ).permitAll()
                 // Optional Swagger endpoints
                 .requestMatchers(
@@ -59,6 +65,15 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/swagger-ui.html"
                 ).permitAll()
+                .requestMatchers(HttpMethod.GET, "/actuator/info").access((authz, context) -> {
+                    if (actuatorInfoPublic) {
+                        return new AuthorizationDecision(true);
+                    }
+                    var authentication = authz.get();
+                    boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                            .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+                    return new AuthorizationDecision(isAdmin);
+                })
                 // Everything else requires authentication
                 .anyRequest().authenticated()
             )

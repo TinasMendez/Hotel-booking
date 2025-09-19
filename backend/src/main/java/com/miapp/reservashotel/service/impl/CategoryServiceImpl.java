@@ -56,7 +56,7 @@ public class CategoryServiceImpl implements CategoryService {
             throw new ResourceNotFoundException("Category not found with id: " + id);
         }
         if (productRepository.existsByCategory_Id(id)) {
-            throw new ResourceConflictException("Cannot delete category " + id + " because products are linked to it");
+            throw new ResourceConflictException("CATEGORY_IN_USE", "Cannot delete category " + id + " because products are linked to it");
         }
         categoryRepository.deleteById(id);
     }
@@ -83,7 +83,6 @@ public class CategoryServiceImpl implements CategoryService {
         return dto;
     }
 }
-
 
 
 

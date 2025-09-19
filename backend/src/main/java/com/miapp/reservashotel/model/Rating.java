@@ -10,17 +10,22 @@ import java.time.Instant;
  * This avoids extra joins and keeps the service straightforward.
  */
 @Entity
-@Table(name = "ratings")
+@Table(
+    name = "ratings",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_ratings_product_user", columnNames = {"product_id", "user_id"})
+    }
+)
 public class Rating {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "product_id", nullable = false)
     private Long productId;
 
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
     @Column(nullable = false)
@@ -29,7 +34,7 @@ public class Rating {
     @Column(nullable = true, length = 1000)
     private String comment;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     public Rating() {}

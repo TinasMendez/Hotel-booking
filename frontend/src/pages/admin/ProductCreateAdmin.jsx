@@ -147,7 +147,13 @@ export default function ProductCreateAdmin() {
       toast?.success("Product created");
       navigate("/admin/products");
     } catch (err) {
-      const message = err?.response?.data?.message || err?.message || "Create failed";
+      const status = err?.response?.status;
+      let message;
+      if (status === 409) {
+        message = "Name already in use. Please choose a different product name.";
+      } else {
+        message = err?.response?.data?.message || err?.message || "Create failed";
+      }
       setSubmitError(message);
       toast?.error(message);
     } finally {
