@@ -16,7 +16,7 @@ public class ProductResponseDTO {
     private Long cityId;
     private String cityName;
     private Set<Long> featureIds;
-    private List<String> imageUrls;
+    private List<String> imageUrls = List.of();
     private Double ratingAverage;
     private Long ratingCount;
 
@@ -38,7 +38,7 @@ public class ProductResponseDTO {
         this.cityId = cityId;
         this.cityName = cityName;
         this.featureIds = featureIds;
-        this.imageUrls = imageUrls;
+        this.imageUrls = imageUrls != null ? List.copyOf(imageUrls) : List.of();
         this.ratingAverage = ratingAverage;
         this.ratingCount = ratingCount;
     }
@@ -73,8 +73,10 @@ public class ProductResponseDTO {
 
     public Set<Long> getFeatureIds() { return featureIds; }
     public void setFeatureIds(Set<Long> featureIds) { this.featureIds = featureIds; }
-    public List<String> getImageUrls() { return imageUrls; }
-    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
+    public List<String> getImageUrls() { return imageUrls == null ? List.of() : imageUrls; }
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls != null ? List.copyOf(imageUrls) : List.of();
+    }
     public Double getRatingAverage() { return ratingAverage; }
     public void setRatingAverage(Double ratingAverage) { this.ratingAverage = ratingAverage; }
     public Long getRatingCount() { return ratingCount; }
