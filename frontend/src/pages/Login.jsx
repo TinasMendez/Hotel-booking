@@ -15,8 +15,7 @@ export default function Login() {
     e.preventDefault();
     try {
       setSubmitting(true);
-      const trimmedEmail = email.trim();
-      await login(trimmedEmail, password);
+      await login(email.trim(), password);
       toast?.success('Signed in successfully');
       navigate('/');
     } catch (err) {
