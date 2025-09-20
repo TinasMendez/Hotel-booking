@@ -11,6 +11,7 @@ import ShareButtons from "../components/ShareButtons.jsx";
 import AvailabilityCalendar from "../components/AvailabilityCalendar.jsx";
 import FavoriteButton from "../components/FavoriteButton.jsx";
 import RatingStars from "../components/RatingStars.jsx";
+import ReviewsList from "../components/ReviewsList.jsx";
 
 /** Flattens bookings into ISO date strings to mark busy days in the calendar. */
 function buildBusyDates(bookings = []) {
@@ -41,6 +42,8 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [selection, setSelection] = useState({ startDate: "", endDate: "" });
+  const [reviewsVersion, setReviewsVersion] = useState(0);
+  const [ratingStats, setRatingStats] = useState({ average: 0, count: 0 });
 
   const busyDates = useMemo(() => buildBusyDates(bookings), [bookings]);
 
@@ -52,6 +55,29 @@ export default function ProductDetail() {
       /* Silent: keep UX minimal */
     }
   }, [productId]);
+
+  useEffect(() => {
+    if (!product) return;
+    setRatingStats({
+      average: Number(product.ratingAverage || 0),
+      count: Number(product.ratingCount || 0),
+    });
+  }, [product?.ratingAverage, product?.ratingCount]);
+
+  const handleReviewStats = useCallback((stats) => {
+    if (!stats) return;
+    setRatingStats({
+      average: Number(stats.average || 0),
+      count: Number(stats.count || 0),
+    });
+  }, []);
+
+  const handleRated = useCallback((result) => {
+    if (result?.average != null) {
+      setRatingStats((prev) => ({ ...prev, average: Number(result.average) }));
+    }
+    setReviewsVersion((version) => version + 1);
+  }, []);
 
   async function fetchBookingsForProduct() {
     setAvailabilityError("");
@@ -126,9 +152,13 @@ export default function ProductDetail() {
       {/* Rating + favorite */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <RatingStars score={Number(product?.ratingAverage || 0)} />
+          <RatingStars
+            productId={product.id}
+            initialAverage={ratingStats.average}
+            onRated={handleRated}
+          />
           <span className="text-sm text-slate-600">
-            {Number(product?.ratingCount || 0)} ratings
+            {ratingStats.count} {ratingStats.count === 1 ? "reseña" : "reseñas"}
           </span>
         </div>
         <FavoriteButton productId={product.id} />
@@ -144,6 +174,15 @@ export default function ProductDetail() {
       <section>
         <h2 className="text-xl font-semibold text-slate-900 mb-2">Description</h2>
         <p className="text-slate-700">{product.description}</p>
+      </section>
+
+      <section>
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">Reseñas</h2>
+        <ReviewsList
+          productId={product.id}
+          refreshToken={reviewsVersion}
+          onStatsChange={handleReviewStats}
+        />
       </section>
 
       {/* Features */}
