@@ -60,6 +60,33 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/swagger-ui.html"
                 ).permitAll()
+                // Admin routes and panel tools
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // Admin-only mutations for catalog entities
+                .requestMatchers(HttpMethod.POST,
+                        "/api/categories/**",
+                        "/api/features/**",
+                        "/api/cities/**",
+                        "/api/products/**",
+                        "/api/policies/**",
+                        "/api/product-features/**"
+                ).hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/categories/**",
+                        "/api/features/**",
+                        "/api/cities/**",
+                        "/api/products/**",
+                        "/api/policies/**",
+                        "/api/product-features/**"
+                ).hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE,
+                        "/api/categories/**",
+                        "/api/features/**",
+                        "/api/cities/**",
+                        "/api/products/**",
+                        "/api/policies/**",
+                        "/api/product-features/**"
+                ).hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/actuator/info").access((authz, context) -> {
                     if (actuatorInfoPublic) {
                         return new AuthorizationDecision(true);

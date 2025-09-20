@@ -5,6 +5,7 @@ import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.service.FeatureService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,12 +36,14 @@ public class FeatureController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Feature> create(@RequestBody @Valid FeatureRequestDTO dto) {
         Feature created = featureService.createFromDTO(dto);
         return ResponseEntity.status(201).body(created);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Feature> update(@PathVariable Long id,
                                             @RequestBody @Valid FeatureRequestDTO dto) {
         Feature updated = featureService.updateFromDTO(id, dto);
@@ -48,6 +51,7 @@ public class FeatureController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         featureService.deleteFeature(id);
         return ResponseEntity.noContent().build();
