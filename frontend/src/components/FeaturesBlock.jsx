@@ -20,9 +20,14 @@ export default function FeaturesBlock({ features = [] }) {
       <h2 className="text-xl font-semibold mb-2">Features</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {features.map((f) => (
-          <div key={f.id || f.name} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-            <span className="text-lg">{renderIcon(f.icon)}</span>
-            <span className="text-sm">{f.name}</span>
+          <div key={f.id || f.name} className="flex gap-2 p-3 bg-gray-50 rounded">
+            <span className="text-lg mt-0.5">{renderIcon(f.icon)}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-900 truncate">{f.name}</p>
+              {f.description && (
+                <p className="text-xs text-slate-600 mt-1 line-clamp-3 whitespace-pre-line">{f.description}</p>
+              )}
+            </div>
           </div>
         ))}
       </div>
