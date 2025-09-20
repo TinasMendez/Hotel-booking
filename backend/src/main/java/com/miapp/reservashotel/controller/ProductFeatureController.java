@@ -3,6 +3,7 @@ package com.miapp.reservashotel.controller;
 import com.miapp.reservashotel.model.ProductFeature;
 import com.miapp.reservashotel.service.ProductFeatureService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +33,7 @@ public class ProductFeatureController {
     }
 
     @PostMapping("/assign")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> assign(@RequestParam Long productId,
                                         @RequestParam Long featureId) {
         // Service returns void; we return 204 as confirmation of success.
@@ -40,6 +42,7 @@ public class ProductFeatureController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         productFeatureService.deleteProductFeature(id);
         return ResponseEntity.noContent().build();

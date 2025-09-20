@@ -60,6 +60,27 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/swagger-ui.html"
                 ).permitAll()
+                // Admin endpoints and mutations
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/features/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/features/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/features/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/cities/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/cities/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/cities/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/policies/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/policies/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/policies/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/product-features/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/product-features/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/uploads/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/actuator/info").access((authz, context) -> {
                     if (actuatorInfoPublic) {
                         return new AuthorizationDecision(true);

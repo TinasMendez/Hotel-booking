@@ -133,3 +133,17 @@
 Ejecutando la colección *Hotel Booking API Smoke Tests* en Postman Runner con el environment *Hotel Booking Local Environment*.
 
 ![Smoke tests Sprint 3](docs/testing/screenshots/sprint3_smoketests_runner.png)
+
+### Verificación manual de seguridad administrativa (Jun 2024)
+
+Se ejecutó una ronda rápida de QA manual para confirmar los nuevos controles de acceso:
+
+1. **Usuario sin rol ADMIN**
+   - Login vía `/api/auth/login` con credenciales de usuario estándar.
+   - Intento de `POST /api/features` con payload válido ⇒ **403 Forbidden**.
+2. **Usuario con rol ADMIN**
+   - Login con cuenta marcada como ADMIN.
+   - `POST /api/features` con payload equivalente ⇒ **201 Created** y recurso persistido.
+   - `DELETE /api/categories/{id}` sobre registro existente ⇒ **204 No Content**.
+
+Se restableció el estado inicial de datos tras las pruebas.
