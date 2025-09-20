@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../modules/auth/AuthContext';
 import { useToast } from '../shared/ToastProvider.jsx';
 
@@ -7,14 +7,11 @@ export default function Login() {
   const { login, isLoadingAuth } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state ?? null;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [status, setStatus] = useState({ type: null, message: '' });
-
-  const clearStatus = useCallback(() => {
-    setStatus((prev) => (prev.type ? { type: null, message: '' } : prev));
-  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,7 +21,7 @@ export default function Login() {
       await login(email.trim(), password);
       setStatus({ type: 'success', message: 'Signed in successfully' });
       toast?.success('Signed in successfully');
-      navigate('/');
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       const msg = err?.payload?.message || err?.message || 'Login error';
       setStatus({ type: 'error', message: `Login failed: ${msg}` });
@@ -41,22 +38,6 @@ export default function Login() {
         className="bg-white text-slate-900 p-6 rounded-xl shadow w-full max-w-sm grid gap-4"
       >
         <h1 className="text-xl font-semibold">Login</h1>
-        {status.type === 'error' && (
-          <p
-            role="alert"
-            className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"
-          >
-            {status.message}
-          </p>
-        )}
-        {status.type === 'success' && (
-          <p
-            role="status"
-            className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"
-          >
-            {status.message}
-          </p>
-        )}
         <label className="grid gap-1">
           <span className="text-sm">Email</span>
           <input
