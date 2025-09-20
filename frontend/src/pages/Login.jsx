@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../modules/auth/AuthContext';
 import { useToast } from '../shared/ToastProvider.jsx';
@@ -13,7 +13,15 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
 
   const reason = location.state?.reason;
-  const redirectTo = location.state?.from || '/';
+  const redirectTo = useMemo(() => {
+    const from = location.state?.from;
+    if (!from) return '/';
+    if (typeof from === 'string') return from || '/';
+    if (typeof from === 'object' && from.pathname) {
+      return `${from.pathname}${from.search || ''}${from.hash || ''}`;
+    }
+    return '/';
+  }, [location.state]);
 
   async function handleSubmit(e) {
     e.preventDefault();

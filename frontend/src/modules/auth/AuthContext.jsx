@@ -12,6 +12,8 @@ const AuthCtx = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [booted, setBooted] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   async function fetchMe() {
     // Some backends expose /auth/me only; keep it first.
@@ -25,12 +27,22 @@ export function AuthProvider({ children }) {
   }
 
   async function login({ email, password }) {
-    // Set token BEFORE calling /me to avoid 401 on the first attempt.
-    const data = await AuthAPI.login({ email, password });
-    if (!data?.token) throw new Error("Missing token");
-    setStoredToken(data.token);
-    const profile = await fetchMe();
-    setUser(profile);
+    setIsLoadingAuth(true);
+    setAuthError(null);
+    try {
+      // Set token BEFORE calling /me to avoid 401 on the first attempt.
+      const data = await AuthAPI.login({ email, password });
+      if (!data?.token) throw new Error("Missing token");
+      setStoredToken(data.token);
+      const profile = await fetchMe();
+      setUser(profile);
+      return profile;
+    } catch (error) {
+      setAuthError(error);
+      throw error;
+    } finally {
+      setIsLoadingAuth(false);
+    }
   }
 
   async function register(payload) {
@@ -40,25 +52,39 @@ export function AuthProvider({ children }) {
   async function logout() {
     setUser(null);
     clearStoredToken();
+    setAuthError(null);
   }
 
   useEffect(() => {
     // Session restore
     (async () => {
+      setIsLoadingAuth(true);
       try {
         const me = await fetchMe();
         setUser(me || null);
-      } catch {
+        setAuthError(null);
+      } catch (error) {
         clearStoredToken();
+        setUser(null);
+        setAuthError(error);
       } finally {
         setBooted(true);
+        setIsLoadingAuth(false);
       }
     })();
   }, []);
 
   const value = useMemo(
-    () => ({ user, isAuthenticated: !!user, login, logout, register }),
-    [user]
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      login,
+      logout,
+      register,
+      isLoadingAuth,
+      authError,
+    }),
+    [user, isLoadingAuth, authError]
   );
 
   if (!booted) return null;

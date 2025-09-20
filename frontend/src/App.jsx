@@ -13,7 +13,7 @@ import Register from "./pages/Register.jsx";
 import BookingConfirmation from "./pages/BookingConfirmation.jsx";
 import Policies from "./pages/Policies.jsx";
 import Profile from "./pages/Profile.jsx";
-import AuthGuard from "./routes/AuthGuard.jsx";
+import AuthGuard from "./modules/auth/AuthGuard.jsx";
 
 // Admin
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
