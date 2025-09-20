@@ -11,9 +11,16 @@ function Row({ f, onSave, onDelete, busy }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(f.name || '');
   const [icon, setIcon] = useState(f.icon || '');
+  const [description, setDescription] = useState(f.description || '');
+
+  useEffect(() => {
+    setName(f.name || '');
+    setIcon(f.icon || '');
+    setDescription(f.description || '');
+  }, [f]);
 
   const save = async () => {
-    await onSave({ ...f, name, icon });
+    await onSave({ ...f, name, icon, description });
     setEditing(false);
   };
 
@@ -32,6 +39,13 @@ function Row({ f, onSave, onDelete, busy }) {
           <input className="border rounded p-1 w-full" value={icon} onChange={e => setIcon(e.target.value)} />
         ) : (
           f.icon
+        )}
+      </td>
+      <td className="p-3">
+        {editing ? (
+          <textarea className="border rounded p-1 w-full" value={description} onChange={e => setDescription(e.target.value)} rows={2} />
+        ) : (
+          <span className="block max-w-xs whitespace-pre-wrap break-words text-sm text-gray-700">{f.description || '—'}</span>
         )}
       </td>
       <td className="p-3">
@@ -60,6 +74,7 @@ export default function FeaturesAdmin() {
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
+  const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
   const [rowBusyId, setRowBusyId] = useState(null);
 
@@ -85,8 +100,8 @@ export default function FeaturesAdmin() {
     e.preventDefault();
     setSaving(true);
     try {
-      await httpPost('/features', { name, icon });
-      setName(''); setIcon('');
+      await httpPost('/features', { name, description, icon }, { expectedStatus: 201 });
+      setName(''); setIcon(''); setDescription('');
       toast?.success(formatMessage({ id: 'admin.features.createSuccess', defaultMessage: 'Feature created successfully.' }));
       await load();
     } catch (e) {
@@ -100,7 +115,7 @@ export default function FeaturesAdmin() {
   const onSaveRow = async (feat) => {
     setRowBusyId(feat.id);
     try {
-      await httpPut(`/features/${feat.id}`, { name: feat.name, icon: feat.icon });
+      await httpPut(`/features/${feat.id}`, { name: feat.name, description: feat.description, icon: feat.icon }, { expectedStatus: 200 });
       toast?.success(formatMessage({ id: 'admin.features.updateSuccess', defaultMessage: 'Feature updated.' }));
       await load();
     } catch (e) {
@@ -146,6 +161,10 @@ export default function FeaturesAdmin() {
           <label className="text-sm">Icon (CSS class or emoji)</label>
           <input className="border rounded p-2" required value={icon} onChange={e => setIcon(e.target.value)} />
         </div>
+        <div className="grid gap-1">
+          <label className="text-sm">Description</label>
+          <textarea className="border rounded p-2" value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Optional description" />
+        </div>
         <div>
           <button className="px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-60" disabled={saving}>
             {saving ? 'Saving…' : 'Create'}
@@ -161,6 +180,7 @@ export default function FeaturesAdmin() {
               <th className="text-left p-3">ID</th>
               <th className="text-left p-3">Name</th>
               <th className="text-left p-3">Icon</th>
+              <th className="text-left p-3">Description</th>
               <th className="text-left p-3">Actions</th>
             </tr>
           </thead>
@@ -176,7 +196,7 @@ export default function FeaturesAdmin() {
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={4} className="p-4 text-center text-gray-500">No features.</td>
+                <td colSpan={5} className="p-4 text-center text-gray-500">No features.</td>
               </tr>
             )}
           </tbody>

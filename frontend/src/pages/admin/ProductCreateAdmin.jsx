@@ -263,13 +263,19 @@ export default function ProductCreateAdmin() {
             {features.map((feature) => {
               const selected = form.featureIds.includes(feature.id);
               return (
-                <label key={feature.id} className="flex items-center gap-2 border rounded px-3 py-2 bg-white">
+                <label key={feature.id} className="flex items-start gap-3 border rounded px-3 py-2 bg-white">
                   <input
                     type="checkbox"
                     checked={selected}
                     onChange={() => toggleFeature(feature.id)}
                   />
-                  <span>{feature.name}</span>
+                  {feature.icon && <span className="text-lg leading-none">{feature.icon}</span>}
+                  <span className="flex-1">
+                    <span className="block text-sm font-medium text-gray-900">{feature.name}</span>
+                    {feature.description && (
+                      <span className="block text-xs text-gray-500">{feature.description}</span>
+                    )}
+                  </span>
                 </label>
               );
             })}

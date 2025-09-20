@@ -41,7 +41,7 @@ export async function httpGet(path, { params, headers } = {}) {
   return payload;
 }
 
-export async function httpPost(path, body, { params, headers } = {}) {
+export async function httpPost(path, body, { params, headers, expectedStatus } = {}) {
   const url = resolveApiUrl(path, params);
   const res = await fetch(url, {
     method: "POST",
@@ -51,10 +51,16 @@ export async function httpPost(path, body, { params, headers } = {}) {
   });
   const payload = await parseResponse(res);
   if (!res.ok) throw toError(res, payload);
+  if (expectedStatus) {
+    const expected = Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
+    if (!expected.includes(res.status)) {
+      throw toError(res, payload || { message: `Unexpected status code: ${res.status}` });
+    }
+  }
   return payload;
 }
 
-export async function httpPut(path, body, { params, headers } = {}) {
+export async function httpPut(path, body, { params, headers, expectedStatus } = {}) {
   const url = resolveApiUrl(path, params);
   const res = await fetch(url, {
     method: "PUT",
@@ -64,6 +70,12 @@ export async function httpPut(path, body, { params, headers } = {}) {
   });
   const payload = await parseResponse(res);
   if (!res.ok) throw toError(res, payload);
+  if (expectedStatus) {
+    const expected = Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
+    if (!expected.includes(res.status)) {
+      throw toError(res, payload || { message: `Unexpected status code: ${res.status}` });
+    }
+  }
   return payload;
 }
 

@@ -214,7 +214,7 @@ function isValid(form) {
                     <button
                         key={f.id}
                         type="button"
-                        className={`px-3 py-1 rounded-lg border text-sm ${
+                        className={`px-3 py-2 rounded-lg border text-left text-sm ${
                         active ? "bg-emerald-600 text-white border-emerald-600" : "hover:bg-slate-50"
                         }`}
                         onClick={() => {
@@ -224,9 +224,18 @@ function isValid(form) {
                             return { ...prev, featureIds: Array.from(set) };
                         });
                         }}
-                        title={f.name}
                     >
-                        {f.name}
+                        <span className="flex items-start gap-2">
+                            {f.icon && <span className="text-base leading-none">{f.icon}</span>}
+                            <span className="flex-1">
+                                <span className="block font-medium">{f.name}</span>
+                                {f.description && (
+                                    <span className={`block text-xs ${active ? "text-emerald-50" : "text-slate-500"}`}>
+                                        {f.description}
+                                    </span>
+                                )}
+                            </span>
+                        </span>
                     </button>
                     );
                 })}
