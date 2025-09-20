@@ -1,47 +1,49 @@
+// backend/src/main/java/com/miapp/reservashotel/config/DevMailConfig.java
 package com.miapp.reservashotel.config;
 
 import java.nio.charset.Charset;
-import java.util.Optional;
 import java.util.Properties;
 
+import org.springframework.boot.autoconfigure.mail.MailProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.boot.autoconfigure.mail.MailProperties;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 /**
- * Bean de correo para DEV apuntando a Mailpit (override vía spring.mail.*).
- * Permite probar envíos reales en local sin tocar perfiles productivos.
+ * Dev mail configuration.
+ * WHY: Ensures MailProperties is registered and provides a JavaMailSender bean for the dev profile.
+ * Reads all settings from spring.mail.* properties.
  */
 @Configuration
 @Profile("dev")
+@EnableConfigurationProperties(MailProperties.class)
 public class DevMailConfig {
 
     @Bean
     public JavaMailSender javaMailSender(MailProperties mailProperties) {
-        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        JavaMailSenderImpl sender = new JavaMailSenderImpl();
 
-        mailSender.setHost(Optional.ofNullable(mailProperties.getHost()).orElse("localhost"));
-        mailSender.setPort(Optional.ofNullable(mailProperties.getPort()).orElse(1025));
-        mailSender.setUsername(mailProperties.getUsername());
-        mailSender.setPassword(mailProperties.getPassword());
-        if (mailProperties.getProtocol() != null) {
-            mailSender.setProtocol(mailProperties.getProtocol());
+        // Basic host/port/credentials from spring.mail.*
+        sender.setHost(mailProperties.getHost());
+        sender.setPort(mailProperties.getPort() != null ? mailProperties.getPort() : 0);
+        sender.setUsername(mailProperties.getUsername());
+        sender.setPassword(mailProperties.getPassword());
+
+        Charset enc = mailProperties.getDefaultEncoding();
+        if (enc != null) {
+            sender.setDefaultEncoding(enc.name());
         }
 
-        Charset defaultEncoding = mailProperties.getDefaultEncoding();
-        if (defaultEncoding != null) {
-            mailSender.setDefaultEncoding(defaultEncoding.name());
-        }
-
+        // Additional JavaMail properties (e.g., smtp.auth, starttls.enable, etc.)
         if (!mailProperties.getProperties().isEmpty()) {
-            Properties extraProperties = new Properties();
-            extraProperties.putAll(mailProperties.getProperties());
-            mailSender.setJavaMailProperties(extraProperties);
+            Properties extra = new Properties();
+            extra.putAll(mailProperties.getProperties());
+            sender.setJavaMailProperties(extra);
         }
 
-        return mailSender;
+        return sender;
     }
 }
