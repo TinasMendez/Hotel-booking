@@ -56,6 +56,21 @@ jwt.secret=${JWT_SECRET:change-me-in-dev-32bytes-secret-key!!}
 jwt.expiration=${JWT_EXPIRATION:86400000}
 ```
 
+**Local SMTP (Mailpit) — dev profile defaults**
+
+```properties
+spring.mail.host=${MAIL_HOST:localhost}
+spring.mail.port=${MAIL_PORT:1025}
+spring.mail.username=${MAIL_USERNAME:}
+spring.mail.password=${MAIL_PASSWORD:}
+spring.mail.properties.mail.smtp.auth=${MAIL_SMTP_AUTH:false}
+spring.mail.properties.mail.smtp.starttls.enable=${MAIL_SMTP_STARTTLS:false}
+```
+
+1. Start Mailpit locally (`docker compose up mailpit`) — UI available at <http://localhost:8025>.
+2. Export the `MAIL_*` variables above (or edit `../.env`) so the backend points to your Mailpit instance.
+3. Run the backend with `SPRING_PROFILES_ACTIVE=dev` and, optionally, `APP_SEED_QA=true` to preload demo data for quick booking tests.
+
 Export your credentials (or rely on `.env`) before running the app, for example:
 
 ```bash
