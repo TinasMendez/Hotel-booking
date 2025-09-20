@@ -1,87 +1,102 @@
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../modules/auth/AuthContext';
-import { useToast } from '../shared/ToastProvider.jsx';
+// frontend/src/pages/Login.jsx
+import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../modules/auth/AuthContext";
+import { useToast } from "../shared/ToastProvider.jsx";
 
 export default function Login() {
   const { login, isLoadingAuth } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+
+  const guardMessage = location.state?.message || "";
+  const returnTo = location.state?.from || null;
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const guardMessage = location.state?.message;
-  const returnTo = location.state?.from;
+  const [status, setStatus] = useState({ type: "", message: "" });
+
+  function clearStatus() {
+    if (status.type) setStatus({ type: "", message: "" });
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    clearStatus();
+    setSubmitting(true);
     try {
-      clearStatus();
-      setSubmitting(true);
-      await login(email.trim(), password);
-      setStatus({ type: 'success', message: 'Signed in successfully' });
-      toast?.success('Signed in successfully');
-      const nextPath = returnTo
-        ? `${returnTo.pathname}${returnTo.search || ''}${returnTo.hash || ''}`
-        : '/';
-      navigate(nextPath, { replace: true });
-    } catch (err) {
-      const msg = err?.payload?.message || err?.message || 'Login error';
-      setStatus({ type: 'error', message: `Login failed: ${msg}` });
-      toast?.error(`Login failed: ${msg}`);
+      await login({ email: email.trim(), password });
+      setStatus({ type: "success", message: "Signed in successfully" });
+      toast?.success?.("Signed in successfully");
+      const next =
+        returnTo?.pathname
+          ? `${returnTo.pathname}${returnTo.search || ""}${returnTo.hash || ""}`
+          : "/";
+      navigate(next, { replace: true });
+    } catch {
+      setStatus({ type: "error", message: "Invalid credentials. Please try again." });
+      toast?.error?.("Sign in failed");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white text-slate-900 p-6 rounded-xl shadow w-full max-w-sm grid gap-4"
-      >
-        <h1 className="text-xl font-semibold">Login</h1>
+    <div className="w-full flex justify-center">
+      <div className="w-full max-w-md mt-24 bg-white rounded-2xl shadow p-8">
+        <h1 className="text-2xl font-semibold mb-6">Login</h1>
+
         {guardMessage ? (
-          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <div className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
             {guardMessage}
-          </p>
+          </div>
         ) : null}
-        <label className="grid gap-1">
-          <span className="text-sm">Email</span>
-          <input
-            type="email"
-            className="border rounded-lg px-3 py-2 text-slate-900 placeholder:text-slate-400"
-            value={email}
-            onChange={(e) => {
-              if (status.type) clearStatus();
-              setEmail(e.target.value);
-            }}
-            autoFocus
-            placeholder="you@example.com"
-          />
-        </label>
-        <label className="grid gap-1">
-          <span className="text-sm">Password</span>
-          <input
-            type="password"
-            className="border rounded-lg px-3 py-2 text-slate-900 placeholder:text-slate-400"
-            value={password}
-            onChange={(e) => {
-              if (status.type) clearStatus();
-              setPassword(e.target.value);
-            }}
-            placeholder="••••••••"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={isLoadingAuth || submitting}
-          className="bg-indigo-600 text-white rounded-lg px-4 py-2 disabled:opacity-60"
-        >
-          {submitting ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
+
+        {status.type === "error" ? (
+          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+            {status.message}
+          </div>
+        ) : null}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <label className="block">
+            <span className="text-sm text-gray-700">Email</span>
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1 block w-full border rounded-lg px-3 py-2"
+              placeholder="vale@example.com"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm text-gray-700">Password</span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="mt-1 block w-full border rounded-lg px-3 py-2"
+              placeholder="••••••••"
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={isLoadingAuth || submitting}
+            className="bg-indigo-600 text-white rounded-lg px-4 py-2 disabled:opacity-60 w-full"
+          >
+            {submitting ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

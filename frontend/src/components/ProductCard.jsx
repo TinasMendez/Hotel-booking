@@ -12,23 +12,23 @@ export default function ProductCard({ product }) {
   const count = Number(product?.ratingCount ?? 0);
 
   return (
-    <div className="rounded-2xl border overflow-hidden shadow-sm relative bg-white">
-      <img
-        src={imageSrc}
-        alt={product?.name || "Product image"}
-        className="w-full h-48 object-cover"
-        loading="lazy"
-      />
-
-      {/* Favorite should be visible on each card */}
-      <div className="absolute top-3 right-3">
-        <FavoriteButton productId={id} />
+    <div className="card hover:shadow-md transition-shadow">
+      <div className="relative">
+        <img
+          src={imageSrc}
+          alt={product?.name || "Product image"}
+          className="w-full aspect-[16/9] object-cover"
+          loading="lazy"
+        />
+        <div className="absolute top-3 right-3">
+          <FavoriteButton productId={id} />
+        </div>
       </div>
 
       <div className="p-4 space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="font-semibold text-slate-900 line-clamp-1">{product?.name}</h3>
-          <div className="text-sm text-amber-600">
+          <div className="text-sm text-amber-600 shrink-0">
             {count > 0 ? `★ ${average.toFixed(1)} (${count})` : "No ratings"}
           </div>
         </div>
@@ -36,10 +36,7 @@ export default function ProductCard({ product }) {
         <p className="text-sm text-slate-600 line-clamp-2">{product?.description}</p>
 
         <div className="pt-2">
-          <Link
-            to={`/product/${id}`}
-            className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border hover:bg-slate-50"
-          >
+          <Link to={`/product/${id}`} className="btn-outline">
             View details →
           </Link>
         </div>

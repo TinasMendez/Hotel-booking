@@ -3,25 +3,40 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; }
+html { scroll-behavior: smooth; }
 body { @apply bg-slate-100 text-slate-900; }
 
+/* Accesibilidad y foco consistente (por qué: foco visible y uniforme) */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35);
+  border-radius: 10px;
+}
+
+/* DayPicker (si lo usas) */
 .rdp {
   margin: 0;
   color: #0f172a;
   --rdp-accent-color: #059669;
   --rdp-accent-color-dark: #047857;
   --rdp-background-color: #ecfdf5;
-  --rdp-outline: 2px solid rgba(5, 150, 105, 0.4);
+  --rdp-outline: 2px solid rgba(5, 150, 105, 0.35);
   --rdp-cell-size: 40px;
   --rdp-font-family: inherit;
   --rdp-day-radius: 8px;
 }
-
-.rdp-button:hover:not([disabled]) {
-  background-color: rgba(2, 132, 199, 0.08);
-}
-
+.rdp-button:hover:not([disabled]) { background-color: rgba(16,185,129,.08); }
 .rdp-day_range_start,
-.rdp-day_range_end {
-  color: #fff;
+.rdp-day_range_end { color: #fff; }
+
+/* Component layer: utilidades reutilizables */
+@layer components {
+  .card { @apply bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden; }
+  .input { @apply w-full px-3 py-2 rounded-lg border border-slate-300 bg-white placeholder-slate-400
+                 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/30; }
+  .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                 transition-colors duration-150 border; }
+  .btn-primary { @apply btn bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700; }
+  .btn-outline { @apply btn bg-white border-slate-300 text-slate-900 hover:bg-slate-50; }
+  .btn-muted { @apply btn border-slate-200 text-slate-700 hover:bg-slate-50; }
 }

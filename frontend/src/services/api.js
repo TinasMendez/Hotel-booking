@@ -6,6 +6,7 @@ const BASE_HAS_API = RAW_BASE.endsWith("/api");
 const ROOT_BASE = BASE_HAS_API ? RAW_BASE.substring(0, RAW_BASE.length - 4) : RAW_BASE;
 const DEFAULT_API_BASE = BASE_HAS_API ? RAW_BASE : `${RAW_BASE}/api`;
 
+/* ------------------------------ URL helpers ------------------------------ */
 function buildSearch(params) {
   if (!params) return "";
   if (params instanceof URLSearchParams) {
@@ -14,10 +15,12 @@ function buildSearch(params) {
   }
   const usp = new URLSearchParams();
   Object.entries(params)
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(([, v]) => v !== undefined && v !== null && v !== "")
     .forEach(([key, value]) => {
       if (Array.isArray(value)) {
-        value.forEach((v) => usp.append(key, v));
+        value.forEach((item) => usp.append(key, item));
+      } else if (value instanceof Date) {
+        usp.append(key, value.toISOString());
       } else {
         usp.append(key, value);
       }
@@ -31,7 +34,6 @@ export function resolveApiUrl(path = "", params) {
     const query = buildSearch(params);
     return `${path}${query}`;
   }
-
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const pathHasApi = normalizedPath === "/api" || normalizedPath.startsWith("/api/");
   const base = pathHasApi ? (ROOT_BASE || RAW_BASE) : DEFAULT_API_BASE;
@@ -40,6 +42,7 @@ export function resolveApiUrl(path = "", params) {
   return `${url}${query}`;
 }
 
+/* ------------------------------- Token utils ----------------------------- */
 export function getToken() {
   if (typeof window === "undefined") return "";
   return localStorage.getItem("token") || "";
@@ -67,6 +70,7 @@ function normalizeOptions(options = {}) {
   return options && typeof options === "object" ? options : {};
 }
 
+/* --------------------------------- Fetch -------------------------------- */
 async function request(method, path, options = {}) {
   const opts = normalizeOptions(options);
   const { params, data, body, headers: extraHeaders, ...rest } = opts;
@@ -87,26 +91,16 @@ async function request(method, path, options = {}) {
   };
 
   if (payload !== undefined) {
-    init.body = payload instanceof FormData || typeof payload === "string"
-      ? payload
-      : JSON.stringify(payload);
-    if (payload instanceof FormData) {
-      delete headers["Content-Type"]; // browser will set boundary
-    }
+    init.body =
+      payload instanceof FormData || typeof payload === "string"
+        ? payload
+        : JSON.stringify(payload);
   }
 
   const res = await fetch(url, init);
   const contentType = res.headers.get("content-type") || "";
-  let responseBody = null;
-  if (contentType.includes("application/json")) {
-    try {
-      responseBody = await res.json();
-    } catch {
-      responseBody = null;
-    }
-  } else if (contentType.startsWith("text/")) {
-    responseBody = await res.text();
-  }
+  const isJson = /\bapplication\/json\b/i.test(contentType);
+  const responseBody = isJson ? await res.json().catch(() => null) : await res.text();
 
   if (!res.ok) {
     const message = responseBody?.message || responseBody?.error || `${res.status} ${res.statusText}`;
@@ -129,10 +123,13 @@ const put = (path, data, options) => request("PUT", path, { ...normalizeOptions(
 const del = (path, options) => request("DELETE", path, normalizeOptions(options));
 
 /* ------------------------------ Domain APIs ------------------------------ */
-
 const AuthAPI = {
   async login({ email, password }) {
-    return (await post("/auth/login", { email, password })).data;
+    const res = await post("/auth/login", { email, password });
+    // Persist token as soon as we get it
+    const token = res?.data?.token || res?.data?.accessToken || res?.data?.jwt;
+    if (token) setToken(token);
+    return res.data;
   },
   async register(payload) {
     return (await post("/auth/register", payload)).data;
@@ -202,6 +199,7 @@ const AdminAPI = {
   },
 };
 
+/* ------------------------------ Extra helpers ---------------------------- */
 async function fetchCategories() {
   return (await get("/categories")).data;
 }
@@ -224,12 +222,13 @@ async function uploadCategoryImage(file) {
   return res.data;
 }
 
-async function createCategory(data) {
-  const res = await post("/categories", data);
-  return res.data;
+async function createCategory(payload) {
+  return (await post("/categories", payload)).data;
 }
 
+/* ------------------------------- Api facade ------------------------------ */
 const Api = {
+  base: DEFAULT_API_BASE,
   get,
   post,
   put,
@@ -237,11 +236,11 @@ const Api = {
   getToken,
   setToken,
   clearToken,
-  AuthAPI,
-  BookingAPI,
-  FavoritesAPI,
-  RatingsAPI,
-  AdminAPI,
+  // Convenience shortcuts used around the app
+  checkAvailability: BookingAPI.checkAvailability,
+  createBooking: BookingAPI.createBooking,
+  getMyBookings: BookingAPI.listMine,
+  cancelBooking: BookingAPI.cancelBooking,
   getFavorites: FavoritesAPI.list,
   addFavorite: FavoritesAPI.add,
   removeFavorite: FavoritesAPI.remove,
