@@ -24,30 +24,34 @@ export default function BookingConfirmation() {
   const [booking, setBooking] = useState(location.state?.booking ?? null);
   const [product, setProduct] = useState(location.state?.product ?? null);
   const [selection, setSelection] = useState(location.state?.selection ?? null);
-  const [loading, setLoading] = useState(!location.state?.booking);
+  const [loading, setLoading] = useState(!(location.state?.booking && location.state?.product));
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!Number.isFinite(bookingId)) return;
-
-    if (location.state?.booking && location.state?.product) {
-      // Already have everything we need from navigation.
-      return;
-    }
+    if (booking && product && selection) return;
 
     let cancelled = false;
     async function load() {
       setLoading(true);
       setError("");
       try {
-        const bookingDto = await BookingAPI.getById(bookingId);
-        if (cancelled) return;
-        setBooking(bookingDto);
-        setSelection({ startDate: bookingDto.startDate, endDate: bookingDto.endDate });
+        let bookingDto = booking;
+        if (!bookingDto) {
+          bookingDto = await BookingAPI.getById(bookingId);
+          if (cancelled) return;
+          setBooking(bookingDto);
+        }
 
-        const productDto = await getProduct(bookingDto.productId);
-        if (cancelled) return;
-        setProduct(productDto);
+        if (!selection && bookingDto) {
+          setSelection({ startDate: bookingDto.startDate, endDate: bookingDto.endDate });
+        }
+
+        if (!product && bookingDto) {
+          const productDto = await getProduct(bookingDto.productId);
+          if (cancelled) return;
+          setProduct(productDto);
+        }
       } catch (err) {
         if (!cancelled) setError(err?.message || "Failed to load booking information.");
       } finally {
@@ -59,7 +63,7 @@ export default function BookingConfirmation() {
     return () => {
       cancelled = true;
     };
-  }, [bookingId, location.state]);
+  }, [bookingId, booking, product, selection]);
 
   const cover = useMemo(() => {
     if (!product) return FALLBACK_IMAGE;
@@ -76,6 +80,14 @@ export default function BookingConfirmation() {
       </div>
     );
   }
+
+  const snapshot = location.state?.userSnapshot ?? null;
+  const guestFirstName = user?.firstName ?? snapshot?.firstName ?? "";
+  const guestLastName = user?.lastName ?? snapshot?.lastName ?? "";
+  const guestEmail = user?.email ?? snapshot?.email ?? booking?.userEmail ?? "";
+  const guestDisplayName = (guestFirstName || guestLastName)
+    ? `${guestFirstName} ${guestLastName}`.trim()
+    : guestEmail || "—";
 
   return (
     <div className="bg-gray-100 min-h-screen py-10">
@@ -107,7 +119,7 @@ export default function BookingConfirmation() {
           <div className="bg-white rounded-2xl shadow overflow-hidden">
             <img src={cover} alt={product?.name || "Product"} className="w-full h-64 object-cover" />
             <div className="p-6 space-y-4">
-             <div>
+              <div>
                 <p className="text-sm text-gray-500">Booking ID</p>
                 <p className="text-2xl font-semibold text-gray-900">#{bookingId}</p>
                 <p className="text-sm text-gray-600 mt-1">Status: {booking?.status ?? "CONFIRMED"}</p>
@@ -131,10 +143,8 @@ export default function BookingConfirmation() {
                 </div>
                 <div className="space-y-3">
                   <h2 className="text-lg font-semibold text-gray-900">Guest</h2>
-                  <p className="text-gray-700">
-                    {user?.firstName || user?.lastName ? `${user?.firstName || ""} ${user?.lastName || ""}`.trim() : user?.email}
-                  </p>
-                  <p className="text-gray-600">{user?.email}</p>
+                  <p className="text-gray-700">{guestDisplayName}</p>
+                  <p className="text-gray-600">{guestEmail || "—"}</p>
                 </div>
               </div>
 
