@@ -37,6 +37,8 @@ import java.util.stream.Collectors;
 @Transactional
 public class ProductServiceImpl implements ProductService {
 
+    private static final int IMAGE_URL_MAX_LENGTH = 255;
+
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final CityRepository cityRepository;
@@ -222,11 +224,18 @@ public class ProductServiceImpl implements ProductService {
             entity.setFeatures(Collections.emptySet());
         }
 
-        String singleImageUrl = Optional.ofNullable(dto.getImageUrl()).map(String::trim).orElse(null);
-        if (singleImageUrl != null && singleImageUrl.isEmpty()) {
-            singleImageUrl = null;
+        String rawSingleImage = dto.getImageUrl();
+        boolean singleImageProvided = rawSingleImage != null;
+        String singleImageUrl = Optional.ofNullable(rawSingleImage)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .orElse(null);
+        if (singleImageUrl != null) {
+            entity.setImageUrl(singleImageUrl);
+        } else if (singleImageProvided) {
+            // Explicit empty payload should clear the column.
+            entity.setImageUrl(null);
         }
-        entity.setImageUrl(singleImageUrl);
 
         List<String> imagesFromDto = Optional.ofNullable(dto.getImageUrls()).orElse(List.of());
         List<String> normalizedImages = imagesFromDto.stream()
@@ -254,7 +263,10 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if ((entity.getImageUrl() == null || entity.getImageUrl().isBlank()) && !normalizedImages.isEmpty()) {
-            entity.setImageUrl(normalizedImages.get(0));
+            String primaryImage = normalizedImages.get(0);
+            if (primaryImage.length() <= IMAGE_URL_MAX_LENGTH) {
+                entity.setImageUrl(primaryImage);
+            }
         }
     }
 
