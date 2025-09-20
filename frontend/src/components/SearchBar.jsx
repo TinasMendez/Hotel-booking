@@ -1,6 +1,7 @@
 // src/components/SearchBar.jsx
 import React, { useState } from "react";
 import CategoryFilter from "./CategoryFilter";
+import CityAutocomplete from "./CityAutocomplete";
 
 /**
  * Emits normalized search params to parent. Parent performs the API call.
@@ -43,15 +44,7 @@ export default function SearchBar({ onSearch = () => {}, onReset = () => {} }) {
             />
             </div>
             <CategoryFilter value={categoryId} onChange={setCategoryId} />
-            <div>
-            <label className="block text-sm font-medium mb-1">City</label>
-            <input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border"
-                placeholder="All"
-            />
-            </div>
+            <CityAutocomplete value={city} onChange={setCity} />
         </div>
 
         <div className="grid md:grid-cols-4 gap-3 items-end">
