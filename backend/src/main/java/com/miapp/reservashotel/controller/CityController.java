@@ -5,6 +5,7 @@ import com.miapp.reservashotel.model.City;
 import com.miapp.reservashotel.service.CityService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,12 +25,14 @@ public class CityController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<City> create(@RequestBody @Valid CityRequestDTO dto) {
         City created = cityService.createFromDTO(dto);
         return ResponseEntity.ok(created);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<City> update(@PathVariable Long id, @RequestBody @Valid CityRequestDTO dto) {
         City updated = cityService.updateFromDTO(id, dto);
         return ResponseEntity.ok(updated);
@@ -46,6 +49,7 @@ public class CityController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         cityService.deleteCity(id);
         return ResponseEntity.noContent().build();

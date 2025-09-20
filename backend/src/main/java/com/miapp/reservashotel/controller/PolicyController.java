@@ -5,6 +5,7 @@ import com.miapp.reservashotel.dto.PolicyResponseDTO;
 import com.miapp.reservashotel.service.PolicyService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,16 +26,19 @@ public class PolicyController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PolicyResponseDTO> create(@Valid @RequestBody PolicyRequestDTO dto) {
         return ResponseEntity.ok(policyService.create(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PolicyResponseDTO> update(@PathVariable Long id, @Valid @RequestBody PolicyRequestDTO dto) {
         return ResponseEntity.ok(policyService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         policyService.delete(id);
         return ResponseEntity.noContent().build();

@@ -4,6 +4,7 @@ import com.miapp.reservashotel.dto.CategoryRequestDTO;
 import com.miapp.reservashotel.dto.CategoryResponseDTO;
 import com.miapp.reservashotel.service.CategoryService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,18 +22,21 @@ public class CategoryController {
     public CategoryController(CategoryService categoryService) { this.categoryService = categoryService; }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CategoryResponseDTO> createCategory(@RequestBody CategoryRequestDTO requestDTO) {
         CategoryResponseDTO responseDTO = categoryService.createCategory(requestDTO);
         return ResponseEntity.ok(responseDTO);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CategoryResponseDTO> updateCategory(@PathVariable Long id, @RequestBody CategoryRequestDTO requestDTO) {
         CategoryResponseDTO responseDTO = categoryService.updateCategory(id, requestDTO);
         return ResponseEntity.ok(responseDTO);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
         return ResponseEntity.noContent().build();
