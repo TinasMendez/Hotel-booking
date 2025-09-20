@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useIntl } from "react-intl";
 
-function buildFacebookUrl(url) {
-  return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+function buildFacebookUrl(url, quote) {
+  const base = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+  if (!quote) return base;
+  return `${base}&quote=${encodeURIComponent(quote)}`;
 }
 
 function buildTwitterUrl(url, text) {
@@ -13,6 +15,12 @@ export default function ShareModal({ open, onClose, shareUrl, title, onCopy }) {
   const { formatMessage } = useIntl();
   const dialogRef = useRef(null);
   const focusableRef = useRef([]);
+  const [message, setMessage] = useState(title || "");
+
+  useEffect(() => {
+    if (!open) return;
+    setMessage(title || "");
+  }, [open, title]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -52,8 +60,29 @@ export default function ShareModal({ open, onClose, shareUrl, title, onCopy }) {
     focusables[0]?.focus();
   }, [open]);
 
-  const twitterUrl = useMemo(() => buildTwitterUrl(shareUrl, title || ""), [shareUrl, title]);
-  const facebookUrl = useMemo(() => buildFacebookUrl(shareUrl), [shareUrl]);
+  const trimmedMessage = message.trim();
+  const twitterUrl = useMemo(
+    () => buildTwitterUrl(shareUrl, trimmedMessage || title || ""),
+    [shareUrl, trimmedMessage, title],
+  );
+  const facebookUrl = useMemo(
+    () => buildFacebookUrl(shareUrl, trimmedMessage || title || ""),
+    [shareUrl, trimmedMessage, title],
+  );
+
+  const handleCopyLink = useCallback(() => {
+    onCopy?.(shareUrl);
+  }, [onCopy, shareUrl]);
+
+  const handleInstagramShare = useCallback(async () => {
+    const instagramText = [trimmedMessage, shareUrl].filter(Boolean).join("\n");
+    if (onCopy) {
+      await onCopy(instagramText || shareUrl);
+    }
+    if (typeof window !== "undefined") {
+      window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+    }
+  }, [onCopy, shareUrl, trimmedMessage]);
 
   if (!open) return null;
 
@@ -79,6 +108,17 @@ export default function ShareModal({ open, onClose, shareUrl, title, onCopy }) {
           <p className="text-sm text-slate-600">{formatMessage({ id: "modal.share.subtitle" })}</p>
         </div>
 
+        <label className="flex flex-col gap-2 text-sm text-slate-700">
+          <span className="font-medium">{formatMessage({ id: "modal.share.messageLabel" })}</span>
+          <textarea
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            rows={3}
+            className="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            placeholder={formatMessage({ id: "modal.share.messagePlaceholder" })}
+          />
+        </label>
+
         <div className="grid grid-cols-1 gap-3">
           <a
             href={facebookUrl}
@@ -87,7 +127,9 @@ export default function ShareModal({ open, onClose, shareUrl, title, onCopy }) {
             className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-100"
           >
             <span>{formatMessage({ id: "modal.share.facebook" })}</span>
-            <span className="text-sm text-slate-500">Open share dialog</span>
+            <span className="text-sm text-slate-500">
+              {formatMessage({ id: "modal.share.facebookHint" })}
+            </span>
           </a>
 
           <a
@@ -97,11 +139,21 @@ export default function ShareModal({ open, onClose, shareUrl, title, onCopy }) {
             className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-100"
           >
             <span>{formatMessage({ id: "modal.share.twitter" })}</span>
-            <span className="text-sm text-slate-500">Tweet this listing</span>
+            <span className="text-sm text-slate-500">
+              {formatMessage({ id: "modal.share.twitterHint" })}
+            </span>
           </a>
 
-          <div className="rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-600 bg-slate-50">
-            {formatMessage({ id: "modal.share.instagram" })}
+          <div className="space-y-2 rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-600 bg-slate-50">
+            <p>{formatMessage({ id: "modal.share.instagram" })}</p>
+            <button
+              type="button"
+              onClick={handleInstagramShare}
+              className="w-full rounded-lg bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-pink-600 hover:via-red-500 hover:to-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-200"
+            >
+              {formatMessage({ id: "modal.share.instagramButton" })}
+            </button>
+            <p className="text-xs text-slate-500">{formatMessage({ id: "modal.share.instagramInstructions" })}</p>
           </div>
         </div>
 
@@ -111,7 +163,7 @@ export default function ShareModal({ open, onClose, shareUrl, title, onCopy }) {
           </div>
           <button
             type="button"
-            onClick={onCopy}
+            onClick={handleCopyLink}
             className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
           >
             {formatMessage({ id: "modal.share.copy" })}

@@ -25,9 +25,10 @@ export default function ShareButtons({ title, className = "" }) {
     setModalOpen(true);
   }
 
-  async function handleCopy() {
+  async function handleCopy(textToCopy) {
+    const value = textToCopy ?? data.url;
     try {
-      await navigator.clipboard.writeText(data.url);
+      await navigator.clipboard.writeText(value);
       toast?.success(formatMessage({ id: "modal.share.success" }));
     } catch (error) {
       toast?.error(formatMessage({ id: "modal.share.error" }));
