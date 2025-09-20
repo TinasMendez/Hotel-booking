@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../modules/auth/AuthContext';
 import { useToast } from '../shared/ToastProvider.jsx';
 
@@ -7,9 +7,12 @@ export default function Login() {
   const { login, isLoadingAuth } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const guardMessage = location.state?.message;
+  const returnTo = location.state?.from;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -17,7 +20,10 @@ export default function Login() {
       setSubmitting(true);
       await login({ email: email.trim(), password });
       toast?.success('Signed in successfully');
-      navigate('/');
+      const nextPath = returnTo
+        ? `${returnTo.pathname}${returnTo.search || ''}${returnTo.hash || ''}`
+        : '/';
+      navigate(nextPath, { replace: true });
     } catch (err) {
       const msg = err?.payload?.message || err?.message || 'Login error';
       toast?.error(`Login failed: ${msg}`);
@@ -33,6 +39,11 @@ export default function Login() {
         className="bg-white text-slate-900 p-6 rounded-xl shadow w-full max-w-sm grid gap-4"
       >
         <h1 className="text-xl font-semibold">Login</h1>
+        {guardMessage ? (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            {guardMessage}
+          </p>
+        ) : null}
         <label className="grid gap-1">
           <span className="text-sm">Email</span>
           <input
