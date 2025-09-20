@@ -1,6 +1,8 @@
 // /frontend/src/pages/admin/CategoriesAdmin.jsx
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
+import ConfirmDialog from "../../components/ConfirmDialog.jsx";
 import Api from "../../services/api";
 
 /** Admin page to list and delete categories. */
@@ -10,6 +12,8 @@ export default function CategoriesAdmin() {
   const [err, setErr] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+  const [confirmState, setConfirmState] = useState({ open: false, category: null, loading: false, error: "" });
+  const { formatMessage } = useIntl();
 
   async function load() {
     setLoading(true);
@@ -28,23 +32,37 @@ export default function CategoriesAdmin() {
     load();
   }, []);
 
-  async function onDelete(catId) {
-    const yes = confirm("Are you sure you want to delete this category?");
-    if (!yes) return;
+  function openConfirm(category) {
+    setConfirmState({ open: true, category, loading: false, error: "" });
+  }
+
+  function closeConfirm() {
+    setConfirmState({ open: false, category: null, loading: false, error: "" });
+  }
+
+  async function handleDelete() {
+    const category = confirmState.category;
+    if (!category) return;
     setActionError("");
     setActionMessage("");
+    setConfirmState((prev) => ({ ...prev, loading: true, error: "" }));
     try {
-      await Api.deleteCategory(catId);
-      setActionMessage("Category deleted successfully.");
+      await Api.deleteCategory(category.id);
+      setActionMessage(formatMessage({ id: "admin.categories.deleteSuccess" }));
+      closeConfirm();
       await load();
     } catch (e) {
       const status = e?.response?.status;
       if (status === 409) {
-        setActionError(
-          "No se puede eliminar la categoría porque tiene productos asociados. Reasigna o elimina esos productos y vuelve a intentarlo."
-        );
+        setConfirmState((prev) => ({
+          ...prev,
+          loading: false,
+          error: formatMessage({ id: "admin.categories.deleteInUse" }),
+        }));
       } else {
-        setActionError(e.message || "No se pudo eliminar la categoría.");
+        setConfirmState((prev) => ({ ...prev, loading: false }));
+        setActionError(e.message || formatMessage({ id: "admin.categories.deleteError" }));
+        closeConfirm();
       }
     }
   }
@@ -89,7 +107,7 @@ export default function CategoriesAdmin() {
                 <td className="py-2">{c.name}</td>
                 <td className="py-2">
                   <button
-                    onClick={() => onDelete(c.id)}
+                    onClick={() => openConfirm(c)}
                     className="px-3 py-1 rounded-xl bg-red-600 text-white hover:bg-red-700"
                     title="Delete category"
                   >
@@ -108,6 +126,33 @@ export default function CategoriesAdmin() {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        title={
+          confirmState.category
+            ? formatMessage(
+                { id: "admin.categories.confirmTitle" },
+                { name: confirmState.category.name },
+              )
+            : ""
+        }
+        description={
+          confirmState.category
+            ? formatMessage(
+                { id: "admin.categories.confirmDescription" },
+                { name: confirmState.category.name },
+              )
+            : ""
+        }
+        confirmLabel={formatMessage({ id: "admin.categories.confirmAction" })}
+        confirmLoadingLabel={formatMessage({ id: "admin.categories.confirmActionLoading" })}
+        cancelLabel={formatMessage({ id: "admin.categories.cancelAction" })}
+        onConfirm={handleDelete}
+        onCancel={closeConfirm}
+        loading={confirmState.loading}
+        errorMessage={confirmState.error}
+      />
     </div>
   );
 }
