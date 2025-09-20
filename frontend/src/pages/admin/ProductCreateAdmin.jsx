@@ -3,6 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Api from "../../services/api";
 import { useToast } from "../../shared/ToastProvider.jsx";
 
+const EMOJI_REGEX = /\p{Extended_Pictographic}/u;
+
+function renderFeatureIcon(icon) {
+  if (!icon) return "•";
+  return EMOJI_REGEX.test(icon) ? icon : <i className={icon}></i>;
+}
+
 const MAX_IMAGES = 5;
 
 export default function ProductCreateAdmin() {
@@ -263,12 +270,18 @@ export default function ProductCreateAdmin() {
             {features.map((feature) => {
               const selected = form.featureIds.includes(feature.id);
               return (
-                <label key={feature.id} className="flex items-center gap-2 border rounded px-3 py-2 bg-white">
+                <label
+                  key={feature.id}
+                  className="flex items-center gap-2 border rounded px-3 py-2 bg-white"
+                >
                   <input
                     type="checkbox"
                     checked={selected}
                     onChange={() => toggleFeature(feature.id)}
                   />
+                  <span className="text-lg leading-none">
+                    {renderFeatureIcon(feature.icon)}
+                  </span>
                   <span>{feature.name}</span>
                 </label>
               );

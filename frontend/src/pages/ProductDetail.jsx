@@ -47,7 +47,12 @@ export default function ProductDetail() {
   const refreshProduct = useCallback(async () => {
     try {
       const data = await getProduct(productId);
-      if (data) setProduct((prev) => ({ ...prev, ...data }));
+      if (data)
+        setProduct((prev) => ({
+          ...prev,
+          ...data,
+          features: Array.isArray(data.features) ? data.features : [],
+        }));
     } catch {
       /* Silent: keep UX minimal */
     }

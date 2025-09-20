@@ -5,6 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Api from "../../services/api.js";
 
+const EMOJI_REGEX = /\p{Extended_Pictographic}/u;
+
+function renderFeatureIcon(icon) {
+    if (!icon) return "•";
+    return EMOJI_REGEX.test(icon) ? icon : <i className={icon}></i>;
+}
+
 /** Validates only what is necessary to prevent obvious errors. */
 function isValid(form) {
     return (
@@ -214,7 +221,7 @@ function isValid(form) {
                     <button
                         key={f.id}
                         type="button"
-                        className={`px-3 py-1 rounded-lg border text-sm ${
+                        className={`px-3 py-1 rounded-lg border text-sm flex items-center gap-2 ${
                         active ? "bg-emerald-600 text-white border-emerald-600" : "hover:bg-slate-50"
                         }`}
                         onClick={() => {
@@ -226,7 +233,10 @@ function isValid(form) {
                         }}
                         title={f.name}
                     >
-                        {f.name}
+                        <span className="text-lg leading-none">
+                            {renderFeatureIcon(f.icon)}
+                        </span>
+                        <span>{f.name}</span>
                     </button>
                     );
                 })}
