@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function login(email, password) {
+  async function login({ email, password }) {
     // Set token BEFORE calling /me to avoid 401 on the first attempt.
     const data = await AuthAPI.login({ email, password });
     if (!data?.token) throw new Error("Missing token");
