@@ -11,9 +11,22 @@ function Row({ f, onSave, onDelete, busy }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(f.name || '');
   const [icon, setIcon] = useState(f.icon || '');
+  const [description, setDescription] = useState(f.description || '');
+
+  useEffect(() => {
+    setName(f.name || '');
+    setIcon(f.icon || '');
+    setDescription(f.description || '');
+  }, [f]);
 
   const save = async () => {
-    await onSave({ ...f, name, icon });
+    const payload = {
+      ...f,
+      name: name.trim(),
+      icon: icon.trim(),
+      description: description.trim(),
+    };
+    await onSave(payload);
     setEditing(false);
   };
 
@@ -36,9 +49,32 @@ function Row({ f, onSave, onDelete, busy }) {
       </td>
       <td className="p-3">
         {editing ? (
+          <textarea
+            className="border rounded p-1 w-full"
+            rows={2}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+        ) : (
+          <span className="text-sm text-slate-600 whitespace-pre-line">{f.description || '—'}</span>
+        )}
+      </td>
+      <td className="p-3">
+        {editing ? (
           <div className="flex gap-2">
             <button onClick={save} className="px-3 py-1 rounded bg-green-600 text-white" disabled={busy}>Save</button>
-            <button onClick={() => setEditing(false)} className="px-3 py-1 rounded border" disabled={busy}>Cancel</button>
+            <button
+              onClick={() => {
+                setEditing(false);
+                setName(f.name || '');
+                setIcon(f.icon || '');
+                setDescription(f.description || '');
+              }}
+              className="px-3 py-1 rounded border"
+              disabled={busy}
+            >
+              Cancel
+            </button>
           </div>
         ) : (
           <div className="flex gap-2">
@@ -60,6 +96,7 @@ export default function FeaturesAdmin() {
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
+  const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
   const [rowBusyId, setRowBusyId] = useState(null);
 
@@ -85,8 +122,16 @@ export default function FeaturesAdmin() {
     e.preventDefault();
     setSaving(true);
     try {
-      await httpPost('/features', { name, icon });
-      setName(''); setIcon('');
+      const payload = {
+        name: name.trim(),
+        icon: icon.trim(),
+        description: description.trim(),
+      };
+      if (!payload.name || !payload.icon) {
+        throw new Error(formatMessage({ id: 'admin.features.validation.required', defaultMessage: 'Name and icon are required.' }));
+      }
+      await httpPost('/features', payload);
+      setName(''); setIcon(''); setDescription('');
       toast?.success(formatMessage({ id: 'admin.features.createSuccess', defaultMessage: 'Feature created successfully.' }));
       await load();
     } catch (e) {
@@ -100,7 +145,15 @@ export default function FeaturesAdmin() {
   const onSaveRow = async (feat) => {
     setRowBusyId(feat.id);
     try {
-      await httpPut(`/features/${feat.id}`, { name: feat.name, icon: feat.icon });
+      const payload = {
+        name: (feat.name || '').trim(),
+        icon: (feat.icon || '').trim(),
+        description: (feat.description || '').trim(),
+      };
+      if (!payload.name || !payload.icon) {
+        throw new Error(formatMessage({ id: 'admin.features.validation.required', defaultMessage: 'Name and icon are required.' }));
+      }
+      await httpPut(`/features/${feat.id}`, payload);
       toast?.success(formatMessage({ id: 'admin.features.updateSuccess', defaultMessage: 'Feature updated.' }));
       await load();
     } catch (e) {
@@ -146,6 +199,15 @@ export default function FeaturesAdmin() {
           <label className="text-sm">Icon (CSS class or emoji)</label>
           <input className="border rounded p-2" required value={icon} onChange={e => setIcon(e.target.value)} />
         </div>
+        <div className="grid gap-1">
+          <label className="text-sm">Description</label>
+          <textarea
+            className="border rounded p-2"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={3}
+          />
+        </div>
         <div>
           <button className="px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-60" disabled={saving}>
             {saving ? 'Saving…' : 'Create'}
@@ -161,6 +223,7 @@ export default function FeaturesAdmin() {
               <th className="text-left p-3">ID</th>
               <th className="text-left p-3">Name</th>
               <th className="text-left p-3">Icon</th>
+              <th className="text-left p-3">Description</th>
               <th className="text-left p-3">Actions</th>
             </tr>
           </thead>
@@ -176,7 +239,7 @@ export default function FeaturesAdmin() {
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={4} className="p-4 text-center text-gray-500">No features.</td>
+                <td colSpan={5} className="p-4 text-center text-gray-500">No features.</td>
               </tr>
             )}
           </tbody>
