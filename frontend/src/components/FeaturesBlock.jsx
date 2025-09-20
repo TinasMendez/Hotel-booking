@@ -1,36 +1,26 @@
 // frontend/src/components/FeaturesBlock.jsx
-// Shows product features with icons. Supports emoji or CSS class in feature.icon.
-
 import React from "react";
 
-function renderIcon(icon) {
-  if (!icon) return "•";
-  // If icon looks like an emoji, render directly; if it's a CSS class (e.g., "fi fi-wifi"), use <i>.
-  const isEmoji = /\p{Extended_Pictographic}/u.test(icon);
-  if (isEmoji) return icon;
-  return <i className={icon}></i>;
-}
-
-export default function FeaturesBlock({ features = [] }) {
-  if (!Array.isArray(features) || features.length === 0) {
-    return null;
-  }
+/**
+ * Optional internal title to avoid duplicated "Features" on pages that already render a heading.
+ */
+export default function FeaturesBlock({ features = [], renderTitle = true }) {
+  const list = Array.isArray(features) ? features : [];
   return (
-    <section className="mt-8">
-      <h2 className="text-xl font-semibold mb-2">Features</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {features.map((f) => (
-          <div key={f.id || f.name} className="flex gap-2 p-3 bg-gray-50 rounded">
-            <span className="text-lg mt-0.5">{renderIcon(f.icon)}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 truncate">{f.name}</p>
-              {f.description && (
-                <p className="text-xs text-slate-600 mt-1 line-clamp-3 whitespace-pre-line">{f.description}</p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+    <div>
+      {renderTitle && <h3 className="text-base font-semibold mb-2">Features</h3>}
+      {list.length === 0 ? (
+        <p className="text-sm text-gray-500">No features provided for this product.</p>
+      ) : (
+        <ul className="grid sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-3">
+          {list.map((f, i) => (
+            <li key={i} className="flex items-center gap-2">
+              {f?.icon && <span aria-hidden="true">{f.icon}</span>}
+              <span>{f?.name || String(f)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

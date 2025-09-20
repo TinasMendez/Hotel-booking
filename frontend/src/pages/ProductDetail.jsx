@@ -1,231 +1,159 @@
 // frontend/src/pages/ProductDetail.jsx
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import Api from "../services/api.js";
-import { getProduct } from "../services/products.js";
+import FavoriteButton from "../components/FavoriteButton.jsx";
+import ShareButtons from "../components/ShareButtons.jsx";
 import Gallery5 from "../components/Gallery5.jsx";
 import ModalGallery from "../components/ModalGallery.jsx";
 import FeaturesBlock from "../components/FeaturesBlock.jsx";
 import PolicyBlock from "../components/PolicyBlock.jsx";
-import ShareButtons from "../components/ShareButtons.jsx";
-import AvailabilityCalendar from "../components/AvailabilityCalendar.jsx";
-import FavoriteButton from "../components/FavoriteButton.jsx";
-import RatingStars from "../components/RatingStars.jsx";
 import ReviewsList from "../components/ReviewsList.jsx";
-
-/** Flattens bookings into ISO date strings to mark busy days in the calendar. */
-function buildBusyDates(bookings = []) {
-  const busy = new Set();
-  for (const b of bookings) {
-    const start = new Date(b.startDate || b.checkIn);
-    const end = new Date(b.endDate || b.checkOut);
-    if (Number.isNaN(+start) || Number.isNaN(+end)) continue;
-    const d = new Date(start);
-    while (d <= end) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      busy.add(`${y}-${m}-${day}`);
-      d.setDate(d.getDate() + 1);
-    }
-  }
-  return Array.from(busy);
-}
+import AvailabilityCalendar from "../components/AvailabilityCalendar.jsx";
+import { getProduct } from "../services/products.js";
+import { BookingAPI } from "../services/api.js";
 
 export default function ProductDetail() {
-  const { productId } = useParams();
+  const { id: idParam } = useParams();
+  const productId = Number(idParam);
   const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
   const [bookings, setBookings] = useState([]);
-  const [availabilityError, setAvailabilityError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [galleryOpen, setGalleryOpen] = useState(false);
-  const [selection, setSelection] = useState({ startDate: "", endDate: "" });
-  const [reviewsVersion, setReviewsVersion] = useState(0);
-  const [ratingStats, setRatingStats] = useState({ average: 0, count: 0 });
+  const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState("");
+  const [range, setRange] = useState({ from: null, to: null });
 
-  const busyDates = useMemo(() => buildBusyDates(bookings), [bookings]);
+  const images = useMemo(() => {
+    const raw = product?.images || [];
+    return raw.map((it) => (typeof it === "string" ? { url: it } : it));
+  }, [product]);
 
-  const refreshProduct = useCallback(async () => {
+  const fetchProduct = useCallback(async () => {
+    if (!Number.isFinite(productId) || productId <= 0) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
     try {
-      const data = await getProduct(productId);
-      if (data)
-        setProduct((prev) => ({
-          ...prev,
-          ...data,
-          features: Array.isArray(data.features) ? data.features : [],
-        }));
-    } catch {
-      /* Silent: keep UX minimal */
+      setLoading(true);
+      setError("");
+      const p = await getProduct(productId);
+      if (!p?.id) {
+        setNotFound(true);
+        return;
+      }
+      setProduct(p);
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 404) setNotFound(true);
+      else setError(e?.message || "Failed to load product");
+    } finally {
+      setLoading(false);
     }
   }, [productId]);
 
-  useEffect(() => {
-    if (!product) return;
-    setRatingStats({
-      average: Number(product.ratingAverage || 0),
-      count: Number(product.ratingCount || 0),
-    });
-  }, [product?.ratingAverage, product?.ratingCount]);
-
-  const handleReviewStats = useCallback((stats) => {
-    if (!stats) return;
-    setRatingStats({
-      average: Number(stats.average || 0),
-      count: Number(stats.count || 0),
-    });
-  }, []);
-
-  const handleRated = useCallback((result) => {
-    if (result?.average != null) {
-      setRatingStats((prev) => ({ ...prev, average: Number(result.average) }));
-    }
-    setReviewsVersion((version) => version + 1);
-  }, []);
-
-  async function fetchBookingsForProduct() {
-    setAvailabilityError("");
+  const fetchBookings = useCallback(async () => {
+    if (!Number.isFinite(productId) || productId <= 0) return;
     try {
-      const { data } = await Api.get(`/bookings/product/${productId}`);
-      const list = Array.isArray(data) ? data : [];
-      setBookings(list);
+      const data = await BookingAPI.listByProduct(productId);
+      setBookings(Array.isArray(data) ? data : []);
     } catch {
-      setAvailabilityError("Failed to load availability. Please try again.");
+      setBookings([]);
     }
-  }
+  }, [productId]);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function boot() {
-      setLoading(true);
-      await refreshProduct();
-      await fetchBookingsForProduct();
-      if (!cancelled) setLoading(false);
-    }
-    boot();
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshProduct]);
+  useEffect(() => { fetchProduct(); }, [fetchProduct]);
+  useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
-  if (loading) {
+  const onReserve = () => navigate(`/booking/${productId}`);
+
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (notFound) {
     return (
-      <div className="container mx-auto px-4 py-10">
-        <p className="text-sm text-slate-600">Loading…</p>
+      <div className="p-6">
+        <p className="text-red-600">Product not found.</p>
+        <Link to="/" className="underline">Go back to Home</Link>
       </div>
     );
   }
-
-  if (!product) {
+  if (error) {
     return (
-      <div className="container mx-auto px-4 py-10">
-        <p className="text-sm text-red-600">Product not found.</p>
-        <Link to="/" className="inline-block mt-3 text-sm underline">
-          Go back to Home
-        </Link>
+      <div className="p-6">
+        <p className="text-red-600">{error}</p>
+        <Link to="/" className="underline">Go back to Home</Link>
       </div>
     );
   }
-
-  const imageList =
-    Array.isArray(product.imageUrls) && product.imageUrls.length > 0
-      ? product.imageUrls
-      : product.imageUrl
-      ? [product.imageUrl]
-      : [];
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
-      {/* Title left, back arrow right */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">{product.name}</h1>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border hover:bg-slate-50"
-          aria-label="Go back"
-          title="Go back"
-        >
-          <span>Back</span>
-          <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden>
-            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" fill="none" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Rating + favorite */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <RatingStars
-            productId={product.id}
-            initialAverage={ratingStats.average}
-            onRated={handleRated}
-          />
-          <span className="text-sm text-slate-600">
-            {ratingStats.count} {ratingStats.count === 1 ? "reseña" : "reseñas"}
-          </span>
+    <div className="space-y-6">
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-xl font-semibold">{product?.name}</h1>
+          <Link to="/" className="text-sm underline">← Back</Link>
         </div>
-        <FavoriteButton productId={product.id} />
-      </div>
+      </header>
 
-      {/* Gallery */}
-      <Gallery5 images={imageList} onViewMore={() => setGalleryOpen(true)} />
-      {galleryOpen && (
-        <ModalGallery images={imageList} onClose={() => setGalleryOpen(false)} />
-      )}
-
-      {/* Description */}
-      <section>
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Description</h2>
-        <p className="text-slate-700">{product.description}</p>
-      </section>
-
-      <section>
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Reseñas</h2>
-        <ReviewsList
-          productId={product.id}
-          refreshToken={reviewsVersion}
-          onStatsChange={handleReviewStats}
-        />
-      </section>
-
-      {/* Features */}
-      {Array.isArray(product?.features) && product.features.length > 0 && (
-        <FeaturesBlock features={product.features} />
-      )}
-
-      {/* Availability (busy dates highlighted) with retry on error */}
-      <section>
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Availability</h2>
-        {availabilityError ? (
-          <div className="text-sm text-red-600">
-            {availabilityError}{" "}
-            <button className="underline" onClick={fetchBookingsForProduct}>
-              Retry
-            </button>
+      <section className="container mx-auto px-4 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {product?.category?.name} {product?.city ? `• ${product.city}` : ""}
           </div>
-        ) : (
+          <div className="flex items-center gap-3">
+            <FavoriteButton productId={productId} />
+            <ShareButtons product={product} />
+          </div>
+        </div>
+
+        <Gallery5 images={images} />
+        <ModalGallery images={images} />
+
+        {/* Main content stacked */}
+        <section>
+          <h2 className="text-lg font-semibold mb-2">Description</h2>
+          <p className="text-gray-700">{product?.description || "No description available."}</p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2">Features</h2>
+          {/* Avoid duplicate title inside the block */}
+          <FeaturesBlock features={product?.features || []} renderTitle={false} />
+        </section>
+
+        <section>
+          <ReviewsList productId={productId} />
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Availability</h2>
+            <span className="text-sm text-gray-500">
+              Existing bookings: {bookings.length}
+            </span>
+          </div>
           <AvailabilityCalendar
-            disabledDates={busyDates}
-            onChange={(range) => setSelection(range)}
+            bookings={bookings}
+            value={range}
+            onChange={setRange}
           />
-        )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onReserve}
+              className="h-10 rounded-lg bg-emerald-600 px-4 text-white font-semibold hover:bg-emerald-700"
+            >
+              Reserve now
+            </button>
+            <ShareButtons product={product} variant="secondary" />
+          </div>
+        </section>
+
+        <section>
+          <PolicyBlock policies={product?.policies || []} />
+        </section>
       </section>
-
-      {/* Actions */}
-      <div className="flex items-center gap-3">
-        <Link
-          to={`/booking/${product.id}`}
-          className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-        >
-          Reserve now
-        </Link>
-        <ShareButtons product={product} />
-      </div>
-
-      {/* Policies */}
-      <PolicyBlock />
     </div>
   );
 }
+
