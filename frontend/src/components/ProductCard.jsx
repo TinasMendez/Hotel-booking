@@ -1,4 +1,5 @@
 // frontend/src/components/ProductCard.jsx
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import FavoriteButton from "./FavoriteButton.jsx";
 
@@ -8,8 +9,25 @@ export default function ProductCard({ product }) {
     product?.imageUrl ||
     (Array.isArray(product?.imageUrls) && product.imageUrls[0]) ||
     "https://via.placeholder.com/600x400?text=No+image";
-  const average = Number(product?.ratingAverage ?? 0);
-  const count = Number(product?.ratingCount ?? 0);
+  const [average, setAverage] = useState(Number(product?.ratingAverage ?? 0));
+  const [count, setCount] = useState(Number(product?.ratingCount ?? 0));
+
+  useEffect(() => {
+    setAverage(Number(product?.ratingAverage ?? 0));
+    setCount(Number(product?.ratingCount ?? 0));
+  }, [product?.ratingAverage, product?.ratingCount]);
+
+  useEffect(() => {
+    function handleRatingUpdated(event) {
+      const detail = event?.detail;
+      if (!detail || Number(detail.productId) !== Number(id)) return;
+      setAverage(Number(detail.ratingAverage ?? 0));
+      setCount(Number(detail.ratingCount ?? 0));
+    }
+
+    window.addEventListener("product-rating-updated", handleRatingUpdated);
+    return () => window.removeEventListener("product-rating-updated", handleRatingUpdated);
+  }, [id]);
 
   return (
     <div className="rounded-2xl border overflow-hidden shadow-sm relative bg-white">

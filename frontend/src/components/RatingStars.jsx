@@ -1,96 +1,53 @@
-// /frontend/src/components/RatingStars.jsx
-import { useEffect, useState } from "react";
-import { useIntl } from "react-intl";
-import Api, { getToken } from "../services/api";
-import { useToast } from "../shared/ToastProvider.jsx";
-import { getApiErrorMessage, normalizeApiError } from "../utils/apiError.js";
+// frontend/src/components/RatingStars.jsx
+import { useMemo, useState } from "react";
 
-/**
- * Interactive 5-star rating component.
- * - Loads product average on mount.
- * - Requires authentication to submit.
- * - Calls onRated callback after a successful submission.
- */
-export default function RatingStars({ productId, className = "", initialAverage = 0, onRated }) {
-  const { formatMessage } = useIntl();
-  const toast = useToast();
-  const [average, setAverage] = useState(Number(initialAverage) || 0);
-  const [hover, setHover] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const isLogged = !!getToken();
-
-  useEffect(() => {
-    setAverage(Number(initialAverage) || 0);
-  }, [initialAverage]);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const data = await Api.getProductRating(productId);
-        if (!mounted) return;
-        setAverage(Number(data?.rating ?? 0));
-      } catch (error) {
-        // Ignore initial load errors to avoid noisy UI
-        console.warn("Failed to load rating average", error);
-      }
-    })();
-    return () => {
-      mounted = false;
+function buildStars(value, outOf) {
+  const rating = Number.isFinite(value) ? value : 0;
+  return Array.from({ length: outOf }, (_, index) => {
+    const position = index + 1;
+    return {
+      key: position,
+      filled: rating >= position,
     };
-  }, [productId]);
+  });
+}
 
-  async function refreshAverage() {
-    try {
-      const data = await Api.getProductRating(productId);
-      setAverage(Number(data?.rating ?? 0));
-    } catch (error) {
-      console.warn("Failed to refresh rating average", error);
-    }
-  }
-
-  async function rate(stars) {
-    if (!isLogged) {
-      toast?.info(formatMessage({ id: "rating.loginRequired", defaultMessage: "Inicia sesión para puntuar." }));
-      return;
-    }
-
-    setBusy(true);
-    try {
-      await Api.rateProduct(productId, stars);
-      toast?.success(formatMessage({ id: "rating.success", defaultMessage: "¡Gracias por tu valoración!" }));
-      await refreshAverage();
-      onRated?.(stars);
-    } catch (error) {
-      const normalized = normalizeApiError(error, formatMessage({ id: "errors.generic" }));
-      const message = getApiErrorMessage(normalized, formatMessage, formatMessage({ id: "errors.generic" }));
-      toast?.error(message || formatMessage({ id: "errors.generic" }));
-    } finally {
-      setBusy(false);
-    }
-  }
+export function RatingStarsInput({ value = 0, onChange, disabled = false, className = "", outOf = 5, sizeClass = "text-2xl" }) {
+  const [hover, setHover] = useState(0);
+  const stars = useMemo(() => buildStars(hover || value, outOf), [hover, value, outOf]);
 
   return (
-    <div className={`flex items-center gap-1 ${className}`} aria-label={formatMessage({ id: "rating.averageLabel", defaultMessage: "Calificación promedio" })}>
-      {[1, 2, 3, 4, 5].map((n) => {
-        const filled = (hover || average) >= n;
-        return (
-          <button
-            key={n}
-            className="text-2xl leading-none"
-            disabled={busy}
-            onMouseEnter={() => setHover(n)}
-            onMouseLeave={() => setHover(0)}
-            onClick={() => rate(n)}
-            aria-label={formatMessage({ id: "rating.rateStar", defaultMessage: "Puntuar" }) + ` ${n}`}
-            title={formatMessage({ id: "rating.rateStar", defaultMessage: "Puntuar" }) + ` ${n}`}
-            type="button"
-          >
-            {filled ? "★" : "☆"}
-          </button>
-        );
-      })}
-      <span className="ml-2 text-sm text-gray-600">({average.toFixed(1)}/5)</span>
+    <div className={`flex items-center gap-1 ${className}`}>
+      {stars.map(({ key, filled }) => (
+        <button
+          key={key}
+          type="button"
+          className={`${sizeClass} leading-none transition-colors ${filled ? "text-amber-500" : "text-slate-300"}`}
+          disabled={disabled}
+          onMouseEnter={() => setHover(key)}
+          onMouseLeave={() => setHover(0)}
+          onClick={() => onChange?.(key)}
+        >
+          {filled ? "★" : "☆"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function RatingStars({ value = 0, outOf = 5, className = "", sizeClass = "text-xl" }) {
+  const stars = useMemo(() => buildStars(value, outOf), [value, outOf]);
+  return (
+    <div className={`flex items-center gap-1 ${className}`}>
+      {stars.map(({ key, filled }) => (
+        <span
+          key={key}
+          className={`${sizeClass} leading-none ${filled ? "text-amber-500" : "text-slate-300"}`}
+          aria-hidden
+        >
+          {filled ? "★" : "☆"}
+        </span>
+      ))}
     </div>
   );
 }

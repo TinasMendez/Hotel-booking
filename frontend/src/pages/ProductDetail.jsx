@@ -1,6 +1,7 @@
 // frontend/src/pages/ProductDetail.jsx
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useIntl } from "react-intl";
 import Api from "../services/api.js";
 import { getProduct } from "../services/products.js";
 import Gallery5 from "../components/Gallery5.jsx";
@@ -10,7 +11,10 @@ import PolicyBlock from "../components/PolicyBlock.jsx";
 import ShareButtons from "../components/ShareButtons.jsx";
 import AvailabilityCalendar from "../components/AvailabilityCalendar.jsx";
 import FavoriteButton from "../components/FavoriteButton.jsx";
-import RatingStars from "../components/RatingStars.jsx";
+import RatingStars, { RatingStarsInput } from "../components/RatingStars.jsx";
+import { useAuth } from "../modules/auth/AuthContext.jsx";
+import { useToast } from "../shared/ToastProvider.jsx";
+import { getApiErrorMessage, normalizeApiError } from "../utils/apiError.js";
 
 /** Flattens bookings into ISO date strings to mark busy days in the calendar. */
 function buildBusyDates(bookings = []) {
@@ -34,6 +38,9 @@ function buildBusyDates(bookings = []) {
 export default function ProductDetail() {
   const { productId } = useParams();
   const navigate = useNavigate();
+  const { formatMessage, formatDate } = useIntl();
+  const { user, isAuthenticated } = useAuth();
+  const toast = useToast();
 
   const [product, setProduct] = useState(null);
   const [bookings, setBookings] = useState([]);
@@ -41,17 +48,66 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [selection, setSelection] = useState({ startDate: "", endDate: "" });
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [reviewsError, setReviewsError] = useState("");
+  const [ratingScore, setRatingScore] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const busyDates = useMemo(() => buildBusyDates(bookings), [bookings]);
+
+  const canRate = useMemo(() => {
+    if (!isAuthenticated || !user?.id) return false;
+    if (!Array.isArray(bookings) || bookings.length === 0) return false;
+    const today = new Date();
+    return bookings.some((booking) => {
+      if (!booking || Number(booking.customerId) !== Number(user.id)) return false;
+      if (booking.status === "CANCELLED") return false;
+      const end = new Date(booking.endDate || booking.checkOut);
+      return !Number.isNaN(+end) && end < today;
+    });
+  }, [bookings, isAuthenticated, user?.id]);
 
   const refreshProduct = useCallback(async () => {
     try {
       const data = await getProduct(productId);
-      if (data) setProduct((prev) => ({ ...prev, ...data }));
+      if (data) {
+        setProduct((prev) => ({ ...prev, ...data }));
+      }
+      return data;
     } catch {
       /* Silent: keep UX minimal */
+      return null;
     }
   }, [productId]);
+
+  const dispatchRatingUpdate = useCallback((payload) => {
+    if (!payload) return;
+    const id = payload.productId;
+    if (id === undefined || id === null) return;
+    window.dispatchEvent(
+      new CustomEvent("product-rating-updated", {
+        detail: { ...payload, productId: Number(id) },
+      })
+    );
+  }, []);
+
+  async function fetchReviews() {
+    if (!productId) return;
+    setReviewsError("");
+    setLoadingReviews(true);
+    try {
+      const data = await Api.listProductRatings(productId);
+      const list = Array.isArray(data) ? data : [];
+      setReviews(list);
+    } catch (error) {
+      console.warn("Failed to load ratings", error);
+      setReviewsError(formatMessage({ id: "rating.list.error", defaultMessage: "Failed to load reviews." }));
+    } finally {
+      setLoadingReviews(false);
+    }
+  }
 
   async function fetchBookingsForProduct() {
     setAvailabilityError("");
@@ -70,6 +126,7 @@ export default function ProductDetail() {
       setLoading(true);
       await refreshProduct();
       await fetchBookingsForProduct();
+      await fetchReviews();
       if (!cancelled) setLoading(false);
     }
     boot();
@@ -104,6 +161,61 @@ export default function ProductDetail() {
       ? [product.imageUrl]
       : [];
 
+  async function handleSubmitReview(event) {
+    event.preventDefault();
+    if (!isAuthenticated) {
+      toast?.info(formatMessage({ id: "rating.loginRequired", defaultMessage: "Log in to submit a review." }));
+      return;
+    }
+    if (!canRate) {
+      toast?.error(
+        formatMessage({
+          id: "errors.rating.notAllowed",
+          defaultMessage: "You need a completed stay before leaving a review.",
+        })
+      );
+      return;
+    }
+    if (!ratingScore || ratingScore < 1) {
+      toast?.error(
+        formatMessage({ id: "rating.form.scoreRequired", defaultMessage: "Select a rating before submitting." })
+      );
+      return;
+    }
+    if (!comment.trim()) {
+      toast?.error(
+        formatMessage({ id: "rating.form.commentRequired", defaultMessage: "Write a comment to share your experience." })
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await Api.rateProduct(product.id, ratingScore, comment.trim());
+      toast?.success(
+        formatMessage({ id: "rating.success", defaultMessage: "Thanks for sharing your experience!" })
+      );
+      setComment("");
+      setRatingScore(0);
+      await fetchReviews();
+      const updated = await refreshProduct();
+      const nextAverage = Number(updated?.ratingAverage ?? product?.ratingAverage ?? 0);
+      const nextCount = Number(updated?.ratingCount ?? product?.ratingCount ?? 0);
+      const targetId = product?.id ?? Number(productId);
+      dispatchRatingUpdate({ productId: targetId, ratingAverage: nextAverage, ratingCount: nextCount });
+    } catch (error) {
+      const normalized = normalizeApiError(error, formatMessage({ id: "errors.generic", defaultMessage: "Unexpected error." }));
+      const message = getApiErrorMessage(
+        normalized,
+        formatMessage,
+        formatMessage({ id: "errors.generic", defaultMessage: "Unexpected error." })
+      );
+      toast?.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Title left, back arrow right */}
@@ -126,7 +238,10 @@ export default function ProductDetail() {
       {/* Rating + favorite */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <RatingStars score={Number(product?.ratingAverage || 0)} />
+          <RatingStars value={Number(product?.ratingAverage || 0)} />
+          <span className="text-sm text-slate-600">
+            {Number(product?.ratingAverage || 0).toFixed(1)} / 5
+          </span>
           <span className="text-sm text-slate-600">
             {Number(product?.ratingCount || 0)} ratings
           </span>
@@ -167,6 +282,129 @@ export default function ProductDetail() {
             onChange={(range) => setSelection(range)}
           />
         )}
+      </section>
+
+      {/* Reviews */}
+      <section aria-labelledby="product-reviews" className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+          <div>
+            <h2 id="product-reviews" className="text-xl font-semibold text-slate-900">
+              {formatMessage({ id: "rating.section.title", defaultMessage: "Guest reviews" })}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {formatMessage({
+                id: "rating.section.subtitle",
+                defaultMessage: "Read experiences from other guests or leave yours.",
+              })}
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmitReview} className="space-y-3 rounded-xl border p-4 bg-slate-50">
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-slate-800">
+              {formatMessage({ id: "rating.form.scoreLabel", defaultMessage: "Your rating" })}
+            </label>
+            <RatingStarsInput
+              value={ratingScore}
+              onChange={setRatingScore}
+              disabled={submitting}
+              className="justify-start"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="rating-comment" className="block text-sm font-medium text-slate-800">
+              {formatMessage({ id: "rating.form.commentLabel", defaultMessage: "Comment" })}
+            </label>
+            <textarea
+              id="rating-comment"
+              className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              rows={4}
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              placeholder={formatMessage({
+                id: "rating.form.commentPlaceholder",
+                defaultMessage: "Tell us about your stay...",
+              })}
+              disabled={submitting}
+            />
+          </div>
+
+          {!isAuthenticated && (
+            <p className="text-sm text-amber-600">
+              {formatMessage({
+                id: "rating.loginRequired",
+                defaultMessage: "Log in to submit a review.",
+              })}
+            </p>
+          )}
+          {isAuthenticated && !canRate && (
+            <p className="text-sm text-amber-600">
+              {formatMessage({
+                id: "errors.rating.notAllowed",
+                defaultMessage: "You need a completed stay before leaving a review.",
+              })}
+            </p>
+          )}
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 disabled:opacity-60"
+              disabled={submitting}
+            >
+              {submitting
+                ? formatMessage({ id: "rating.form.submitting", defaultMessage: "Sending…" })
+                : formatMessage({ id: "rating.form.submit", defaultMessage: "Send review" })}
+            </button>
+          </div>
+        </form>
+
+        <div className="space-y-3">
+          {loadingReviews && <p className="text-sm text-slate-600">{formatMessage({ id: "rating.list.loading", defaultMessage: "Loading reviews…" })}</p>}
+          {reviewsError && <p className="text-sm text-red-600">{reviewsError}</p>}
+          {!loadingReviews && !reviewsError && reviews.length === 0 && (
+            <p className="text-sm text-slate-600">
+              {formatMessage({ id: "rating.section.empty", defaultMessage: "No reviews yet. Be the first to share your stay." })}
+            </p>
+          )}
+          {!loadingReviews && !reviewsError && reviews.length > 0 && (
+            <ul className="space-y-3">
+              {reviews.map((review) => {
+                const authorLabel =
+                  review.userId && review.userId === user?.id
+                    ? formatMessage({ id: "rating.list.you", defaultMessage: "You" })
+                    : formatMessage(
+                        { id: "rating.list.guest", defaultMessage: "Guest #{id}" },
+                        { id: review.userId ?? "" }
+                      );
+                const created = review.createdAt ? new Date(review.createdAt) : null;
+                const formattedDate = created && !Number.isNaN(+created)
+                  ? formatDate(created, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : "";
+                return (
+                  <li key={review.id} className="rounded-xl border p-4 bg-white shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <RatingStars value={Number(review.score || 0)} sizeClass="text-lg" />
+                        <span className="text-sm font-medium text-slate-800">{authorLabel}</span>
+                      </div>
+                      {formattedDate && <span className="text-xs text-slate-500">{formattedDate}</span>}
+                    </div>
+                    {review.comment && (
+                      <p className="text-sm text-slate-700 whitespace-pre-line">{review.comment}</p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </section>
 
       {/* Actions */}

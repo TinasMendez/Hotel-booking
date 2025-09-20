@@ -245,6 +245,7 @@ const Api = {
   getFavorites: FavoritesAPI.list,
   addFavorite: FavoritesAPI.add,
   removeFavorite: FavoritesAPI.remove,
+  listProductRatings: RatingsAPI.listByProduct,
   getProductRating: async (productId) => ({ rating: await RatingsAPI.average(productId) }),
   rateProduct: (productId, score, comment) => RatingsAPI.rate(productId, score, comment),
   getCategories: fetchCategories,
