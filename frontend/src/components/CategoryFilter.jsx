@@ -1,58 +1,43 @@
-    import { useEffect, useState } from 'react'
-    import { getCategories } from '../services/products'
+// src/components/CategoryFilter.jsx
+import React, { useEffect, useState } from "react";
+import Api from "../services/api";
 
-    export default function CategoryFilter({ value, onChange }) {
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState('')
-    const [list, setList] = useState([])
+/**
+ * Controlled select. Emits the selected category id (string) or "" for All.
+ */
+export default function CategoryFilter({ value = "", onChange = () => {} }) {
+    const [list, setList] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        let active = true
-        async function load() {
-        setLoading(true); setError('')
+        let off = false;
+        (async () => {
         try {
-            const cats = await getCategories()
-            if (!active) return
-            setList(cats)
-        } catch (e) {
-            if (!active) return
-            // If 401/403, hide the error and keep dropdown with "All"
-            const msg = e?.message || ''
-            if (msg.includes('HTTP 401') || msg.includes('HTTP 403')) {
-            setList([]); setError('')
-            } else {
-            setError(msg || 'Failed to load categories')
-            }
+            const data = await Api.getCategories();
+            if (!off) setList(Array.isArray(data?.content) ? data.content : Array.isArray(data) ? data : []);
         } finally {
-            if (active) setLoading(false)
+            if (!off) setLoading(false);
         }
-        }
-        load()
-        return () => { active = false }
-    }, [])
+        })();
+        return () => { off = true; };
+    }, []);
 
     return (
-        <div className="rounded-xl border bg-white p-4">
-        <div className="flex items-center gap-3">
-            <label className="text-sm">Category:</label>
-            {loading && <span className="text-sm text-gray-500">Loading…</span>}
-            {!loading && !error && (
-            <select
-                className="rounded border px-3 py-2"
-                value={value ?? ''}
-                onChange={(e) => onChange?.(e.target.value ? Number(e.target.value) : undefined)}
-            >
-                <option value="">All</option>
-                {list.map((c) => (
-                <option key={c.id} value={c.id}>
-                    {c.name || c.title || `#${c.id}`}
-                </option>
-                ))}
-            </select>
-            )}
-            {error && <span className="text-sm text-red-600">{error}</span>}
+        <div className="w-full">
+        <label className="block text-sm font-medium mb-1">Category</label>
+        <select
+            className="w-full px-3 py-2 rounded-lg border"
+            value={value}
+            disabled={loading}
+            onChange={(e) => onChange(e.target.value)}
+        >
+            <option value="">All</option>
+            {list.map((c) => (
+            <option key={c.id} value={String(c.id)}>
+                {c.name}
+            </option>
+            ))}
+        </select>
         </div>
-        </div>
-    )
-    }
-
+    );
+}

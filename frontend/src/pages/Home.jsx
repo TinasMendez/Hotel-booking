@@ -1,49 +1,36 @@
-// frontend/src/pages/Home.jsx
-// Home must show search, categories, and product recommendations (max 10 random, 2 columns × 5 rows).
-
 import React, { useEffect, useState } from "react";
-import Api from "../services/api.js";
-import ProductCard from "../components/ProductCard.jsx";
-import CategoryFilter from "../components/CategoryFilter.jsx";
-import SearchBar from "../components/SearchBar.jsx";
-import Pagination from "../components/Pagination.jsx";
+import Api from "../services/api";
+import ProductCard from "../components/ProductCard";
+import SearchBar from "../components/SearchBar";
+import CategoryFilter from "../components/CategoryFilter";
 
-const PAGE_SIZE = 10;
-
+/**
+ * Home keeps Search, Categories, Recommendations always visible.
+ * Categories select now triggers a search; it is no longer a dead controlled "" value.
+ */
 export default function Home() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [randomItems, setRandomItems] = useState([]);
+  const [loadingRandom, setLoadingRandom] = useState(true);
+  const [randomError, setRandomError] = useState("");
 
-  // Optional: server pagination for general list (fallback)
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+
+  const [categoryFilter, setCategoryFilter] = useState(""); // <-- drives Categories block
 
   async function loadRandom() {
-    setLoading(true);
-    setError("");
+    setLoadingRandom(true);
+    setRandomError("");
     try {
-      // Ensures up to 10 unique random products with no duplicates.
-      const { data } = await Api.get("/products/random", { params: { limit: 10 } });
-      const unique = Array.isArray(data)
-        ? Array.from(new Map(data.map((p) => [String(p.id), p])).values())
-        : [];
-      setItems(unique.slice(0, 10));
-      setTotalPages(1);
-      setPage(1);
-    } catch (err) {
-      // Fallback: first page of the catalog when random endpoint is unavailable.
-      try {
-        const { data } = await Api.get("/products", { params: { page: 0, size: PAGE_SIZE } });
-        const list = Array.isArray(data?.content) ? data.content : Array.isArray(data) ? data : [];
-        setItems(list.slice(0, 10));
-        setTotalPages(1);
-        setPage(1);
-      } catch (e2) {
-        setError("Failed to load products.");
-      }
+      const res = await Api.get("/products/random", { params: { limit: 10 } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const uniq = Array.from(new Map(arr.map((p) => [p.id, p])).values());
+      setRandomItems(uniq.slice(0, 10));
+    } catch {
+      setRandomError("Failed to load products.");
     } finally {
-      setLoading(false);
+      setLoadingRandom(false);
     }
   }
 
@@ -51,36 +38,93 @@ export default function Home() {
     loadRandom();
   }, []);
 
+  async function handleSearch(params) {
+    setSearching(true);
+    setSearchError("");
+    try {
+      const res = await Api.get("/products/search", {
+        params: {
+          categoryId: params.categoryId,
+          cityId: params.cityId,
+          q: params.q,
+          startDate: params.startDate,
+          endDate: params.endDate,
+          page: params.page ?? 0,
+          size: params.size ?? 10,
+        },
+      });
+      const data = res.data;
+      const list = Array.isArray(data?.content)
+        ? data.content
+        : Array.isArray(data)
+        ? data
+        : [];
+      setResults(list);
+    } catch {
+      setSearchError("Search failed. Please try again.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function handleReset() {
+    setResults([]);
+    setSearchError("");
+    setSearching(false);
+    setCategoryFilter(""); // keep UI in sync
+  }
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-8">
-      {/* Search block */}
+      {/* Search */}
       <section aria-labelledby="home-search">
-        <h2 id="home-search" className="text-xl font-semibold text-slate-900 mb-3">
+        <h2 id="home-search" className="text-xl font-semibold mb-2">
           Find stays by date and city
         </h2>
         <p className="text-sm text-slate-600 mb-4">
           Use the search to filter by city and date range. You can also explore by category below.
         </p>
-        <SearchBar />
+        <SearchBar onSearch={handleSearch} onReset={handleReset} />
       </section>
 
-      {/* Categories block */}
+      {/* Categories */}
       <section aria-labelledby="home-categories">
-        <h2 id="home-categories" className="text-xl font-semibold text-slate-900 mb-3">
-          Categories
-        </h2>
-        <p className="text-sm text-slate-600 mb-4">
-          Discover by type to find the best match.
-        </p>
-        <CategoryFilter />
+        <h2 id="home-categories" className="text-xl font-semibold mb-2">Categories</h2>
+        <p className="text-sm text-slate-600 mb-3">Discover by type to find the best match.</p>
+        <div className="max-w-lg">
+          <CategoryFilter
+            value={categoryFilter}
+            onChange={(val) => {
+              setCategoryFilter(val);
+              if (val === "") {
+                setResults([]);
+              } else {
+                // Quick category-only search to show relevant results
+                handleSearch({ categoryId: val, page: 0, size: 10 });
+              }
+            }}
+          />
+        </div>
       </section>
 
-      {/* Recommendations block: max 10, grid 2×5 (desktop), no duplicates */}
+      {/* Search results */}
+      {searching && <div className="text-sm text-slate-600">Searching…</div>}
+      {!!searchError && <div className="text-sm text-red-600">{searchError}</div>}
+      {results.length > 0 && (
+        <section aria-labelledby="home-results">
+          <h2 id="home-results" className="text-xl font-semibold mb-3">Search results</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {results.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Recommendations */}
       <section aria-labelledby="home-recommendations">
         <div className="flex items-center justify-between mb-3">
-          <h2 id="home-recommendations" className="text-xl font-semibold text-slate-900">
-            Recommendations
-          </h2>
+          <h2 id="home-recommendations" className="text-xl font-semibold">Recommendations</h2>
           <button
             type="button"
             onClick={loadRandom}
@@ -91,28 +135,19 @@ export default function Home() {
           </button>
         </div>
 
-        {loading && <div className="text-sm text-slate-600">Loading…</div>}
-        {error && (
+        {loadingRandom && <div className="text-sm text-slate-600">Loading…</div>}
+        {randomError && (
           <div className="text-sm text-red-600">
-            {error}
-            <button className="ml-2 underline" onClick={loadRandom}>
-              Retry
-            </button>
+            {randomError} <button className="underline" onClick={loadRandom}>Retry</button>
           </div>
         )}
-
-        {!loading && !error && (
+        {!loadingRandom && !randomError && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {items.slice(0, 10).map((p) => (
+            {randomItems.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>
         )}
-
-        {/* Keep Pagination for general list pages; hidden for random (1 page) */}
-        <div className={`${totalPages <= 1 ? "hidden" : "block"} mt-6`}>
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-        </div>
       </section>
     </div>
   );

@@ -1,71 +1,59 @@
-// /frontend/src/components/FavoriteButton.jsx
-import { useEffect, useState } from "react";
-import { useIntl } from "react-intl";
-import Api, { getToken } from "../services/api";
-import { useToast } from "../shared/ToastProvider.jsx";
-import { getApiErrorMessage, normalizeApiError } from "../utils/apiError.js";
+// src/components/FavoriteButton.jsx
+import React, { useEffect, useState } from "react";
+import Api from "../services/api";
+import { useAuth } from "../modules/auth/AuthContext";
 
-/** Toggle button to add/remove a product from user's favorites. */
-export default function FavoriteButton({ productId, className = "" }) {
-    const toast = useToast();
-    const { formatMessage } = useIntl();
-    const [loading, setLoading] = useState(false);
-    const [fav, setFav] = useState(false);
-    const isLogged = !!getToken();
+/**
+ * Toggle favorite state for a product.
+ * - defaultActive=true when rendering inside Favorites page.
+ * - Uses project API: POST /favorites/:productId , DELETE /favorites/:productId
+ */
+export default function FavoriteButton({ productId, defaultActive = false, onChange = () => {} }) {
+    const { isAuthenticated } = useAuth();
+    const [active, setActive] = useState(!!defaultActive);
+    const [busy, setBusy] = useState(false);
 
     useEffect(() => {
-        let mounted = true;
-        async function load() {
-        if (!isLogged) return;
-        try {
-            const list = await Api.getFavorites();
-            if (!mounted) return;
-            setFav(list?.some((p) => String(p.id) === String(productId)));
-        } catch {
-            // ignore
-        }
-        }
-        load();
-        return () => {
-        mounted = false;
-        };
-    }, [productId, isLogged]);
+        setActive(!!defaultActive);
+    }, [defaultActive]);
 
     async function toggle() {
-        if (!isLogged) {
-        toast?.info(formatMessage({ id: "favorites.loginRequired", defaultMessage: "Please log in to use favorites." }));
+        if (!isAuthenticated) {
+        window.alert("Please sign in to use favorites.");
         return;
         }
-        setLoading(true);
+        if (busy) return;
+        setBusy(true);
         try {
-        if (fav) {
+        if (active) {
             await Api.removeFavorite(productId);
-            setFav(false);
-            toast?.info(formatMessage({ id: "favorites.removed", defaultMessage: "Removed from favorites." }));
+            setActive(false);
+            onChange(false);
         } else {
             await Api.addFavorite(productId);
-            setFav(true);
-            toast?.success(formatMessage({ id: "favorites.added", defaultMessage: "Added to favorites." }));
+            setActive(true);
+            onChange(true);
         }
-        } catch (e) {
-        const normalized = normalizeApiError(e, formatMessage({ id: "errors.generic" }));
-        const message = getApiErrorMessage(normalized, formatMessage, e?.message);
-        toast?.error(message || formatMessage({ id: "errors.generic" }));
+        } catch {
+        window.alert("Failed to update favorites. Please try again.");
         } finally {
-        setLoading(false);
+        setBusy(false);
         }
     }
 
     return (
         <button
+        type="button"
         onClick={toggle}
-        disabled={loading}
-        className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 border ${fav ? "bg-rose-600 text-white border-rose-600" : "bg-white text-rose-600 border-rose-600"} ${className}`}
-        aria-pressed={fav}
-        title={fav ? "Remove from favorites" : "Add to favorites"}
+        disabled={busy}
+        className={`px-3 py-1.5 rounded-full border text-sm ${
+            active
+            ? "bg-red-50 text-red-600 border-red-300"
+            : "bg-white text-pink-600 border-pink-300"
+        }`}
+        title={active ? "Remove from favorites" : "Add to favorites"}
         >
-        <span className="text-lg">{fav ? "♥" : "♡"}</span>
-        <span className="font-medium">{fav ? "In favorites" : "Add to favorites"}</span>
+        {active ? "Remove from favorites" : "Add to favorites"}
         </button>
     );
 }
