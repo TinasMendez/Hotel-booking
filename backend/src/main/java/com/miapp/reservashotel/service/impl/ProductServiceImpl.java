@@ -1,6 +1,7 @@
 package com.miapp.reservashotel.service.impl;
 
 import com.miapp.reservashotel.dto.ProductRequestDTO;
+import com.miapp.reservashotel.dto.FeatureSummaryDTO;
 import com.miapp.reservashotel.dto.ProductResponseDTO;
 import com.miapp.reservashotel.exception.ResourceConflictException;
 import com.miapp.reservashotel.exception.ResourceNotFoundException;
@@ -254,6 +255,15 @@ public class ProductServiceImpl implements ProductService {
             dto.setFeatureIds(featureIds);
         } catch (Throwable ignored) { /* DTO may not expose setter in some variants */ }
 
+        List<FeatureSummaryDTO> summaries = p.getFeatures() == null
+                ? Collections.emptyList()
+                : p.getFeatures().stream()
+                    .map(f -> new FeatureSummaryDTO(f.getId(), safeName(f), safeIcon(f)))
+                    .toList();
+        try {
+            dto.setFeatureSummaries(summaries);
+        } catch (Throwable ignored) { /* optional */ }
+
         // Ratings are optional on the entity
         try {
             dto.setRatingAverage(p.getRatingAverage());
@@ -266,5 +276,21 @@ public class ProductServiceImpl implements ProductService {
         } catch (Throwable ignored) { /* optional */ }
 
         return dto;
+    }
+
+    private String safeName(Feature feature) {
+        try {
+            return feature.getName();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private String safeIcon(Feature feature) {
+        try {
+            return feature.getIcon();
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 }

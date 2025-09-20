@@ -17,6 +17,7 @@ public class ProductResponseDTO {
     private String cityName;
     private Set<Long> featureIds;
     private List<String> imageUrls;
+    private List<FeatureSummaryDTO> featureSummaries;
     private Double ratingAverage;
     private Long ratingCount;
 
@@ -27,7 +28,8 @@ public class ProductResponseDTO {
                               Long categoryId, String categoryName,
                               Long cityId, String cityName,
                               Set<Long> featureIds, List<String> imageUrls,
-                              Double ratingAverage, Long ratingCount) {
+                              Double ratingAverage, Long ratingCount,
+                              List<FeatureSummaryDTO> featureSummaries) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -41,6 +43,7 @@ public class ProductResponseDTO {
         this.imageUrls = imageUrls;
         this.ratingAverage = ratingAverage;
         this.ratingCount = ratingCount;
+        this.featureSummaries = featureSummaries;
     }
 
     // Getters and setters
@@ -79,4 +82,6 @@ public class ProductResponseDTO {
     public void setRatingAverage(Double ratingAverage) { this.ratingAverage = ratingAverage; }
     public Long getRatingCount() { return ratingCount; }
     public void setRatingCount(Long ratingCount) { this.ratingCount = ratingCount; }
+    public List<FeatureSummaryDTO> getFeatureSummaries() { return featureSummaries; }
+    public void setFeatureSummaries(List<FeatureSummaryDTO> featureSummaries) { this.featureSummaries = featureSummaries; }
 }

@@ -6,7 +6,12 @@ import Api from "./api.js";
 /** Fetch a single product by id. */
 export async function getProduct(id) {
   const { data } = await Api.get(`/products/${id}`);
-  return data;
+  const featureSummaries = Array.isArray(data?.featureSummaries)
+    ? data.featureSummaries
+    : Array.isArray(data?.features)
+    ? data.features
+    : [];
+  return { ...data, featureSummaries };
 }
 
 /** Fetch all categories. Accepts both paged and plain-array backends. */

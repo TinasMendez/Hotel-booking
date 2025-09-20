@@ -43,6 +43,15 @@ export default function ProductDetail() {
   const [selection, setSelection] = useState({ startDate: "", endDate: "" });
 
   const busyDates = useMemo(() => buildBusyDates(bookings), [bookings]);
+  const featureSummaries = useMemo(() => {
+    if (Array.isArray(product?.featureSummaries) && product.featureSummaries.length > 0) {
+      return product.featureSummaries;
+    }
+    if (Array.isArray(product?.features) && product.features.length > 0) {
+      return product.features;
+    }
+    return [];
+  }, [product]);
 
   const refreshProduct = useCallback(async () => {
     try {
@@ -147,8 +156,8 @@ export default function ProductDetail() {
       </section>
 
       {/* Features */}
-      {Array.isArray(product?.features) && product.features.length > 0 && (
-        <FeaturesBlock features={product.features} />
+      {featureSummaries.length > 0 && (
+        <FeaturesBlock features={featureSummaries} />
       )}
 
       {/* Availability (busy dates highlighted) with retry on error */}
