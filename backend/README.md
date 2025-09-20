@@ -91,6 +91,19 @@ mvn spring-boot:run
 
 > Tip: el goal `build-info` se ejecuta junto al build y alimenta `/actuator/info` con versión y timestamp.
 
+### SMTP / Email
+
+- Por defecto el perfil `dev` usa Mailpit (host `localhost`, puerto `1025`).
+- Puedes apuntar a cualquier SMTP real exportando estas variables de entorno:
+  - `MAIL_HOST` (host o IP del servidor SMTP)
+  - `MAIL_PORT` (puerto SMTP; ej. `587`)
+  - `MAIL_USERNAME` / `MAIL_PASSWORD` si tu servidor requiere autenticación
+  - `MAIL_SMTP_AUTH` (`true` o `false`)
+  - `MAIL_SMTP_STARTTLS` (`true` o `false`)
+  - `MAIL_FROM` (dirección remitente que verán los usuarios)
+- Con Docker Compose basta con levantar `mailpit` (`docker compose up mailpit`) y revisar la bandeja en <http://localhost:8025>.
+- Para entornos productivos apunta `MAIL_HOST`/`MAIL_PORT` a tu proveedor real.
+
 ## Observabilidad (Actuator)
 - Perfil `dev`: `/actuator/health` y `/actuator/info` están abiertos.
 - Perfil `prod`: sólo `/actuator/health` está expuesto; `/actuator/info` exige `ROLE_ADMIN` y puede abrirse con `ACTUATOR_INFO_PUBLIC=true`.
