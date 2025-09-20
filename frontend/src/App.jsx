@@ -13,6 +13,7 @@ import Register from "./pages/Register.jsx";
 import BookingConfirmation from "./pages/BookingConfirmation.jsx";
 import Policies from "./pages/Policies.jsx";
 import Profile from "./pages/Profile.jsx";
+import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
 // Admin
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
@@ -30,8 +31,14 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="/product/:productId" element={<ProductDetail />} />
-        <Route path="/booking/:productId" element={<Booking />} />
-        <Route path="/booking/confirmation/:bookingId" element={<BookingConfirmation />} />
+        <Route
+          element={
+            <ProtectedRoute message="Debes iniciar sesión para completar una reserva." />
+          }
+        >
+          <Route path="/booking/:productId" element={<Booking />} />
+        </Route>
+        <Route path="/booking/confirm" element={<BookingConfirmation />} />
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/bookings" element={<Bookings />} />
         <Route path="/policies" element={<Policies />} />
