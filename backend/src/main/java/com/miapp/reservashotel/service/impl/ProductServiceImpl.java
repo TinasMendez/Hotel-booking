@@ -8,6 +8,7 @@ import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.model.City;
 import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.model.Product;
+import com.miapp.reservashotel.model.ProductImage;
 import com.miapp.reservashotel.repository.CategoryRepository;
 import com.miapp.reservashotel.repository.CityRepository;
 import com.miapp.reservashotel.repository.FeatureRepository;
@@ -221,8 +222,37 @@ public class ProductServiceImpl implements ProductService {
             entity.setFeatures(Collections.emptySet());
         }
 
-        // Intentionally not setting address/imageUrls as they are not part of Product in this project schema.
-        // If a single imageUrl exists in DTO and entity supports it, it can be set here.
+        String primaryImage = Optional.ofNullable(dto.getImageUrl())
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .orElse(null);
+
+        List<String> gallery = dto.getImageUrls() == null
+                ? List.of()
+                : dto.getImageUrls().stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+
+        if (primaryImage == null && !gallery.isEmpty()) {
+            primaryImage = gallery.get(0);
+        }
+        entity.setImageUrl(primaryImage);
+
+        if (entity.getImages() == null) {
+            entity.setImages(new ArrayList<>());
+        } else {
+            entity.clearImages();
+        }
+
+        int sortOrder = 0;
+        for (String url : gallery) {
+            ProductImage image = new ProductImage();
+            image.setUrl(url);
+            image.setSortOrder(sortOrder++);
+            entity.addImage(image);
+        }
     }
 
     private ProductResponseDTO toDto(Product p) {
@@ -263,6 +293,20 @@ public class ProductServiceImpl implements ProductService {
         // Avoid referencing imageUrls APIs that do not exist in this schema.
         try {
             dto.setImageUrl(p.getImageUrl());
+        } catch (Throwable ignored) { /* optional */ }
+
+        try {
+            List<String> gallery = p.getImages() == null
+                    ? Collections.emptyList()
+                    : p.getImages().stream()
+                    .filter(Objects::nonNull)
+                    .map(ProductImage::getUrl)
+                    .filter(url -> url != null && !url.isBlank())
+                    .toList();
+            dto.setImageUrls(gallery);
+            if ((dto.getImageUrl() == null || dto.getImageUrl().isBlank()) && !gallery.isEmpty()) {
+                dto.setImageUrl(gallery.get(0));
+            }
         } catch (Throwable ignored) { /* optional */ }
 
         return dto;
