@@ -8,6 +8,7 @@ import com.miapp.reservashotel.model.Category;
 import com.miapp.reservashotel.model.City;
 import com.miapp.reservashotel.model.Feature;
 import com.miapp.reservashotel.model.Product;
+import com.miapp.reservashotel.model.ProductImage;
 import com.miapp.reservashotel.repository.CategoryRepository;
 import com.miapp.reservashotel.repository.CityRepository;
 import com.miapp.reservashotel.repository.FeatureRepository;
@@ -221,8 +222,40 @@ public class ProductServiceImpl implements ProductService {
             entity.setFeatures(Collections.emptySet());
         }
 
-        // Intentionally not setting address/imageUrls as they are not part of Product in this project schema.
-        // If a single imageUrl exists in DTO and entity supports it, it can be set here.
+        String singleImageUrl = Optional.ofNullable(dto.getImageUrl()).map(String::trim).orElse(null);
+        if (singleImageUrl != null && singleImageUrl.isEmpty()) {
+            singleImageUrl = null;
+        }
+        entity.setImageUrl(singleImageUrl);
+
+        List<String> imagesFromDto = Optional.ofNullable(dto.getImageUrls()).orElse(List.of());
+        List<String> normalizedImages = imagesFromDto.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        List<ProductImage> currentImages = entity.getImages();
+        if (currentImages == null) {
+            currentImages = new ArrayList<>();
+            entity.setImages(currentImages);
+        } else {
+            currentImages.forEach(img -> img.setProduct(null));
+            currentImages.clear();
+        }
+
+        int order = 0;
+        for (String url : normalizedImages) {
+            ProductImage image = new ProductImage();
+            image.setProduct(entity);
+            image.setUrl(url);
+            image.setSortOrder(order++);
+            currentImages.add(image);
+        }
+
+        if ((entity.getImageUrl() == null || entity.getImageUrl().isBlank()) && !normalizedImages.isEmpty()) {
+            entity.setImageUrl(normalizedImages.get(0));
+        }
     }
 
     private ProductResponseDTO toDto(Product p) {
@@ -263,6 +296,17 @@ public class ProductServiceImpl implements ProductService {
         // Avoid referencing imageUrls APIs that do not exist in this schema.
         try {
             dto.setImageUrl(p.getImageUrl());
+        } catch (Throwable ignored) { /* optional */ }
+
+        List<String> imageUrls = p.getImages() == null
+                ? Collections.emptyList()
+                : p.getImages().stream()
+                    .sorted(Comparator.comparingInt(ProductImage::getSortOrder))
+                    .map(ProductImage::getUrl)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(ArrayList::new));
+        try {
+            dto.setImageUrls(imageUrls);
         } catch (Throwable ignored) { /* optional */ }
 
         return dto;
