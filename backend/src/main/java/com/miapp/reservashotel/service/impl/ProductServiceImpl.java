@@ -1,5 +1,6 @@
 package com.miapp.reservashotel.service.impl;
 
+import com.miapp.reservashotel.dto.FeatureSummaryDTO;
 import com.miapp.reservashotel.dto.ProductRequestDTO;
 import com.miapp.reservashotel.dto.ProductResponseDTO;
 import com.miapp.reservashotel.exception.ResourceConflictException;
@@ -280,8 +281,14 @@ public class ProductServiceImpl implements ProductService {
                 ? Collections.emptySet()
                 : p.getFeatures().stream().map(Feature::getId)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
+        List<FeatureSummaryDTO> featureSummaries = p.getFeatures() == null
+                ? Collections.emptyList()
+                : p.getFeatures().stream()
+                        .map(f -> new FeatureSummaryDTO(f.getId(), f.getName(), f.getIcon()))
+                        .toList();
         try {
             dto.setFeatureIds(featureIds);
+            dto.setFeatures(featureSummaries);
         } catch (Throwable ignored) { /* DTO may not expose setter in some variants */ }
 
         // Ratings are optional on the entity

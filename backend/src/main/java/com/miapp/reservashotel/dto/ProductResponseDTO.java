@@ -15,6 +15,7 @@ public class ProductResponseDTO {
     private String categoryName;
     private Long cityId;
     private String cityName;
+    private List<FeatureSummaryDTO> features;
     private Set<Long> featureIds;
     private List<String> imageUrls = List.of();
     private Double ratingAverage;
@@ -26,7 +27,7 @@ public class ProductResponseDTO {
     public ProductResponseDTO(Long id, String name, String description, String imageUrl, BigDecimal price,
                               Long categoryId, String categoryName,
                               Long cityId, String cityName,
-                              Set<Long> featureIds, List<String> imageUrls,
+                              List<FeatureSummaryDTO> features, Set<Long> featureIds, List<String> imageUrls,
                               Double ratingAverage, Long ratingCount) {
         this.id = id;
         this.name = name;
@@ -37,6 +38,7 @@ public class ProductResponseDTO {
         this.categoryName = categoryName;
         this.cityId = cityId;
         this.cityName = cityName;
+        this.features = features;
         this.featureIds = featureIds;
         this.imageUrls = imageUrls != null ? List.copyOf(imageUrls) : List.of();
         this.ratingAverage = ratingAverage;
@@ -70,6 +72,9 @@ public class ProductResponseDTO {
 
     public String getCityName() { return cityName; }
     public void setCityName(String cityName) { this.cityName = cityName; }
+
+    public List<FeatureSummaryDTO> getFeatures() { return features; }
+    public void setFeatures(List<FeatureSummaryDTO> features) { this.features = features; }
 
     public Set<Long> getFeatureIds() { return featureIds; }
     public void setFeatureIds(Set<Long> featureIds) { this.featureIds = featureIds; }
