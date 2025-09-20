@@ -31,7 +31,7 @@ export default function App() {
         <Route index element={<Home />} />
         <Route path="/product/:productId" element={<ProductDetail />} />
         <Route path="/booking/:productId" element={<Booking />} />
-        <Route path="/booking/confirm" element={<BookingConfirmation />} />
+        <Route path="/booking/confirmation/:bookingId" element={<BookingConfirmation />} />
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/bookings" element={<Bookings />} />
         <Route path="/policies" element={<Policies />} />

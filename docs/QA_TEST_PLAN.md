@@ -33,10 +33,11 @@ Objetivo: cubrir HU 1–35 con pruebas manuales y automáticas (frontend E2E + b
 - **Características**: lista con íconos.
 
 ### Reservas
-- **Guard de login**: botón “Reserve” sin sesión → redirige a login (con mensaje).  
-- **Disponibilidad**: calendario bloquea fechas ocupadas.  
-- **Crear reserva**: confirmación OK + success page.  
+- **Guard de login**: botón “Reserve” sin sesión → redirige a login (con mensaje).
+- **Disponibilidad**: calendario bloquea fechas ocupadas.
+- **Crear reserva**: confirmación OK + success page.
 - **Historial**: aparece en “My bookings”.
+- **Confirmación**: tras crear una reserva se navega a `/booking/confirmation/{id}` y muestra el resumen (producto, fechas, huésped) con enlaces activos a “My bookings” y “View property”. Abrir la URL directa (sin `state`) carga los datos vía API y permite ir al historial.
 
 ### Favoritos
 - **Toggle**: Add/Remove en Home y en Favorites sincronizan.  
