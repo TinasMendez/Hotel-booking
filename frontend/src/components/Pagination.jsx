@@ -3,6 +3,7 @@ import React from "react";
 /**
  * Generic pagination component with page size 10 by default.
  * Keeps logic isolated to avoid coupling with parent state shape.
+ * Accessibility: buttons are focus-visible with .focus-ring and disabled state styling.
  */
 export default function Pagination({
   total = 0,
@@ -19,30 +20,26 @@ export default function Pagination({
 
   if (total <= pageSize) return null;
 
+  const btn =
+    "px-3 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed focus-ring";
+
   return (
-    <nav aria-label="Products pagination" className="pagination">
-      <button onClick={() => goTo(1)} disabled={page === 1}>
+    <nav aria-label="Products pagination" className="flex items-center justify-center gap-2 py-4">
+      <button className={btn} onClick={() => goTo(1)} disabled={page === 1} aria-label="First page">
         {"<<"}
       </button>
-      <button onClick={() => goTo(page - 1)} disabled={page === 1}>
+      <button className={btn} onClick={() => goTo(page - 1)} disabled={page === 1} aria-label="Previous page">
         {"<"}
       </button>
-      <span>
+      <span className="text-sm tabular-nums">
         {page} / {totalPages}
       </span>
-      <button onClick={() => goTo(page + 1)} disabled={page === totalPages}>
+      <button className={btn} onClick={() => goTo(page + 1)} disabled={page === totalPages} aria-label="Next page">
         {">"}
       </button>
-      <button onClick={() => goTo(totalPages)} disabled={page === totalPages}>
+      <button className={btn} onClick={() => goTo(totalPages)} disabled={page === totalPages} aria-label="Last page">
         {">>"}
       </button>
-      <style>
-        {`
-        .pagination { display:flex; gap:.5rem; align-items:center; justify-content:center; padding:1rem 0; }
-        .pagination button { padding:.5rem .75rem; border:1px solid #ddd; background:#fff; cursor:pointer; }
-        .pagination button[disabled]{ opacity:.5; cursor:not-allowed; }
-      `}
-      </style>
     </nav>
   );
 }

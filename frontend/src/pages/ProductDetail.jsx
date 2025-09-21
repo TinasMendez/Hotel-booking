@@ -89,7 +89,7 @@ export default function ProductDetail() {
     return (
       <div className="p-6">
         <p className="text-red-600">Product not found.</p>
-        <Link to="/" className="underline">Go back to Home</Link>
+        <Link to="/" className="underline focus-ring rounded">Go back to Home</Link>
       </div>
     );
   }
@@ -97,7 +97,7 @@ export default function ProductDetail() {
     return (
       <div className="p-6">
         <p className="text-red-600">{error}</p>
-        <Link to="/" className="underline">Go back to Home</Link>
+        <Link to="/" className="underline focus-ring rounded">Go back to Home</Link>
       </div>
     );
   }
@@ -107,7 +107,7 @@ export default function ProductDetail() {
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold">{product?.name}</h1>
-          <Link to="/" className="text-sm underline">← Back</Link>
+          <Link to="/" className="text-sm underline focus-ring rounded">← Back</Link>
         </div>
       </header>
 
@@ -117,7 +117,9 @@ export default function ProductDetail() {
             {product?.category?.name} {product?.city ? `• ${product.city}` : ""}
           </div>
           <div className="flex items-center gap-3">
+            {/* Icon button has its own focus-ring */}
             <FavoriteButton productId={productId} />
+            {/* ShareButtons is external; add wrapper for keyboard focus if needed */}
             <ShareButtons product={product} />
           </div>
         </div>
@@ -131,19 +133,21 @@ export default function ProductDetail() {
           <p className="text-gray-700">{product?.description || "No description available."}</p>
         </section>
 
-        <section>
-          <h2 className="text-lg font-semibold mb-2">Features</h2>
+        <section aria-labelledby="features-title">
+          <h2 id="features-title" className="text-lg font-semibold mb-2">Features</h2>
           <FeaturesBlock features={product?.features || []} renderTitle={false} />
         </section>
 
-        <section>
+        {/* Reviews block (tabs/list inside the component) */}
+        <section aria-labelledby="reviews-title">
+          <h2 id="reviews-title" className="sr-only">Reviews</h2>
           <ReviewsList productId={productId} />
         </section>
 
         {/* Availability */}
-        <section className="space-y-3">
+        <section className="space-y-3" aria-labelledby="availability-title">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Availability</h2>
+            <h2 id="availability-title" className="text-lg font-semibold">Availability</h2>
             <span className="text-sm text-gray-500">
               Existing bookings: {bookings.length}
             </span>
@@ -157,19 +161,20 @@ export default function ProductDetail() {
             <button
               type="button"
               onClick={onReserve}
-              className="h-10 rounded-lg bg-emerald-600 px-4 text-white font-semibold hover:bg-emerald-700"
+              className="h-10 rounded-lg bg-emerald-600 px-4 text-white font-semibold hover:bg-emerald-700 focus-ring"
             >
               Reserve now
             </button>
+            {/* Secondary share variant might already style focus; ensure wrapper button/link uses focus-ring if present */}
             <ShareButtons product={product} variant="secondary" />
           </div>
         </section>
 
-        <section>
+        <section aria-labelledby="policies-title">
+          <h2 id="policies-title" className="sr-only">Policies</h2>
           <PolicyBlock policies={product?.policies || []} />
         </section>
       </section>
     </div>
   );
 }
-

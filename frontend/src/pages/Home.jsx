@@ -6,7 +6,7 @@ import CategoryFilter from "../components/CategoryFilter";
 
 /**
  * Home keeps Search, Categories, Recommendations always visible.
- * Categories select now triggers a search; it is no longer a dead controlled "" value.
+ * Accessibility: adds focus-ring to actionable elements (refresh, retry).
  */
 export default function Home() {
   const [randomItems, setRandomItems] = useState([]);
@@ -128,7 +128,7 @@ export default function Home() {
           <button
             type="button"
             onClick={loadRandom}
-            className="text-sm px-3 py-2 rounded-lg border hover:bg-slate-50"
+            className="text-sm px-3 py-2 rounded-lg border hover:bg-slate-50 focus-ring"
             title="Refresh random recommendations"
           >
             Refresh
@@ -138,7 +138,10 @@ export default function Home() {
         {loadingRandom && <div className="text-sm text-slate-600">Loading…</div>}
         {randomError && (
           <div className="text-sm text-red-600">
-            {randomError} <button className="underline" onClick={loadRandom}>Retry</button>
+            {randomError}{" "}
+            <button className="underline focus-ring rounded" onClick={loadRandom}>
+              Retry
+            </button>
           </div>
         )}
         {!loadingRandom && !randomError && (

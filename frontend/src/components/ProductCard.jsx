@@ -2,6 +2,10 @@
 import { Link } from "react-router-dom";
 import FavoriteButton from "./FavoriteButton.jsx";
 
+/**
+ * ProductCard displays image, name, rating and a CTA.
+ * Accessibility: adds focus-ring to CTA; FavoriteButton handles its own focus style.
+ */
 export default function ProductCard({ product }) {
   const id = product?.id;
   const imageSrc =
@@ -36,7 +40,7 @@ export default function ProductCard({ product }) {
         <p className="text-sm text-slate-600 line-clamp-2">{product?.description}</p>
 
         <div className="pt-2">
-          <Link to={`/product/${id}`} className="btn-outline">
+          <Link to={`/product/${id}`} className="btn-outline focus-ring">
             View details →
           </Link>
         </div>

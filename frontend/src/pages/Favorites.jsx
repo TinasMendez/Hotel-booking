@@ -112,7 +112,7 @@ export default function Favorites() {
                 <div className="pt-2">
                   <Link
                     to={`/product/${id}`}
-                    className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border hover:bg-slate-50"
+                    className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border hover:bg-slate-50 focus-ring"
                   >
                     View details →
                   </Link>

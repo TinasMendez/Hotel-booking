@@ -4,7 +4,7 @@ import { useFavorites } from "../hooks/useFavorites";
 /**
  * Heart button to be used in product cards/details.
  * Works with favorites endpoints and keeps optimistic UI.
- * Meets Sprint 3 HU#24 (toggle favorite for authenticated users).
+ * Accessibility: uses aria-pressed and focus-ring for keyboard users.
  */
 export default function FavoriteButton({ productId }) {
   const { isFav, toggle, loading } = useFavorites(true);
@@ -13,26 +13,19 @@ export default function FavoriteButton({ productId }) {
   return (
     <button
       aria-pressed={active}
+      aria-label={active ? "Remove from favorites" : "Add to favorites"}
       disabled={loading}
       onClick={(e) => {
         e.stopPropagation();
         toggle(productId);
       }}
-      className={`heart ${active ? "on" : "off"}`}
+      className={`inline-flex items-center justify-center h-9 w-9 rounded-full focus-ring transition
+        ${active ? "text-rose-600" : "text-slate-500 hover:text-slate-700"}
+        bg-white/90 border border-slate-200 shadow-sm`}
       title={active ? "Remove from favorites" : "Add to favorites"}
     >
-      ♥
-      <style>
-        {`
-        .heart{
-          border:0; background:transparent; font-size:1.25rem; line-height:1;
-          cursor:pointer; transition: transform .15s ease;
-        }
-        .heart.on{ color:#e63946; }
-        .heart.off{ color:#889; }
-        .heart:active{ transform: scale(.95); }
-      `}
-      </style>
+      {/* Using text heart for simplicity and low bundle size */}
+      <span className="text-lg leading-none select-none">♥</span>
     </button>
   );
 }

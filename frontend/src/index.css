@@ -1,19 +1,27 @@
+/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ---- Global sizing ---- */
 html, body, #root { height: 100%; }
+
+/* ---- Smooth scroll for better in-page navigation ---- */
 html { scroll-behavior: smooth; }
+
+/* ---- Base body colors (kept from your original) ---- */
 body { @apply bg-slate-100 text-slate-900; }
 
-/* Accesibilidad y foco consistente (por qué: foco visible y uniforme) */
+/* ---- Accessible and consistent visible focus (kept) ----
+   Note: This keeps a global focus-visible outline. You may still
+   use .focus-ring utility below for finer-grained control on buttons/inputs. */
 *:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35);
   border-radius: 10px;
 }
 
-/* DayPicker (si lo usas) */
+/* ---- DayPicker theming (kept) ---- */
 .rdp {
   margin: 0;
   color: #0f172a;
@@ -29,14 +37,56 @@ body { @apply bg-slate-100 text-slate-900; }
 .rdp-day_range_start,
 .rdp-day_range_end { color: #fff; }
 
-/* Component layer: utilidades reutilizables */
+/* ---- Base design tokens (safe, non-invasive) ----
+   Why: provide consistent headings and link states across the app.
+   These are additive and won't override component-specific classes. */
+@layer base {
+  h1 { @apply text-2xl font-semibold tracking-tight; }
+  h2 { @apply text-xl font-semibold tracking-tight; }
+  h3 { @apply text-lg font-semibold; }
+  a  { @apply text-emerald-700 hover:text-emerald-800; }
+}
+
+/* ---- Utilities layer ----
+   .focus-ring: opt-in utility to get Tailwind ring focus on specific elements.
+   Usage: add `focus-ring` to actionable elements when you prefer ring style. */
+@layer utilities {
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-white;
+  }
+}
+
+/* ---- Component layer: reusable UI utilities (kept and organized) ---- */
 @layer components {
-  .card { @apply bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden; }
-  .input { @apply w-full px-3 py-2 rounded-lg border border-slate-300 bg-white placeholder-slate-400
-                 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/30; }
-  .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                 transition-colors duration-150 border; }
-  .btn-primary { @apply btn bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700; }
-  .btn-outline { @apply btn bg-white border-slate-300 text-slate-900 hover:bg-slate-50; }
-  .btn-muted { @apply btn border-slate-200 text-slate-700 hover:bg-slate-50; }
+  /* Card container: neutral surface with subtle separation and overflow handling */
+  .card { 
+    @apply bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden; 
+  }
+
+  /* Input: consistent padding, border, placeholder and focus treatment */
+  .input { 
+    @apply w-full px-3 py-2 rounded-lg border border-slate-300 bg-white placeholder-slate-400
+           focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/30; 
+  }
+
+  /* Button base: inline-flex center with spacing and subtle transition */
+  .btn { 
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           transition-colors duration-150 border; 
+  }
+
+  /* Primary button: brand color with hover contrast */
+  .btn-primary { 
+    @apply btn bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700; 
+  }
+
+  /* Outline button: neutral background with subtle hover */
+  .btn-outline { 
+    @apply btn bg-white border-slate-300 text-slate-900 hover:bg-slate-50; 
+  }
+
+  /* Muted button: low-emphasis action */
+  .btn-muted { 
+    @apply btn border-slate-200 text-slate-700 hover:bg-slate-50; 
+  }
 }

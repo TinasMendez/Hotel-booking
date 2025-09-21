@@ -10,6 +10,7 @@ import ProductDetail from "./pages/ProductDetail.jsx";
 import Policies from "./pages/Policies.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import Contact from "./pages/Contact.jsx";
 
 // Authenticated areas
 import Bookings from "./pages/Bookings.jsx";
@@ -18,7 +19,7 @@ import Profile from "./pages/Profile.jsx";
 import BookingCreate from "./pages/BookingCreate.jsx";
 import BookingConfirmation from "./pages/BookingConfirmation.jsx";
 
-// Guards (solo una vez)
+// Guards
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
 // Admin
@@ -31,34 +32,38 @@ import CategoryCreateAdmin from "./pages/admin/CategoryCreateAdmin.jsx";
 import FeaturesAdmin from "./pages/admin/FeaturesAdmin.jsx";
 import AdminRoles from "./pages/admin/AdminRoles.jsx";
 
+/**
+ * App Router
+ * - Public shell under <Layout/>
+ * - Protected routes wrapped by <ProtectedRoute/>
+ * - Admin area under /admin (non-responsive per challenge)
+ * - Contact page exposed at /contact
+ */
 export default function App() {
   return (
     <Routes>
-      {/* Shell principal */}
+      {/* Public/App shell */}
       <Route element={<Layout />}>
+        {/* Public routes */}
         <Route index element={<Home />} />
         <Route path="/product/:id" element={<ProductDetail />} />
-
-        {/* Auth públicas */}
+        <Route path="/policies" element={<Policies />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Rutas protegidas */}
+        {/* Protected routes */}
         <Route element={<ProtectedRoute message="Please sign in to continue." />}>
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/profile" element={<Profile />} />
-
-          {/* Flujo de reservas (Sprint 4) */}
+          {/* Booking flow (Sprint 4) */}
           <Route path="/product/:id/book" element={<BookingCreate />} />
           <Route path="/booking/:bookingId" element={<BookingConfirmation />} />
         </Route>
-
-        {/* Otras */}
-        <Route path="/policies" element={<Policies />} />
       </Route>
 
-      {/* Admin (no responsive, por desafío) */}
+      {/* Admin (non-responsive per challenge) */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="products" element={<ProductsAdmin />} />
         <Route path="products/new" element={<ProductCreateAdmin />} />
@@ -69,7 +74,7 @@ export default function App() {
         <Route path="admins" element={<AdminRoles />} />
       </Route>
 
-      {/* Alias español */}
+      {/* Spanish alias */}
       <Route path="administración" element={<Navigate to="/admin" replace />} />
 
       {/* Fallback */}
