@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getMyBookings, cancelBooking } from "../services/bookings";
+import { BookingAPI } from "../services/api.js";
 import { useToast } from "../shared/ToastProvider.jsx";
 
 function formatDate(d) {
@@ -46,7 +46,7 @@ function formatDate(d) {
         setLoading(true);
         setError("");
         try {
-        const data = await getMyBookings();
+        const data = await BookingAPI.listMine();
         setRows(Array.isArray(data) ? data : []);
         } catch (e) {
         setError(e?.response?.data?.message || e?.message || "Error loading bookings");
@@ -60,7 +60,7 @@ function formatDate(d) {
     async function onCancel(id) {
         setCancelingId(id);
         try {
-        await cancelBooking(id);
+        await BookingAPI.cancelBooking(id);
         setRows((prev) => prev.map((b) => (b.id === id ? { ...b, status: "CANCELLED" } : b)));
         toast.success("Booking cancelled");
         } catch (e) {
@@ -83,32 +83,37 @@ function formatDate(d) {
         <h1 className="text-2xl font-semibold mb-4">My Bookings</h1>
         {error && <p className="text-red-600 mb-2">{error}</p>}
         <div className="space-y-3">
-            {rows.map((b) => (
-            <div key={b.id} className="rounded border p-4 flex items-center justify-between">
+            {rows.map((b) => {
+            const from = formatDate(b.startDate);
+            const to = formatDate(b.endDate);
+            // New flow: go to booking creation prefilled with last range
+            const bookAgainHref = `/product/${b.productId}/book${from || to ? `?${new URLSearchParams({ from, to }).toString()}` : ""}`;
+            return (
+                <div key={b.id} className="rounded border p-4 flex items-center justify-between">
                 <div>
-                <div className="font-semibold">
+                    <div className="font-semibold">
                     {b.productName || `Product #${b.productId}`} — <StatusBadge status={b.status} />
-                </div>
-                <div className="text-sm text-gray-700">
-                    {formatDate(b.startDate)} → {formatDate(b.endDate)}
-                </div>
+                    </div>
+                    <div className="text-sm text-gray-700">
+                    {from} → {to}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
-                <Link to={`/booking/${b.productId}`} className="rounded border px-3 py-1">Book again</Link>
-                <button
+                    <Link to={bookAgainHref} className="rounded border px-3 py-1">Book again</Link>
+                    <button
                     className="rounded bg-red-600 text-white px-3 py-1 disabled:opacity-60"
                     disabled={b.status === "CANCELLED" || cancelingId === b.id}
                     onClick={() => onCancel(b.id)}
-                >
+                    >
                     {cancelingId === b.id ? "Cancelling..." : "Cancel"}
-                </button>
+                    </button>
                 </div>
-            </div>
-            ))}
+                </div>
+            );
+            })}
         </div>
         </div>
     );
-}
-
+    }
 
 

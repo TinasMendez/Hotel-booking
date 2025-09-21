@@ -12,6 +12,21 @@ import AvailabilityCalendar from "../components/AvailabilityCalendar.jsx";
 import { getProduct } from "../services/products.js";
 import { BookingAPI } from "../services/api.js";
 
+/* Helper: returns YYYY-MM-DD from Date/string/null */
+function toISO(value) {
+  if (!value) return "";
+  if (typeof value === "string") {
+    // If already in YYYY-MM-DD keep as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? "" : value.toISOString().slice(0, 10);
+  }
+  return "";
+}
+
 export default function ProductDetail() {
   const { id: idParam } = useParams();
   const productId = Number(idParam);
@@ -66,9 +81,17 @@ export default function ProductDetail() {
   useEffect(() => { fetchProduct(); }, [fetchProduct]);
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
-  const onReserve = () => navigate(`/booking/${productId}`);
+  function onReserve() {
+    const qs = new URLSearchParams();
+    const fromISO = toISO(range.from);
+    const toISOv = toISO(range.to);
+    if (fromISO) qs.set("from", fromISO);
+    if (toISOv) qs.set("to", toISOv);
+    navigate(`/product/${productId}/book${qs.toString() ? `?${qs}` : ""}`);
+  }
 
   if (loading) return <div className="p-6">Loading...</div>;
+
   if (notFound) {
     return (
       <div className="p-6">
@@ -77,6 +100,7 @@ export default function ProductDetail() {
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="p-6">
