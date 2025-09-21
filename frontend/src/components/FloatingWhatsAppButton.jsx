@@ -1,92 +1,63 @@
-import React, { useMemo } from "react";
-import { useLocation } from "react-router-dom";
-import { useIntl } from "react-intl";
-import { useToast } from "../shared/ToastProvider.jsx";
+import React, { useState } from "react";
 
-function sanitizeNumber(raw) {
-  if (!raw) return "";
-  const digits = raw.replace(/[^0-9]/g, "");
-  return digits.length >= 6 ? digits : "";
-}
-
+/**
+ * Floating WhatsApp button (bottom-right). Meets Sprint 4 HU#34.
+ * Env required:
+ *  - VITE_WHATSAPP_PHONE (E.164: +573001234567)
+ *  - VITE_WHATSAPP_DEFAULT_MSG (optional)
+ */
 export default function FloatingWhatsAppButton() {
-  const location = useLocation();
-  const toast = useToast();
-  const { formatMessage } = useIntl();
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState(false);
 
-  const contactEmail = useMemo(() => {
-    const mail = (import.meta.env.VITE_SUPPORT_EMAIL || "reservas@digitalbooking.local").trim();
-    return mail || "reservas@digitalbooking.local";
-  }, []);
+  const phone = import.meta.env.VITE_WHATSAPP_PHONE || "";
+  const defaultMsg =
+    import.meta.env.VITE_WHATSAPP_DEFAULT_MSG ||
+    "Hello! I have a question about a product.";
 
-  const numberInfo = useMemo(() => {
-    const raw = (import.meta.env.VITE_WHATSAPP_NUMBER || "").trim();
-    const sanitized = sanitizeNumber(raw);
-    return {
-      sanitized,
-      configured: Boolean(sanitized),
-    };
-  }, []);
-
-  const waLink = useMemo(() => {
-    if (!numberInfo.configured) return "";
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const currentPath = origin ? `${origin}${location.pathname}${location.search}` : location.pathname;
-    const messageTemplate = import.meta.env.VITE_WHATSAPP_MESSAGE || "Hi! I would like to know more about this property:";
-    const text = `${messageTemplate} ${currentPath}`.trim();
-    return `https://wa.me/${numberInfo.sanitized}?text=${encodeURIComponent(text)}`;
-  }, [numberInfo, location.pathname, location.search]);
-
-  function handleClick() {
-    const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
-    if (offline) {
-      toast?.error(formatMessage({ id: "whatsapp.offline" }));
-      return;
-    }
-
-    if (!numberInfo.configured || !waLink) {
-      toast?.info(formatMessage({ id: "whatsapp.notConfigured" }, { email: contactEmail }));
-      window.open(`mailto:${contactEmail}`, "_self");
-      return;
-    }
-
+  async function openChat() {
     try {
-      const win = window.open(waLink, "_blank", "noopener,noreferrer");
-      if (win) {
-        toast?.success(formatMessage({ id: "whatsapp.opening" }));
-        win.opener = null;
-      } else {
-        throw new Error("popup-blocked");
+      if (!/^\+?\d{8,15}$/.test(phone)) {
+        throw new Error("Invalid WhatsApp phone number.");
       }
-    } catch (error) {
-      console.error("WhatsApp open failed", error);
-      toast?.error(formatMessage({ id: "whatsapp.failed" }));
+      const url = `https://wa.me/${phone.replace("+", "")}?text=${encodeURIComponent(
+        defaultMsg
+      )}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+      setOk(true);
+      setErr("");
+      setTimeout(() => setOk(false), 2500);
+    } catch (e) {
+      setErr(e.message || "Unable to open WhatsApp.");
+      setOk(false);
+      setTimeout(() => setErr(""), 3000);
     }
   }
 
-  const buttonClasses = `fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex items-center gap-2 rounded-full px-4 py-3 shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 transition-colors ${
-    numberInfo.configured
-      ? "bg-emerald-500 text-white hover:bg-emerald-600"
-      : "bg-slate-400 text-white hover:bg-slate-500"
-  }`;
-
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className={buttonClasses}
-      aria-label={formatMessage({ id: "whatsapp.cta" })}
-      title={formatMessage({ id: "whatsapp.cta" })}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 32 32"
-        className="w-5 h-5 fill-current"
-        aria-hidden="true"
-      >
-        <path d="M16.04 3C9.4 3 4 8.3 4 14.83c0 3 1.24 5.76 3.3 7.83L6 29l6.5-1.7c1.17.32 2.4.5 3.67.5 6.64 0 12.04-5.3 12.04-11.83C28.22 8.3 22.68 3 16.04 3zm0 2.67c5.12 0 9.28 4.07 9.28 9.16 0 5.05-4.16 9.15-9.3 9.15-1.16 0-2.3-.2-3.35-.58l-.73-.26-3.84 1.02 1.03-3.74-.48-.76c-1.4-1.72-2.17-3.9-2.17-6.1 0-5.08 4.16-9.16 9.26-9.16zm-4.2 3.84c-.23 0-.6.08-.93.38-.32.3-1.22 1.2-1.22 2.9 0 1.7 1.25 3.34 1.43 3.57.18.24 2.42 3.73 5.86 5.08 2.9 1.15 3.5.92 4.13.86.63-.06 2.03-.83 2.32-1.65.29-.82.29-1.52.21-1.65-.08-.14-.32-.23-.67-.4-.35-.16-2.05-1.01-2.37-1.12-.32-.12-.55-.17-.78.17-.23.34-.88 1.11-1.08 1.35-.2.24-.4.27-.74.1-.35-.16-1.46-.54-2.78-1.72-1.02-.9-1.7-1.99-1.9-2.33-.2-.34-.02-.52.15-.69.15-.15.35-.39.52-.58.17-.2.23-.3.35-.5.12-.21.06-.39-.03-.55-.08-.16-.78-1.88-1.08-2.57-.28-.68-.57-.7-.8-.71z" />
-      </svg>
-      <span className="font-medium text-sm">{formatMessage({ id: "whatsapp.cta" })}</span>
-    </button>
+    <>
+      <button className="wa" onClick={openChat} aria-label="Open WhatsApp chat">
+        🟢
+      </button>
+      {ok && <div className="toast ok">Message window opened.</div>}
+      {err && <div className="toast err">{err}</div>}
+
+      <style>
+        {`
+        .wa{
+          position:fixed; right:16px; bottom:16px; width:56px; height:56px; border-radius:50%;
+          border:0; background:#25D366; font-size:1.5rem; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.2);
+          display:flex; align-items:center; justify-content:center; color:#fff; z-index:1000;
+        }
+        .toast{
+          position:fixed; right:16px; bottom:84px; background:#111; color:#fff; padding:.5rem .75rem;
+          border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,.2); z-index:1000;
+        }
+        .toast.ok{ background:#1f7a1f; }
+        .toast.err{ background:#a11; }
+      `}
+      </style>
+    </>
   );
 }
+

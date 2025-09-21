@@ -1,112 +1,76 @@
-// frontend/src/components/ReviewsList.jsx
-import { useEffect, useMemo, useState } from "react";
-import { RatingsAPI } from "../services/api";
+import React, { useEffect, useMemo, useState } from "react";
+import api from "../services/api";
 
-function formatDate(value) {
-  if (!value) return "";
-  try {
-    const date = new Date(value);
-    if (Number.isNaN(+date)) return "";
-    return new Intl.DateTimeFormat(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(date);
-  } catch (error) {
-    console.warn("Failed to format review date", error);
-    return "";
-  }
-}
+/**
+ * Reviews list with dynamic average. Refetches after submission via onRefresh callback.
+ * Expected endpoints:
+ *  - GET /api/v1/ratings/product/{productId} -> [{ stars, comment, createdAt, user:{ name } }]
+ */
+export default function ReviewsList({ productId, refreshTrigger = 0 }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-function ReviewItem({ review }) {
-  const createdAt = formatDate(review?.createdAt);
-  const score = Number(review?.score || 0);
-  const safeComment = review?.comment?.trim();
-  const userLabel = review?.userName || (review?.userId ? `Usuario #${review.userId}` : "Usuario");
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    api
+      .get(`/api/v1/ratings/product/${productId}`)
+      .then(({ data }) => mounted && setItems(Array.isArray(data) ? data : []))
+      .finally(() => mounted && setLoading(false));
+    return () => (mounted = false);
+  }, [productId, refreshTrigger]);
+
+  const avg = useMemo(() => {
+    if (!items.length) return 0;
+    return Math.round((items.reduce((a, b) => a + Number(b.stars || 0), 0) / items.length) * 10) / 10;
+  }, [items]);
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <header className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
-        <span className="font-semibold text-slate-800">{userLabel}</span>
-        {createdAt && (
-          <time dateTime={review?.createdAt} className="text-xs text-slate-500">
-            {createdAt}
-          </time>
-        )}
+    <section className="reviews">
+      <header className="head">
+        <h3>Reviews</h3>
+        <span className="avg" aria-label={`Average ${avg} out of 5`}>
+          ★ {avg} <small>({items.length})</small>
+        </span>
       </header>
-      <div className="mt-2 flex items-center gap-1 text-lg text-amber-500" aria-hidden>
-        {Array.from({ length: 5 }, (_, index) => (index < score ? "★" : "☆"))}
-      </div>
-      <p className="mt-2 whitespace-pre-line text-sm text-slate-700">
-        {safeComment || "Sin comentarios."}
-      </p>
-    </article>
+
+      {loading && <p>Loading reviews…</p>}
+      {!loading && items.length === 0 && <p>No reviews yet.</p>}
+
+      <ul className="list">
+        {items.map((r, i) => (
+          <li key={i} className="row">
+            <div className="meta">
+              <b>{r.user?.name || "User"}</b>
+              <time dateTime={r.createdAt}>{formatDate(r.createdAt)}</time>
+            </div>
+            <div className="stars">{renderStars(r.stars)}</div>
+            {r.comment && <p className="comment">{r.comment}</p>}
+          </li>
+        ))}
+      </ul>
+
+      <style>
+        {`
+        .head{ display:flex; align-items:center; justify-content:space-between; }
+        .avg{ font-weight:600; }
+        .list{ list-style:none; padding:0; margin:.5rem 0 0; display:grid; gap:.75rem; }
+        .row{ border:1px solid #eee; border-radius:10px; padding:.75rem; background:#fff; }
+        .meta{ display:flex; gap:.5rem; align-items:center; color:#6b7280; }
+        .stars{ color:#f59e0b; }
+        .comment{ margin:.25rem 0 0; }
+      `}
+      </style>
+    </section>
   );
 }
 
-export default function ReviewsList({ productId, refreshToken = 0, onStatsChange }) {
-  const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const stats = useMemo(() => {
-    const count = reviews.length;
-    const total = reviews.reduce((sum, item) => sum + Number(item?.score || 0), 0);
-    const average = count > 0 ? total / count : 0;
-    return { count, average };
-  }, [reviews]);
-
-  useEffect(() => {
-    onStatsChange?.(stats);
-  }, [stats, onStatsChange]);
-
-  useEffect(() => {
-    if (!productId) return;
-
-    let cancelled = false;
-
-    async function fetchReviews() {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await RatingsAPI.listByProduct(productId);
-        if (cancelled) return;
-        setReviews(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (cancelled) return;
-        console.error("Failed to load product reviews", err);
-        setError("No se pudieron cargar las reseñas. Inténtalo nuevamente.");
-        setReviews([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchReviews();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [productId, refreshToken]);
-
-  if (loading) {
-    return <p className="text-sm text-slate-600">Cargando reseñas…</p>;
-  }
-
-  if (error) {
-    return <p className="text-sm text-red-600">{error}</p>;
-  }
-
-  if (reviews.length === 0) {
-    return <p className="text-sm text-slate-600">Aún no hay reseñas para este producto.</p>;
-  }
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {reviews.map((review) => (
-        <ReviewItem key={review.id ?? `${review.userId}-${review.createdAt}`} review={review} />
-      ))}
-    </div>
-  );
+function renderStars(n = 0) {
+  const full = Math.max(0, Math.min(5, Number(n)));
+  return "★★★★★".slice(0, full) + "☆☆☆☆☆".slice(0, 5 - full);
 }
-
+function formatDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString();
+}

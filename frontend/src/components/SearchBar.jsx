@@ -1,78 +1,120 @@
-// frontend/src/components/SearchBar.jsx
-import React, { useState } from "react";
-import CategoryFilter from "./CategoryFilter";
-import CityAutocomplete from "./CityAutocomplete";
+import React, { useEffect, useRef, useState } from "react";
+import api from "../services/api";
 
-/** Emits normalized search params to parent. Parent performs the API call. */
-export default function SearchBar({ onSearch = () => {}, onReset = () => {} }) {
+/**
+ * Search bar with debounced autocomplete and double date inputs.
+ * Meets Sprint 3 HU#22. Uses GET /api/v1/products/suggest?q=
+ */
+export default function SearchBar({ onSubmit }) {
   const [q, setQ] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [city, setCity] = useState("");
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [open, setOpen] = useState(false);
+  const abortRef = useRef(null);
+  const [debouncedQ, setDebouncedQ] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q), 250);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
+    if (!debouncedQ || debouncedQ.length < 2) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
+    if (abortRef.current) abortRef.current.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    api
+      .get(`/api/v1/products/suggest`, {
+        params: { q: debouncedQ },
+        signal: ctrl.signal,
+      })
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setSuggestions(list);
+        setOpen(list.length > 0);
+      })
+      .catch(() => {
+        setSuggestions([]);
+        setOpen(false);
+      });
+
+    return () => ctrl.abort();
+  }, [debouncedQ]);
 
   function submit(e) {
     e.preventDefault();
-    const params = {
-      q: q.trim() || undefined,
-      categoryId: categoryId || undefined,
-      city: city || undefined,
-      start: start || undefined,
-      end: end || undefined,
-      page: 0,
-      size: 10,
-    };
-    onSearch(params);
-  }
-
-  function reset() {
-    setQ(""); setCategoryId(""); setCity(""); setStart(""); setEnd("");
-    onReset();
+    setOpen(false);
+    if (typeof onSubmit === "function") onSubmit({ q, from, to });
   }
 
   return (
-    <div className="card p-4">
-      <form onSubmit={submit} className="space-y-4">
-        <div className="grid md:grid-cols-4 gap-3">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-1">Search</label>
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="input"
-              placeholder="Hotel, glamping, loft..."
-              aria-label="Search by name or description"
-            />
-          </div>
-          <CategoryFilter value={categoryId} onChange={setCategoryId} />
-          <CityAutocomplete value={city} onChange={setCity} />
-        </div>
-
-        <div className="grid md:grid-cols-4 gap-3 items-end">
-          <div>
-            <label className="block text-sm font-medium mb-1">Start</label>
-            <input
-              type="date"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">End</label>
-            <input
-              type="date"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-              className="input"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" className="btn-primary w-full md:w-auto">Search</button>
-            <button type="button" onClick={reset} className="btn-outline w-full md:w-auto">Reset</button>
-          </div>
+    <div className="searchbar">
+      <form onSubmit={submit}>
+        <div className="row">
+          <input
+            type="text"
+            placeholder="Search by name, city or category"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onFocus={() => suggestions.length && setOpen(true)}
+            aria-autocomplete="list"
+            aria-expanded={open}
+          />
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            aria-label="From date"
+          />
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            aria-label="To date"
+          />
+          <button type="submit">Search</button>
         </div>
       </form>
+
+      {open && suggestions.length > 0 && (
+        <ul className="suggestions" role="listbox">
+          {suggestions.map((sug, idx) => (
+            <li
+              key={idx}
+              role="option"
+              onMouseDown={() => {
+                setQ(sug.name || sug.title || "");
+                setOpen(false);
+              }}
+            >
+              {sug.name || sug.title}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <style>
+        {`
+        .searchbar { position:relative; }
+        .row{ display:grid; grid-template-columns: 1fr 160px 160px 120px; gap:.75rem; }
+        .suggestions{
+          position:absolute; z-index:20; top:100%; left:0; right:0;
+          background:#fff; border:1px solid #eee; border-radius:8px; margin:.25rem 0 0; padding:.5rem 0;
+          max-height:260px; overflow:auto; list-style:none;
+        }
+        .suggestions li{ padding:.5rem .75rem; cursor:pointer; }
+        .suggestions li:hover{ background:#f6f6f6; }
+        @media (max-width:900px){
+          .row{ grid-template-columns: 1fr; }
+        }
+      `}
+      </style>
     </div>
   );
 }

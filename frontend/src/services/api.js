@@ -126,7 +126,6 @@ const del = (path, options) => request("DELETE", path, normalizeOptions(options)
 const AuthAPI = {
   async login({ email, password }) {
     const res = await post("/auth/login", { email, password });
-    // Persist token as soon as we get it
     const token = res?.data?.token || res?.data?.accessToken || res?.data?.jwt;
     if (token) setToken(token);
     return res.data;
@@ -147,6 +146,10 @@ const BookingAPI = {
   },
   async createBooking(payload) {
     return (await post("/bookings", payload)).data;
+  },
+  // Alias so callers can use BookingAPI.create(...)
+  async create(payload) {
+    return this.createBooking(payload);
   },
   async listMine() {
     return (await get("/bookings/me")).data || [];

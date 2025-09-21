@@ -1,0 +1,45 @@
+# .github/workflows/verify.yml
+name: Verify (lint, test, build)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint | tee ../docs/verification/logs/ci-lint.log
+
+      - name: Test
+        run: npm run test:ci | tee ../docs/verification/logs/ci-test.log
+
+      - name: Build
+        run: npm run build | tee ../docs/verification/logs/ci-build.log
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-logs
+          path: docs/verification/logs
+
+      - name: Upload build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist

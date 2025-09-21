@@ -1,155 +1,84 @@
-// /frontend/src/components/RatingStars.jsx
-import { useEffect, useState } from "react";
-import { useIntl } from "react-intl";
-import Api, { getToken } from "../services/api";
-import { useToast } from "../shared/ToastProvider.jsx";
-import { getApiErrorMessage, normalizeApiError } from "../utils/apiError.js";
+import React, { useEffect, useState } from "react";
+import api from "../services/api";
 
 /**
- * Interactive 5-star rating component.
- * - Loads product average on mount.
- * - Requires authentication to submit.
- * - Calls onRated callback after a successful submission.
+ * Interactive star rating with eligibility gate (only users who completed a booking).
+ * Expected endpoints:
+ *  - GET  /api/v1/ratings/eligibility?productId=XX         -> { eligible: boolean }
+ *  - POST /api/v1/ratings                                  -> { id, productId, stars, comment, createdAt, user }
+ *      body: { productId, stars, comment }
  */
-export default function RatingStars({ productId, className = "", initialAverage = 0, onRated }) {
-  const { formatMessage } = useIntl();
-  const toast = useToast();
-  const [average, setAverage] = useState(Number(initialAverage) || 0);
+export default function RatingStars({ productId, onSubmitted }) {
+  const [eligible, setEligible] = useState(false);
   const [hover, setHover] = useState(0);
-  const [selected, setSelected] = useState(0);
+  const [value, setValue] = useState(0);
   const [comment, setComment] = useState("");
-  const [busy, setBusy] = useState(false);
-  const isLogged = !!getToken();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const stars = [1, 2, 3, 4, 5];
 
   useEffect(() => {
-    setAverage(Number(initialAverage) || 0);
-  }, [initialAverage]);
-
-  useEffect(() => {
-    if (!productId) return;
     let mounted = true;
-    (async () => {
-      try {
-        const data = await Api.getProductRating(productId);
-        if (!mounted) return;
-        setAverage(Number(data?.rating ?? 0));
-      } catch (error) {
-        // Ignore initial load errors to avoid noisy UI
-        console.warn("Failed to load rating average", error);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
+    setLoading(true);
+    api
+      .get("/api/v1/ratings/eligibility", { params: { productId } })
+      .then(({ data }) => mounted && setEligible(Boolean(data?.eligible)))
+      .catch(() => mounted && setEligible(false))
+      .finally(() => mounted && setLoading(false));
+    return () => (mounted = false);
   }, [productId]);
 
-  async function refreshAverage() {
+  async function submit() {
+    if (!eligible || !value) return;
+    setSubmitting(true);
     try {
-      if (!productId) return average;
-      const data = await Api.getProductRating(productId);
-      const newAverage = Number(data?.rating ?? 0);
-      setAverage(newAverage);
-      return newAverage;
-    } catch (error) {
-      console.warn("Failed to refresh rating average", error);
-      return average;
-    }
-  }
-
-  function handleSelect(stars) {
-    if (!isLogged) {
-      toast?.info(formatMessage({ id: "rating.loginRequired", defaultMessage: "Inicia sesión para puntuar." }));
-      return;
-    }
-
-    setSelected(stars);
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    if (!isLogged) {
-      toast?.info(formatMessage({ id: "rating.loginRequired", defaultMessage: "Inicia sesión para puntuar." }));
-      return;
-    }
-
-    if (!selected) {
-      toast?.error(formatMessage({ id: "rating.selectScore", defaultMessage: "Selecciona una puntuación." }));
-      return;
-    }
-
-    setBusy(true);
-    try {
-      await Api.rateProduct(productId, selected, comment.trim() || null);
-      toast?.success(formatMessage({ id: "rating.success", defaultMessage: "¡Gracias por tu valoración!" }));
-      const updatedAverage = await refreshAverage();
-      onRated?.({ score: selected, comment, average: updatedAverage });
+      await api.post("/api/v1/ratings", { productId, stars: value, comment });
+      setValue(0);
       setComment("");
-      setSelected(0);
-    } catch (error) {
-      const normalized = normalizeApiError(error, formatMessage({ id: "errors.generic" }));
-      const message = getApiErrorMessage(normalized, formatMessage, formatMessage({ id: "errors.generic" }));
-      toast?.error(message || formatMessage({ id: "errors.generic" }));
+      if (typeof onSubmitted === "function") onSubmitted();
     } finally {
-      setBusy(false);
+      setSubmitting(false);
     }
   }
+
+  if (loading) return <p>Checking rating eligibility…</p>;
+  if (!eligible) return <p>You can rate this product after completing a booking.</p>;
 
   return (
-    <form className={`space-y-3 ${className}`} onSubmit={handleSubmit}>
-      <div
-        className="flex items-center gap-1"
-        aria-label={formatMessage({ id: "rating.averageLabel", defaultMessage: "Calificación promedio" })}
-      >
-        {[1, 2, 3, 4, 5].map((n) => {
-          const filled = (hover || selected || average) >= n && (hover ? hover >= n : selected ? selected >= n : average >= n);
-          return (
-            <button
-              key={n}
-              className="text-2xl leading-none"
-              disabled={busy}
-              onMouseEnter={() => setHover(n)}
-              onMouseLeave={() => setHover(0)}
-              onClick={() => handleSelect(n)}
-              aria-label={formatMessage({ id: "rating.rateStar", defaultMessage: "Puntuar" }) + ` ${n}`}
-              title={formatMessage({ id: "rating.rateStar", defaultMessage: "Puntuar" }) + ` ${n}`}
-              type="button"
-            >
-              {filled ? "★" : "☆"}
-            </button>
-          );
-        })}
-        <span className="ml-2 text-sm text-gray-600">({average.toFixed(1)}/5)</span>
+    <div className="rate">
+      <div className="stars" onMouseLeave={() => setHover(0)}>
+        {stars.map((n) => (
+          <button
+            key={n}
+            type="button"
+            className={`star ${n <= (hover || value) ? "on" : "off"}`}
+            onMouseEnter={() => setHover(n)}
+            onClick={() => setValue(n)}
+            aria-label={`Rate ${n} star${n > 1 ? "s" : ""}`}
+          >
+            ★
+          </button>
+        ))}
       </div>
-      <label className="block text-sm text-slate-700">
-        <span className="mb-1 block font-medium">
-          {formatMessage({ id: "rating.commentLabel", defaultMessage: "Tu reseña" })}
-        </span>
-        <textarea
-          value={comment}
-          onChange={(event) => setComment(event.target.value)}
-          disabled={busy || !isLogged}
-          placeholder={formatMessage({ id: "rating.commentPlaceholder", defaultMessage: "Comparte tu experiencia..." })}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-emerald-500"
-          rows={3}
-        />
-      </label>
-      <div className="flex items-center justify-end">
-        <button
-          type="submit"
-          disabled={busy || !isLogged}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-        >
-          {busy
-            ? formatMessage({ id: "rating.sending", defaultMessage: "Enviando..." })
-            : formatMessage({ id: "rating.submit", defaultMessage: "Enviar reseña" })}
-        </button>
-      </div>
-      {!isLogged && (
-        <p className="text-xs text-slate-500">
-          {formatMessage({ id: "rating.loginPrompt", defaultMessage: "Inicia sesión para dejar una reseña." })}
-        </p>
-      )}
-    </form>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Optional comment"
+      />
+      <button disabled={!value || submitting} onClick={submit}>
+        {submitting ? "Submitting…" : "Submit review"}
+      </button>
+
+      <style>
+        {`
+        .rate{ display:grid; gap:.5rem; max-width:520px; }
+        .stars{ display:flex; gap:.25rem; }
+        .star{ font-size:1.5rem; border:0; background:transparent; cursor:pointer; }
+        .star.on{ color:#f59e0b; }
+        .star.off{ color:#cbd5e1; }
+        textarea{ width:100%; min-height:80px; }
+      `}
+      </style>
+    </div>
   );
 }
