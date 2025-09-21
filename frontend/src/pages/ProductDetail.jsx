@@ -11,20 +11,13 @@ import ReviewsList from "../components/ReviewsList.jsx";
 import AvailabilityCalendar from "../components/AvailabilityCalendar.jsx";
 import { getProduct } from "../services/products.js";
 import { BookingAPI } from "../services/api.js";
+import ReservationSection from "../components/ReservationSection.jsx";
 
-/* Helper: returns YYYY-MM-DD from Date/string/null */
-function toISO(value) {
-  if (!value) return "";
-  if (typeof value === "string") {
-    // If already in YYYY-MM-DD keep as is
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
-  }
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? "" : value.toISOString().slice(0, 10);
-  }
-  return "";
+function toISO(d) {
+  if (!d) return "";
+  const x = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(x.getTime())) return "";
+  return x.toISOString().slice(0, 10);
 }
 
 export default function ProductDetail() {
@@ -81,17 +74,17 @@ export default function ProductDetail() {
   useEffect(() => { fetchProduct(); }, [fetchProduct]);
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
-  function onReserve() {
+  const onReserve = () => {
+    const from = toISO(range.from);
+    const to = toISO(range.to);
     const qs = new URLSearchParams();
-    const fromISO = toISO(range.from);
-    const toISOv = toISO(range.to);
-    if (fromISO) qs.set("from", fromISO);
-    if (toISOv) qs.set("to", toISOv);
-    navigate(`/product/${productId}/book${qs.toString() ? `?${qs}` : ""}`);
-  }
+    if (from) qs.set("from", from);
+    if (to) qs.set("to", to);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    navigate(`/product/${productId}/book${suffix}`);
+  };
 
   if (loading) return <div className="p-6">Loading...</div>;
-
   if (notFound) {
     return (
       <div className="p-6">
@@ -100,7 +93,6 @@ export default function ProductDetail() {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="p-6">
@@ -133,7 +125,7 @@ export default function ProductDetail() {
         <Gallery5 images={images} />
         <ModalGallery images={images} />
 
-        {/* Main content stacked */}
+        {/* Description */}
         <section>
           <h2 className="text-lg font-semibold mb-2">Description</h2>
           <p className="text-gray-700">{product?.description || "No description available."}</p>
@@ -141,7 +133,6 @@ export default function ProductDetail() {
 
         <section>
           <h2 className="text-lg font-semibold mb-2">Features</h2>
-          {/* Avoid duplicate title inside the block */}
           <FeaturesBlock features={product?.features || []} renderTitle={false} />
         </section>
 
@@ -149,6 +140,7 @@ export default function ProductDetail() {
           <ReviewsList productId={productId} />
         </section>
 
+        {/* Availability */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Availability</h2>

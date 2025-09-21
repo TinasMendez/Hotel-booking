@@ -115,5 +115,3 @@ function formatDate(d) {
         </div>
     );
     }
-
-
