@@ -1,192 +1,87 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useIntl } from "react-intl";
+import React, { useMemo, useState } from "react";
 
-function buildFacebookUrl(url, quote) {
-  const params = new URLSearchParams({ u: url });
-  if (quote) {
-    params.set("quote", quote);
-  }
-  return `https://www.facebook.com/sharer/sharer.php?${params.toString()}`;
-}
-
-function buildTwitterUrl(url, text) {
-  const params = new URLSearchParams({ url });
-  if (text) {
-    params.set("text", text);
-  }
-  return `https://twitter.com/intent/tweet?${params.toString()}`;
-}
-
-export default function ShareModal({ open, onClose, shareUrl, title, onCopy }) {
-  const { formatMessage } = useIntl();
-  const dialogRef = useRef(null);
-  const focusableRef = useRef([]);
-  const [message, setMessage] = useState(title || "");
-
-  useEffect(() => {
-    if (open) {
-      setMessage(title || "");
-    }
-  }, [open, title]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        onClose?.();
-        return;
-      }
-      if (event.key === "Tab") {
-        const focusables = focusableRef.current;
-        if (!focusables || focusables.length === 0) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (event.shiftKey) {
-          if (document.activeElement === first) {
-            event.preventDefault();
-            last.focus();
-          }
-        } else if (document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (!dialogRef.current) return;
-    const selectors =
-      "a[href], button, textarea, input, select, [tabindex]:not([tabindex='-1'])";
-    const focusables = Array.from(dialogRef.current.querySelectorAll(selectors)).filter(
-      (node) => !node.hasAttribute("disabled"),
-    );
-    focusableRef.current = focusables;
-    focusables[0]?.focus();
-  }, [open]);
-
-  const shareMessage = useMemo(() => {
-    const trimmed = message.trim();
-    if (trimmed.length > 0) return trimmed;
-    return title || "";
-  }, [message, title]);
-
-  const twitterUrl = useMemo(
-    () => buildTwitterUrl(shareUrl, shareMessage),
-    [shareUrl, shareMessage],
-  );
-  const facebookUrl = useMemo(
-    () => buildFacebookUrl(shareUrl, shareMessage),
-    [shareUrl, shareMessage],
-  );
-
-  const handleInstagramOpen = () => {
-    if (typeof window !== "undefined") {
-      window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
-    }
-  };
-
+/**
+ * Social share modal with FB/Twitter deep-links and IG fallback (copy-to-clipboard).
+ * Meets Sprint 3 HU#27 (image, brief description, direct link, custom message).
+ */
+export default function ShareModal({ open, onClose, data }) {
+  const [message, setMessage] = useState("");
+  const share = useMemo(() => normalize(data), [data]);
   if (!open) return null;
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose?.();
-        }
-      }}
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={formatMessage({ id: "modal.share.title" })}
-        className="w-full max-w-md rounded-2xl bg-white shadow-xl p-6 space-y-4"
-      >
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold text-slate-900">{formatMessage({ id: "modal.share.title" })}</h2>
-          <p className="text-sm text-slate-600">{formatMessage({ id: "modal.share.subtitle" })}</p>
-        </div>
+  function shareTwitter() {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      `${message || share.text} ${share.url}`
+    )}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+  function shareFacebook() {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+      share.url
+    )}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+  async function shareInstagram() {
+    await navigator.clipboard.writeText(`${message || share.text} ${share.url}`);
+    alert("Copied to clipboard. Open Instagram to paste your message.");
+  }
 
-        <div className="space-y-2">
-          <label className="flex flex-col gap-2 text-sm text-slate-700" htmlFor="share-message">
-            <span className="font-medium">{formatMessage({ id: "modal.share.messageLabel" })}</span>
+  return (
+    <div className="modal" role="dialog" aria-modal="true">
+      <div className="box">
+        <header>
+          <h3>Share this product</h3>
+          <button onClick={onClose} aria-label="Close">✕</button>
+        </header>
+        <article>
+          {share.image && <img className="thumb" src={share.image} alt="Share preview" />}
+          <div className="meta">
+            <h4>{share.title}</h4>
+            <p>{share.text}</p>
+            <small>{share.url}</small>
+          </div>
+          <label>
+            Custom message
             <textarea
-              id="share-message"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              rows={3}
               value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder={formatMessage({ id: "modal.share.messagePlaceholder" })}
-              aria-describedby="share-message-help"
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Add a personal message"
             />
           </label>
-          <p className="text-xs text-slate-500" id="share-message-help">
-            {formatMessage({ id: "modal.share.messageHelp" })}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3">
-          <a
-            href={facebookUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-100"
-          >
-            <span>{formatMessage({ id: "modal.share.facebook" })}</span>
-            <span className="text-sm text-slate-500">Open share dialog</span>
-          </a>
-
-          <a
-            href={twitterUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-100"
-          >
-            <span>{formatMessage({ id: "modal.share.twitter" })}</span>
-            <span className="text-sm text-slate-500">Tweet this listing</span>
-          </a>
-
-          <div className="space-y-3 rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-600 bg-slate-50">
-            <p>{formatMessage({ id: "modal.share.instagram.instructions" })}</p>
-            <button
-              type="button"
-              onClick={handleInstagramOpen}
-              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              {formatMessage({ id: "modal.share.instagram.open" })}
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 bg-slate-100 truncate">
-            {shareUrl}
-          </div>
-          <button
-            type="button"
-            onClick={onCopy}
-            className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-          >
-            {formatMessage({ id: "modal.share.copy" })}
-          </button>
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100"
-          >
-            {formatMessage({ id: "modal.share.close" })}
-          </button>
-        </div>
+        </article>
+        <footer>
+          <button onClick={shareFacebook}>Share on Facebook</button>
+          <button onClick={shareTwitter}>Share on Twitter</button>
+          <button onClick={shareInstagram}>Share on Instagram</button>
+        </footer>
       </div>
+
+      <style>
+        {`
+        .modal{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:1rem; z-index:1000; }
+        .box{ background:#fff; width:min(720px, 100%); border-radius:10px; overflow:hidden; display:grid; grid-template-rows:auto 1fr auto; }
+        header{ display:flex; align-items:center; justify-content:space-between; padding:1rem; border-bottom:1px solid #eee; }
+        article{ display:grid; gap:1rem; padding:1rem; grid-template-columns: 160px 1fr; }
+        .thumb{ width:160px; height:120px; object-fit:cover; border-radius:8px; }
+        .meta h4{ margin:.25rem 0; }
+        textarea{ width:100%; min-height:80px; }
+        footer{ display:flex; gap:.75rem; justify-content:flex-end; padding:1rem; border-top:1px solid #eee; }
+        @media (max-width:800px){
+          article{ grid-template-columns: 1fr; }
+          .thumb{ width:100%; height:180px; }
+        }
+      `}
+      </style>
     </div>
   );
+}
+
+function normalize(data) {
+  const d = data || {};
+  return {
+    title: d.title || "Product",
+    text: d.description || "Check this product",
+    url: d.url || window.location.href,
+    image: d.imageUrl || d.image,
+  };
 }

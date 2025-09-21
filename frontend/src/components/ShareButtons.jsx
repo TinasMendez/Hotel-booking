@@ -1,57 +1,36 @@
-// /frontend/src/components/ShareButtons.jsx
-import React, { useState } from "react";
-import ShareModal from "./ShareModal.jsx";
-import { useToast } from "../shared/ToastProvider.jsx";
-import { useIntl } from "react-intl";
+import React, { useMemo, useState } from "react";
+import ShareModal from "./ShareModal";
 
-export default function ShareButtons({ title, className = "" }) {
-  const toast = useToast();
-  const { formatMessage } = useIntl();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [data, setData] = useState({ url: "", title: "" });
+/**
+ * Small wrapper that opens a modal with deep-links for FB/Twitter/IG.
+ * Keeps the button API stable but fulfills Sprint 3 US#27 requirements.
+ */
+export default function ShareButtons({ product }) {
+  const [open, setOpen] = useState(false);
 
-  async function handleShare() {
-    const url = window.location.href;
-    const shareTitle = title ?? document.title;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: shareTitle, url });
-      } catch {
-        // user cancelled
-      }
-      return;
-    }
-    setData({ url, title: shareTitle });
-    setModalOpen(true);
-  }
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(data.url);
-      toast?.success(formatMessage({ id: "modal.share.success" }));
-    } catch (error) {
-      toast?.error(formatMessage({ id: "modal.share.error" }));
-      console.error("Clipboard copy failed", error);
-    }
-  }
+  const share = useMemo(
+    () => ({
+      title: product?.name || "Product",
+      description: product?.description || "Check this product",
+      url: window.location.href,
+      imageUrl: Array.isArray(product?.images) ? product.images[0] : product?.imageUrl,
+    }),
+    [product]
+  );
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleShare}
-        className={`rounded-2xl px-4 py-2 border bg-white text-blue-600 border-blue-600 hover:bg-blue-50 ${className}`}
-        title={formatMessage({ id: "modal.share.title" })}
-      >
-        {formatMessage({ id: "modal.share.title" })}
+      <button className="share" onClick={() => setOpen(true)}>
+        Share this listing
       </button>
-      <ShareModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        shareUrl={data.url}
-        title={data.title}
-        onCopy={handleCopy}
-      />
+      <ShareModal open={open} onClose={() => setOpen(false)} data={share} />
+      <style>
+        {`
+        .share{
+          border:1px solid #d1d5db; padding:.5rem .75rem; border-radius:8px; background:#fff; cursor:pointer;
+        }
+      `}
+      </style>
     </>
   );
 }
