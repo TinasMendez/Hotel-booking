@@ -21,6 +21,7 @@ import java.util.Map;
  * - create booking (uses authenticated user if customerId not provided)
  * - get bookings by customer
  * - get bookings by product
+ * - get bookings of the current authenticated user
  */
 @RestController
 @RequestMapping("/api/bookings")
@@ -77,6 +78,14 @@ public class BookingController {
     @GetMapping("/me")
     public ResponseEntity<List<BookingResponseDTO>> getMyBookings() {
         return ResponseEntity.ok(bookingService.getBookingsForCurrentUser());
+    }
+
+    /**
+     * Backward-compatibility alias for UIs that call /mine.
+     */
+    @GetMapping("/mine")
+    public ResponseEntity<List<BookingResponseDTO>> getMyBookingsAlias() {
+        return getMyBookings();
     }
 
     @GetMapping("/{bookingId}")

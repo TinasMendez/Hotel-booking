@@ -6,12 +6,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -24,9 +24,11 @@ public class SecurityConfig {
     private final AuthenticationProvider authenticationProvider;
     private final boolean actuatorInfoPublic;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          AuthenticationProvider authenticationProvider,
-                          @Value("${app.security.actuator.info-public:false}") boolean actuatorInfoPublic) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            AuthenticationProvider authenticationProvider,
+            @Value("${app.security.actuator.info-public:false}") boolean actuatorInfoPublic
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.authenticationProvider = authenticationProvider;
         this.actuatorInfoPublic = actuatorInfoPublic;
@@ -41,6 +43,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public auth endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+
                 // Public GET resources used by home and product detail
                 .requestMatchers(HttpMethod.GET,
                         "/api/products/**",
@@ -52,14 +55,18 @@ public class SecurityConfig {
                         "/api/ratings/product/**",
                         "/api/bookings/availability",
                         "/api/bookings/product/**",
+                        // Allow reading product reviews without authentication
+                        "/api/reviews/**",
                         "/actuator/health/**"
                 ).permitAll()
+
                 // Optional Swagger endpoints
                 .requestMatchers(
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html"
                 ).permitAll()
+
                 // Admin endpoints and mutations
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
@@ -81,6 +88,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/product-features/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/uploads/**").hasRole("ADMIN")
+
+                // Actuator /info authorization depends on property
                 .requestMatchers(HttpMethod.GET, "/actuator/info").access((authz, context) -> {
                     if (actuatorInfoPublic) {
                         return new AuthorizationDecision(true);
@@ -90,6 +99,7 @@ public class SecurityConfig {
                             .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
                     return new AuthorizationDecision(isAdmin);
                 })
+
                 // Everything else requires authentication
                 .anyRequest().authenticated()
             )
@@ -98,5 +108,4 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 }

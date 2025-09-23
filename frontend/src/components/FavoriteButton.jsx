@@ -53,20 +53,21 @@ export default function FavoriteButton({ productId, onChange }) {
         "transition disabled:opacity-60",
       ].join(" ")}
     >
-      {/* Heart icon uses currentColor:
-          - outline in slate when not favorite
-          - filled red when favorite */}
+      {/* Symmetric heart (Lucide). Same path for both states to avoid any shape jump */}
       <svg
         viewBox="0 0 24 24"
-        className={`h-5 w-5 ${fav ? "text-rose-500" : "text-slate-600"}`}
+        className={`h-5 w-5 ${fav ? "text-rose-600" : "text-slate-600"}`}
         aria-hidden="true"
-        fill={fav ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="2"
       >
-        <path d="M12 21s-6.716-4.291-9.192-7.02C.14 10.118 2.06 6 5.6 6c2.01 0 3.15 1.08 3.89 2.19.17.26.62.26.79 0C10.99 7.08 12.13 6 14.14 6c3.53 0 5.46 4.118 2.79 7.98C18.716 16.709 12 21 12 21z" />
+        <path
+          d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"
+          fill={fav ? "currentColor" : "none"}
+          stroke={fav ? "none" : "currentColor"}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     </button>
   );
 }
-

@@ -6,7 +6,7 @@ const BASE_URL =
     import.meta.env.VITE_API_BASE_URL) ||
   "http://localhost:8080/api";
 
-/* Token */
+/* Token handling */
 const TOKEN_KEY = "auth_token";
 
 export function getToken() {
@@ -26,25 +26,14 @@ export function clearToken() {
   setToken("");
 }
 
-/* URL helpers */
+/* URL helper */
 export function resolveApiUrl(path) {
   const base = BASE_URL.replace(/\/+$/, "");
   const suffix = String(path || "").replace(/^\/+/, "");
   return `${base}/${suffix}`;
 }
-function buildUrl(path, params) {
-  const url = new URL(resolveApiUrl(path));
-  if (params && typeof params === "object") {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") {
-        url.searchParams.set(k, v);
-      }
-    });
-  }
-  return url.toString();
-}
 
-/* HTTP */
+/* Core request helper */
 async function request(method, path, { body, auth = true, json = true, params } = {}) {
   const headers = new Headers();
   if (json) headers.set("Content-Type", "application/json");
@@ -53,32 +42,41 @@ async function request(method, path, { body, auth = true, json = true, params } 
     if (t) headers.set("Authorization", `Bearer ${t}`);
   }
 
+  // simple querystring support
+  let url = resolveApiUrl(path);
+  if (params && typeof params === "object") {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+    });
+    const s = qs.toString();
+    if (s) url += (url.includes("?") ? "&" : "?") + s;
+  }
+
   const opts = { method, headers, credentials: "include" };
   if (body !== undefined) opts.body = json ? JSON.stringify(body) : body;
 
-  const res = await fetch(buildUrl(path, params), opts);
+  const res = await fetch(url, opts);
 
-  let parsed = null;
+  let data = null;
   const txt = await res.text();
   if (txt) {
     try {
-      parsed = JSON.parse(txt);
+      data = JSON.parse(txt);
     } catch {
-      parsed = txt;
+      data = txt;
     }
   }
 
   if (!res.ok) {
     const err = new Error(
-      (parsed && (parsed.message || parsed.error || parsed.code)) || `HTTP ${res.status}`
+      (data && (data.message || data.error || data.code)) || `HTTP ${res.status}`
     );
     err.status = res.status;
-    err.data = parsed;
+    err.data = data;
     throw err;
   }
-
-  // Return Axios-like shape to keep existing code working.
-  return { data: parsed, status: res.status, ok: true };
+  return data;
 }
 
 const get = (p, o) => request("GET", p, o);
@@ -89,13 +87,12 @@ const del  = (p, o) => request("DELETE", p, o);
 /* Auth */
 export const AuthAPI = {
   async login({ email, password }) {
-    const { data } = await post("/auth/login", { email, password }, { auth: false });
+    const data = await post("/auth/login", { email, password }, { auth: false });
     if (data && data.token) setToken(data.token);
     return data;
   },
-  async me() {
-    const { data } = await get("/auth/me");
-    return data;
+  me() {
+    return get("/auth/me");
   },
   logout() {
     clearToken();
@@ -105,30 +102,28 @@ export const AuthAPI = {
 
 /* Reviews */
 export const ReviewsAPI = {
-  async listByProduct(productId) {
-    const { data } = await get(`/reviews/product/${productId}`, { auth: false });
-    return data;
+  listByProduct(productId) {
+    // Public endpoint to read reviews
+    return get(`/reviews/product/${productId}`, { auth: false });
   },
-  async create({ productId, rating, comment }) {
-    const { data } = await post("/reviews", { productId, rating, comment });
-    return data;
+  create({ productId, rating, comment }) {
+    return post("/reviews", { productId, rating, comment });
   },
-  add(payload) { return this.create(payload); }, // alias
+  add(payload) {
+    return this.create(payload); // alias
+  },
 };
 
 /* Favorites */
 export const FavoritesAPI = {
-  async list() {
-    const { data } = await get("/favorites");
-    return data;
+  list() {
+    return get("/favorites");
   },
-  async add(productId) {
-    const { data } = await post(`/favorites/${productId}`);
-    return data;
+  add(productId) {
+    return post(`/favorites/${productId}`);
   },
-  async remove(productId) {
-    const { data } = await del(`/favorites/${productId}`);
-    return data;
+  remove(productId) {
+    return del(`/favorites/${productId}`);
   },
   async isFavorite(productId) {
     try {
@@ -139,57 +134,50 @@ export const FavoritesAPI = {
       throw e;
     }
   },
-  listMine() { return this.list(); },                 // alias
-  addFavorite(id) { return this.add(id); },           // alias
-  removeFavorite(id) { return this.remove(id); },     // alias
+  listMine() { return this.list(); },
+  addFavorite(id) { return this.add(id); },
+  removeFavorite(id) { return this.remove(id); },
 };
 
 /* Bookings */
 export const BookingAPI = {
-  async listByProduct(productId) {
-    const { data } = await get(`/bookings/product/${productId}`, { auth: false });
-    return data;
+  // already used in the product details page
+  listByProduct(productId) {
+    return get(`/bookings/product/${productId}`, { auth: false });
+  },
+  // used by the booking flow
+  create(payload) {
+    return post("/bookings", payload);
+  },
+  // handy helpers some screens use
+  listMine() {
+    return get("/bookings/mine");
+  },
+  cancel(bookingId) {
+    return del(`/bookings/${bookingId}`);
   },
 };
 
 /* Admin */
 export const AdminAPI = {
-  async listUsers() {
-    const { data } = await get("/admin/users");
-    return data;
-  },
-  async grantAdmin(userId) {
-    const { data } = await post(`/admin/users/${userId}/roles`, { role: "ROLE_ADMIN" });
-    return data;
-  },
-  async revokeAdmin(userId) {
-    const { data } = await del(`/admin/users/${userId}/roles/ROLE_ADMIN`);
-    return data;
-  },
+  listUsers() { return get("/admin/users"); },
+  grantAdmin(userId) { return post(`/admin/users/${userId}/roles`, { role: "ROLE_ADMIN" }); },
+  revokeAdmin(userId) { return del(`/admin/users/${userId}/roles/ROLE_ADMIN`); },
 };
 
-/* Convenience methods on the default Api (expected by some components) */
+/* Default + named Api (low-level helpers if you need them) */
 const Api = {
   get, post, put, del,
   resolveApiUrl,
   getToken, setToken, clearToken,
 
-  // Used by CategoryFilter.jsx (returns raw JSON: page object or array)
-  async getCategories() {
-    const { data } = await get("/categories");
-    return data;
-  },
+  // ---- Added safe aliases so legacy hooks/components keep working ----
+  getFavorites: () => FavoritesAPI.list(),
+  addFavorite: (id) => FavoritesAPI.add(id),
+  removeFavorite: (id) => FavoritesAPI.remove(id),
 
-  // Favorites shortcuts used by useFavorites()
-  async getFavorites() {
-    return FavoritesAPI.list();
-  },
-  async addFavorite(productId) {
-    return FavoritesAPI.add(productId);
-  },
-  async removeFavorite(productId) {
-    return FavoritesAPI.remove(productId);
-  },
+  // Some places call this directly
+  getCategories: () => get("/categories", { auth: false }),
 };
 
 export default Api;
