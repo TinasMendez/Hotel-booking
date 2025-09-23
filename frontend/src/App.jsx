@@ -31,6 +31,7 @@ import CategoriesAdmin from "./pages/admin/CategoriesAdmin.jsx";
 import CategoryCreateAdmin from "./pages/admin/CategoryCreateAdmin.jsx";
 import FeaturesAdmin from "./pages/admin/FeaturesAdmin.jsx";
 import AdminRoles from "./pages/admin/AdminRoles.jsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx"; // ← NEW
 
 /**
  * App Router
@@ -53,9 +54,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Protected routes */}
-        <Route
-          element={<ProtectedRoute message="Please sign in to continue." />}
-        >
+        <Route element={<ProtectedRoute message="Please sign in to continue." />}>
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/profile" element={<Profile />} />
@@ -67,6 +66,9 @@ export default function App() {
 
       {/* Admin (non-responsive per challenge) */}
       <Route path="/admin" element={<AdminLayout />}>
+        {/* Admin home (Dashboard) */}
+        <Route index element={<AdminDashboard />} />
+        {/* Management sections */}
         <Route path="products" element={<ProductsAdmin />} />
         <Route path="products/new" element={<ProductCreateAdmin />} />
         <Route path="products/:id/edit" element={<ProductEditAdmin />} />

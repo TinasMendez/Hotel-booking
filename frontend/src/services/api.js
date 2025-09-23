@@ -173,16 +173,29 @@ export const BookingAPI = {
   },
 };
 
-/* Admin */
+/* Admin (users/roles by EMAIL – matches your AdminUserController) */
 export const AdminAPI = {
-  listUsers() {
-    return get("/admin/users");
+  listAdmins() {
+    return get("/admin/users/admins");
   },
-  grantAdmin(userId) {
-    return post(`/admin/users/${userId}/roles`, { role: "ROLE_ADMIN" });
+  grantAdmin(email) {
+    return post("/admin/users/grant-admin", { email });
   },
-  revokeAdmin(userId) {
-    return del(`/admin/users/${userId}/roles/ROLE_ADMIN`);
+  revokeAdmin(email) {
+    return post("/admin/users/revoke-admin", { email });
+  },
+};
+
+/* Admin Dashboard helpers */
+export const AdminDashboardAPI = {
+  summary() {
+    return get("/admin/dashboard/summary");
+  },
+  listCategoriesWithCount() {
+    return get("/admin/categories");
+  },
+  listProductsByCategory(categoryId) {
+    return get(`/admin/categories/${categoryId}/products`);
   },
 };
 

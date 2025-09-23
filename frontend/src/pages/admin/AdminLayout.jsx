@@ -1,5 +1,6 @@
 // src/pages/admin/AdminLayout.jsx
-// Minimal admin layout with a left sidebar and top title.
+// Admin layout with a left sidebar and top title.
+// Adds a "Dashboard" entry that points to the index route of /admin.
 
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -46,35 +47,60 @@ export default function AdminLayout() {
             ← Back to Home
           </button>
         </div>
+
+        {/* Navigation: "Dashboard" is the Admin home (index route) */}
         <nav className="p-2 space-y-1">
+          <NavLink
+            to="."
+            end
+            className={({ isActive }) =>
+              `block px-3 py-2 rounded ${
+                isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"
+              }`
+            }
+          >
+            Dashboard
+          </NavLink>
+
           <NavLink
             to="products"
             className={({ isActive }) =>
-              `block px-3 py-2 rounded ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"}`
+              `block px-3 py-2 rounded ${
+                isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"
+              }`
             }
           >
             Products
           </NavLink>
+
           <NavLink
             to="categories"
             className={({ isActive }) =>
-              `block px-3 py-2 rounded ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"}`
+              `block px-3 py-2 rounded ${
+                isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"
+              }`
             }
           >
             Categories
           </NavLink>
+
           <NavLink
             to="features"
             className={({ isActive }) =>
-              `block px-3 py-2 rounded ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"}`
+              `block px-3 py-2 rounded ${
+                isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"
+              }`
             }
           >
             Features
           </NavLink>
+
           <NavLink
             to="admins"
             className={({ isActive }) =>
-              `block px-3 py-2 rounded ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"}`
+              `block px-3 py-2 rounded ${
+                isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"
+              }`
             }
           >
             Admin Roles

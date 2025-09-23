@@ -18,24 +18,29 @@ export default function ProductsAdmin() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await Api.get("/products", {
+      // IMPORTANT: Api.get returns the JSON directly, not { data }
+      const data = await Api.get("/products", {
         params: { page: p - 1, size: PAGE_SIZE, sort: "name,asc" },
       });
+
       const content = Array.isArray(data?.content)
         ? data.content
         : Array.isArray(data)
-          ? data
-          : [];
+        ? data
+        : [];
+
       const totalElements =
         typeof data?.totalElements === "number"
           ? data.totalElements
           : content.length;
-      const totalPages =
+
+      const totalPagesCalc =
         typeof data?.totalPages === "number"
           ? data.totalPages
           : Math.max(1, Math.ceil(totalElements / PAGE_SIZE));
+
       setItems(content);
-      setTotalPages(totalPages);
+      setTotalPages(totalPagesCalc);
     } catch {
       setError("Failed to load products.");
     } finally {
@@ -49,8 +54,7 @@ export default function ProductsAdmin() {
   }, []);
 
   async function onDelete(id) {
-    const ok = window.confirm("Are you sure you want to delete this product?");
-    if (!ok) return;
+    if (!window.confirm("Delete this product?")) return;
     try {
       await Api.delete(`/products/${id}`);
       await load(page);
@@ -65,101 +69,79 @@ export default function ProductsAdmin() {
         <h1 className="text-xl font-semibold">Products</h1>
         <Link
           to="/admin/products/new"
-          className="px-3 py-2 rounded-lg border hover:bg-slate-50"
+          className="px-3 py-2 rounded-md bg-gray-900 text-white"
         >
-          Add product
+          + New
         </Link>
       </div>
 
-      {loading && <div className="text-sm text-slate-600">Loading…</div>}
-      {error && <div className="text-sm text-red-600">{error}</div>}
-
-      {!loading && !error && (
-        <div className="overflow-x-auto border rounded-xl">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50">
-              <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left">
-                <th>Id</th>
-                <th>Name</th>
-                <th className="w-40">Actions</th>
+      {error && <p className="text-red-600">{error}</p>}
+      {loading ? (
+        <p>Loading…</p>
+      ) : items.length === 0 ? (
+        <p>No products found.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full text-left">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-3 py-2">ID</th>
+                <th className="px-3 py-2">Name</th>
+                <th className="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {items.map((p) => (
-                <tr key={p.id} className="border-t">
+                <tr className="border-t" key={p.id}>
                   <td className="px-3 py-2">{p.id}</td>
                   <td className="px-3 py-2">{p.name}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={`/admin/products/${p.id}/edit`}
-                        className="px-2 py-1 rounded border hover:bg-slate-50"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => onDelete(p.id)}
-                        className="px-2 py-1 rounded border text-red-600 hover:bg-red-50"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                  <td className="px-3 py-2 text-right space-x-2">
+                    <Link
+                      to={`/admin/products/${p.id}/edit`}
+                      className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => onDelete(p.id)}
+                      className="px-3 py-1 rounded bg-red-600 text-white"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
-              {items.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="px-3 py-6 text-center text-slate-500"
-                  >
-                    No products found.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
-        </div>
-      )}
 
-      {/* Simple pager */}
-      {totalPages > 1 && (
-        <div className="flex items-center gap-2">
-          <button
-            className="px-2 py-1 rounded border disabled:opacity-50"
-            onClick={() => {
-              setPage(1);
-              load(1);
-            }}
-            disabled={page === 1}
-          >
-            ⏮ First
-          </button>
-          <button
-            className="px-2 py-1 rounded border disabled:opacity-50"
-            onClick={() => {
-              const p = Math.max(1, page - 1);
-              setPage(p);
-              load(p);
-            }}
-            disabled={page === 1}
-          >
-            ← Prev
-          </button>
-          <span className="text-sm text-slate-600">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            className="px-2 py-1 rounded border disabled:opacity-50"
-            onClick={() => {
-              const p = Math.min(totalPages, page + 1);
-              setPage(p);
-              load(p);
-            }}
-            disabled={page === totalPages}
-          >
-            Next →
-          </button>
+          {/* Pagination */}
+          <div className="flex items-center justify-between p-3">
+            <button
+              className="px-3 py-1 border rounded disabled:opacity-50"
+              disabled={page <= 1}
+              onClick={() => {
+                const next = page - 1;
+                setPage(next);
+                load(next);
+              }}
+            >
+              ← Prev
+            </button>
+            <span>
+              Page {page} / {totalPages}
+            </span>
+            <button
+              className="px-3 py-1 border rounded disabled:opacity-50"
+              disabled={page >= totalPages}
+              onClick={() => {
+                const next = page + 1;
+                setPage(next);
+                load(next);
+              }}
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
     </div>
