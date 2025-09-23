@@ -11,7 +11,7 @@ import ReviewsList from "../components/ReviewsList.jsx";
 import AvailabilityCalendar from "../components/AvailabilityCalendar.jsx";
 import { getProduct } from "../services/products.js";
 import { BookingAPI } from "../services/api.js";
-import ReservationSection from "../components/ReservationSection.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 
 function toISO(d) {
   if (!d) return "";
@@ -102,30 +102,63 @@ export default function ProductDetail() {
     );
   }
 
+  const hasImages = Array.isArray(images) && images.length > 0;
+
   return (
     <div className="space-y-6">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold">{product?.name}</h1>
-          <Link to="/" className="text-sm underline focus-ring rounded">← Back</Link>
+      {/* HERO: separación del header + contenido en columna, con respiro entre título y back */}
+      <div className="bg-slate-50 border-b mt-6 shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="min-h-[30px] py-1 flex flex-col items-start justify-center">
+            <h1 className="text-3xl font-semibold tracking-tight">
+              {product?.name}
+            </h1>
+            {/* Botón back más pequeño y separado del título */}
+            <Link
+              to="/"
+              className="mt-4 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-ring"
+              title="Back to home"
+            >
+              ← Back
+            </Link>
+          </div>
         </div>
-      </header>
+      </div>
 
+      {/* Main content */}
       <section className="container mx-auto px-4 space-y-6">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
             {product?.category?.name} {product?.city ? `• ${product.city}` : ""}
           </div>
           <div className="flex items-center gap-3">
-            {/* Icon button has its own focus-ring */}
             <FavoriteButton productId={productId} />
-            {/* ShareButtons is external; add wrapper for keyboard focus if needed */}
             <ShareButtons product={product} />
           </div>
         </div>
 
-        <Gallery5 images={images} />
-        <ModalGallery images={images} />
+        {/* Gallery or graceful empty state */}
+        {hasImages ? (
+          <>
+            <Gallery5 images={images} />
+            <ModalGallery images={images} />
+          </>
+        ) : (
+          <div className="card p-6">
+            <EmptyState
+              title="No images available"
+              description="This listing does not include images yet."
+              icon={
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-10 w-10">
+                  <path
+                    fill="currentColor"
+                    d="M21 5H3a2 2 0 00-2 2v10a2 2 0 002 2h18a2 2 0 002-2V7a2 2 0 00-2-2zm0 12H3V7h18v10zM8.5 12a2.5 2.5 0 115 0a2.5 2.5 0 01-5 0zm7.5 4l-3.5-4.5L10 14l-2-2.5L5 16h11z"
+                  />
+                </svg>
+              }
+            />
+          </div>
+        )}
 
         {/* Description */}
         <section>
@@ -133,12 +166,13 @@ export default function ProductDetail() {
           <p className="text-gray-700">{product?.description || "No description available."}</p>
         </section>
 
+        {/* Features */}
         <section aria-labelledby="features-title">
           <h2 id="features-title" className="text-lg font-semibold mb-2">Features</h2>
           <FeaturesBlock features={product?.features || []} renderTitle={false} />
         </section>
 
-        {/* Reviews block (tabs/list inside the component) */}
+        {/* Reviews */}
         <section aria-labelledby="reviews-title">
           <h2 id="reviews-title" className="sr-only">Reviews</h2>
           <ReviewsList productId={productId} />
@@ -165,7 +199,6 @@ export default function ProductDetail() {
             >
               Reserve now
             </button>
-            {/* Secondary share variant might already style focus; ensure wrapper button/link uses focus-ring if present */}
             <ShareButtons product={product} variant="secondary" />
           </div>
         </section>

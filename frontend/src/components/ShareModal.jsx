@@ -1,87 +1,135 @@
-import React, { useMemo, useState } from "react";
+// src/components/ShareModal.jsx
+import React, { useEffect, useRef } from "react";
 
 /**
- * Social share modal with FB/Twitter deep-links and IG fallback (copy-to-clipboard).
- * Meets Sprint 3 HU#27 (image, brief description, direct link, custom message).
+ * Accessible share modal.
+ * - Props: open (bool), onClose (fn), data: {title, description, url, imageUrl}
+ * - Focus: traps Tab inside, ESC closes, overlay click closes.
  */
-export default function ShareModal({ open, onClose, data }) {
-  const [message, setMessage] = useState("");
-  const share = useMemo(() => normalize(data), [data]);
+export default function ShareModal({ open = false, onClose, data }) {
+  const dialogRef = useRef(null);
+  const firstRef = useRef(null);
+  const lastRef = useRef(null);
+
+  useEffect(() => {
+    function onKey(e) {
+      if (!open) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose?.();
+      } else if (e.key === "Tab") {
+        // Minimal focus trap
+        const focusable = dialogRef.current?.querySelectorAll(
+          'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusable || focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (open) {
+      // Put focus on close button
+      firstRef.current?.focus();
+    }
+  }, [open]);
+
   if (!open) return null;
 
-  function shareTwitter() {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      `${message || share.text} ${share.url}`
-    )}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-  function shareFacebook() {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-      share.url
-    )}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-  async function shareInstagram() {
-    await navigator.clipboard.writeText(`${message || share.text} ${share.url}`);
-    alert("Copied to clipboard. Open Instagram to paste your message.");
-  }
+  const url = data?.url || (typeof window !== "undefined" ? window.location.href : "");
+  const title = data?.title || "Check this listing";
+  const text = data?.description || "Found this on Digital Booking";
+  const encoded = encodeURIComponent;
+
+  const links = [
+    {
+      name: "WhatsApp",
+      href: `https://wa.me/?text=${encoded(`${title} – ${url}`)}`,
+    },
+    {
+      name: "Facebook",
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encoded(url)}`,
+    },
+    {
+      name: "Twitter",
+      href: `https://twitter.com/intent/tweet?url=${encoded(url)}&text=${encoded(title)}`,
+    },
+    {
+      name: "Email",
+      href: `mailto:?subject=${encoded(title)}&body=${encoded(`${text}\n\n${url}`)}`,
+    },
+  ];
 
   return (
-    <div className="modal" role="dialog" aria-modal="true">
-      <div className="box">
-        <header>
-          <h3>Share this product</h3>
-          <button onClick={onClose} aria-label="Close">✕</button>
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose?.();
+      }}
+      aria-hidden={!open}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="share-title"
+        className="w-full max-w-md rounded-2xl bg-white shadow-xl"
+      >
+        <header className="flex items-center justify-between p-4 border-b">
+          <h3 id="share-title" className="text-lg font-semibold">
+            Share
+          </h3>
+          <button
+            ref={firstRef}
+            onClick={onClose}
+            className="rounded p-2 hover:bg-slate-100 focus-ring"
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </header>
-        <article>
-          {share.image && <img className="thumb" src={share.image} alt="Share preview" />}
-          <div className="meta">
-            <h4>{share.title}</h4>
-            <p>{share.text}</p>
-            <small>{share.url}</small>
+
+        <div className="p-4 space-y-3">
+          <p className="text-sm text-slate-700">
+            Share this link with your friends:
+          </p>
+          <div className="rounded-lg border bg-slate-50 px-3 py-2 text-sm break-all">
+            {url}
           </div>
-          <label>
-            Custom message
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Add a personal message"
-            />
-          </label>
-        </article>
-        <footer>
-          <button onClick={shareFacebook}>Share on Facebook</button>
-          <button onClick={shareTwitter}>Share on Twitter</button>
-          <button onClick={shareInstagram}>Share on Instagram</button>
+
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            {links.map((l, idx) => (
+              <a
+                key={l.name}
+                href={l.href}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50 focus-ring"
+                ref={idx === links.length - 1 ? lastRef : undefined}
+              >
+                {l.name}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <footer className="p-4 border-t text-right">
+          <button onClick={onClose} className="btn-outline focus-ring">
+            Close
+          </button>
         </footer>
       </div>
-
-      <style>
-        {`
-        .modal{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:1rem; z-index:1000; }
-        .box{ background:#fff; width:min(720px, 100%); border-radius:10px; overflow:hidden; display:grid; grid-template-rows:auto 1fr auto; }
-        header{ display:flex; align-items:center; justify-content:space-between; padding:1rem; border-bottom:1px solid #eee; }
-        article{ display:grid; gap:1rem; padding:1rem; grid-template-columns: 160px 1fr; }
-        .thumb{ width:160px; height:120px; object-fit:cover; border-radius:8px; }
-        .meta h4{ margin:.25rem 0; }
-        textarea{ width:100%; min-height:80px; }
-        footer{ display:flex; gap:.75rem; justify-content:flex-end; padding:1rem; border-top:1px solid #eee; }
-        @media (max-width:800px){
-          article{ grid-template-columns: 1fr; }
-          .thumb{ width:100%; height:180px; }
-        }
-      `}
-      </style>
     </div>
   );
-}
-
-function normalize(data) {
-  const d = data || {};
-  return {
-    title: d.title || "Product",
-    text: d.description || "Check this product",
-    url: d.url || window.location.href,
-    image: d.imageUrl || d.image,
-  };
 }

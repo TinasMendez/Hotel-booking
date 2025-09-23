@@ -31,15 +31,16 @@ export default function Header() {
           <div className="flex items-center gap-3">
             {!user ? (
               <>
+                {/* Use unified button styles (small) */}
                 <NavLink
                   to="/register"
-                  className="hidden sm:inline-flex h-9 items-center rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="btn-outline btn-sm focus-ring hidden sm:inline-flex"
                 >
                   Create account
                 </NavLink>
                 <NavLink
                   to="/login"
-                  className="inline-flex h-9 items-center rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700"
+                  className="btn-primary btn-sm focus-ring"
                 >
                   Sign in
                 </NavLink>
@@ -84,11 +85,11 @@ function UserDropdown({ user, onLogout }) {
         <MenuItem to="/bookings" label="My bookings" />
         <MenuItem to="/favorites" label="Favorites" />
         {isAdmin && <MenuItem to="/admin" label="Admin panel" />}
-        <li>
+        <li className="pt-1 mt-1 border-t">
           <button
             type="button"
             onClick={onLogout}
-            className="w-full text-left rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            className="w-full text-left rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 focus-ring"
           >
             Sign out
           </button>
@@ -105,7 +106,7 @@ function MenuItem({ to, label }) {
         to={to}
         className={({ isActive }) =>
           [
-            "block rounded-lg px-3 py-2 text-sm font-medium",
+            "block rounded-lg px-3 py-2 text-sm font-medium focus-ring",
             isActive ? "bg-gray-100 text-gray-900" : "text-gray-700 hover:bg-gray-50",
           ].join(" ")
         }

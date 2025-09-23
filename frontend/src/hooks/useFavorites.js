@@ -1,57 +1,74 @@
-import { useCallback, useEffect, useState } from "react";
-import api from "../services/api";
+// src/hooks/useFavorites.js
+// Favorites state powered by services/api.js (uses the same token as the rest of the app)
 
-/**
- * Encapsulates favorites CRUD with optimistic UI and error handling.
- * Expected backend routes:
- *  - GET    /api/v1/favorites           -> [{ productId }]
- *  - POST   /api/v1/favorites/:id       -> 201
- *  - DELETE /api/v1/favorites/:id       -> 204
- */
-export function useFavorites(enabled = true) {
-  const [ids, setIds] = useState(new Set());
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Api } from "../services/api.js";
+
+export default function useFavorites() {
+  const mountedRef = useRef(false);
+  const [list, setList] = useState([]); // array of productIds (numbers)
   const [loading, setLoading] = useState(false);
 
-  const fetchAll = useCallback(async () => {
-    if (!enabled) return;
-    setLoading(true);
+  const reload = useCallback(async () => {
     try {
-      const { data } = await api.get("/api/v1/favorites");
-      const set = new Set((data || []).map((x) => Number(x.productId || x)));
-      setIds(set);
-    } catch {
-      // Keep UI usable even if favorites fail to load
+      setLoading(true);
+      const data = await Api.getFavorites(); // [{id, productId, createdAt}, ...]
+      const ids = Array.isArray(data)
+        ? data
+            .map((f) => (typeof f === "object" ? Number(f.productId) : Number(f)))
+            .filter((n) => Number.isFinite(n))
+        : [];
+      setList(ids);
+      return ids;
     } finally {
       setLoading(false);
     }
-  }, [enabled]);
+  }, []);
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      reload().catch(() => {});
+    }
+  }, [reload]);
 
-  const isFav = useCallback((productId) => ids.has(Number(productId)), [ids]);
+  const isFavorite = useCallback(
+    (productId) => list.includes(Number(productId)),
+    [list]
+  );
+
+  const add = useCallback(
+    async (productId) => {
+      await Api.addFavorite(Number(productId));
+      const ids = await reload();
+      return ids.includes(Number(productId));
+    },
+    [reload]
+  );
+
+  const remove = useCallback(
+    async (productId) => {
+      await Api.removeFavorite(Number(productId));
+      const ids = await reload();
+      return ids.includes(Number(productId)) === false;
+    },
+    [reload]
+  );
 
   const toggle = useCallback(
     async (productId) => {
-      const id = Number(productId);
-      const optimistic = new Set(ids);
-      const already = optimistic.has(id);
-
-      if (already) optimistic.delete(id);
-      else optimistic.add(id);
-      setIds(optimistic);
-
-      try {
-        if (already) await api.delete(`/api/v1/favorites/${id}`);
-        else await api.post(`/api/v1/favorites/${id}`);
-      } catch {
-        const revert = new Set(ids);
-        setIds(revert);
+      const pid = Number(productId);
+      if (list.includes(pid)) {
+        await Api.removeFavorite(pid);
+      } else {
+        await Api.addFavorite(pid);
       }
+      const ids = await reload();
+      return ids.includes(pid); // final state
     },
-    [ids]
+    [list, reload]
   );
 
-  return { ids, isFav, toggle, loading, refresh: fetchAll };
+  return { list, loading, isFavorite, add, remove, toggle, reload };
 }
+

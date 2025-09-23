@@ -1,260 +1,196 @@
-// src/services/api.js
-// Centralized API helper with fetch wrapper and domain-specific utilities.
+// frontend/src/services/api.js
 
-const RAW_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:8080/api").replace(/\/$/, "");
-const BASE_HAS_API = RAW_BASE.endsWith("/api");
-const ROOT_BASE = BASE_HAS_API ? RAW_BASE.substring(0, RAW_BASE.length - 4) : RAW_BASE;
-const DEFAULT_API_BASE = BASE_HAS_API ? RAW_BASE : `${RAW_BASE}/api`;
+const BASE_URL =
+  (typeof import.meta !== "undefined" &&
+    import.meta.env &&
+    import.meta.env.VITE_API_BASE_URL) ||
+  "http://localhost:8080/api";
 
-/* ------------------------------ URL helpers ------------------------------ */
-function buildSearch(params) {
-  if (!params) return "";
-  if (params instanceof URLSearchParams) {
-    const query = params.toString();
-    return query ? `?${query}` : "";
-  }
-  const usp = new URLSearchParams();
-  Object.entries(params)
-    .filter(([, v]) => v !== undefined && v !== null && v !== "")
-    .forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        value.forEach((item) => usp.append(key, item));
-      } else if (value instanceof Date) {
-        usp.append(key, value.toISOString());
-      } else {
-        usp.append(key, value);
-      }
-    });
-  const query = usp.toString();
-  return query ? `?${query}` : "";
-}
+/* Token */
+const TOKEN_KEY = "auth_token";
 
-export function resolveApiUrl(path = "", params) {
-  if (/^https?:\/\//i.test(path)) {
-    const query = buildSearch(params);
-    return `${path}${query}`;
-  }
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const pathHasApi = normalizedPath === "/api" || normalizedPath.startsWith("/api/");
-  const base = pathHasApi ? (ROOT_BASE || RAW_BASE) : DEFAULT_API_BASE;
-  const url = `${base}${normalizedPath}`;
-  const query = buildSearch(params);
-  return `${url}${query}`;
-}
-
-/* ------------------------------- Token utils ----------------------------- */
 export function getToken() {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem("token") || "";
-}
-
-export function setToken(token) {
-  if (typeof window === "undefined") return;
-  if (!token) {
-    localStorage.removeItem("token");
-    return;
+  try {
+    return localStorage.getItem(TOKEN_KEY) || "";
+  } catch {
+    return "";
   }
-  localStorage.setItem("token", token);
 }
-
+export function setToken(token) {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {}
+}
 export function clearToken() {
   setToken("");
 }
 
-function authHeaders() {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+/* URL helpers */
+export function resolveApiUrl(path) {
+  const base = BASE_URL.replace(/\/+$/, "");
+  const suffix = String(path || "").replace(/^\/+/, "");
+  return `${base}/${suffix}`;
+}
+function buildUrl(path, params) {
+  const url = new URL(resolveApiUrl(path));
+  if (params && typeof params === "object") {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") {
+        url.searchParams.set(k, v);
+      }
+    });
+  }
+  return url.toString();
 }
 
-function normalizeOptions(options = {}) {
-  return options && typeof options === "object" ? options : {};
-}
-
-/* --------------------------------- Fetch -------------------------------- */
-async function request(method, path, options = {}) {
-  const opts = normalizeOptions(options);
-  const { params, data, body, headers: extraHeaders, ...rest } = opts;
-  const url = resolveApiUrl(path, params);
-  const payload = body !== undefined ? body : data;
-
-  const headers = {
-    ...((payload !== undefined && !(payload instanceof FormData)) ? { "Content-Type": "application/json" } : {}),
-    ...authHeaders(),
-    ...extraHeaders,
-  };
-
-  const init = {
-    method,
-    headers,
-    credentials: "include",
-    ...rest,
-  };
-
-  if (payload !== undefined) {
-    init.body =
-      payload instanceof FormData || typeof payload === "string"
-        ? payload
-        : JSON.stringify(payload);
+/* HTTP */
+async function request(method, path, { body, auth = true, json = true, params } = {}) {
+  const headers = new Headers();
+  if (json) headers.set("Content-Type", "application/json");
+  if (auth) {
+    const t = getToken();
+    if (t) headers.set("Authorization", `Bearer ${t}`);
   }
 
-  const res = await fetch(url, init);
-  const contentType = res.headers.get("content-type") || "";
-  const isJson = /\bapplication\/json\b/i.test(contentType);
-  const responseBody = isJson ? await res.json().catch(() => null) : await res.text();
+  const opts = { method, headers, credentials: "include" };
+  if (body !== undefined) opts.body = json ? JSON.stringify(body) : body;
+
+  const res = await fetch(buildUrl(path, params), opts);
+
+  let parsed = null;
+  const txt = await res.text();
+  if (txt) {
+    try {
+      parsed = JSON.parse(txt);
+    } catch {
+      parsed = txt;
+    }
+  }
 
   if (!res.ok) {
-    const message = responseBody?.message || responseBody?.error || `${res.status} ${res.statusText}`;
-    const error = new Error(message);
-    error.response = { status: res.status, data: responseBody };
-    throw error;
+    const err = new Error(
+      (parsed && (parsed.message || parsed.error || parsed.code)) || `HTTP ${res.status}`
+    );
+    err.status = res.status;
+    err.data = parsed;
+    throw err;
   }
 
-  return {
-    data: responseBody,
-    status: res.status,
-    ok: res.ok,
-    headers: res.headers,
-  };
+  // Return Axios-like shape to keep existing code working.
+  return { data: parsed, status: res.status, ok: true };
 }
 
-const get = (path, options) => request("GET", path, options);
-const post = (path, data, options) => request("POST", path, { ...normalizeOptions(options), data });
-const put = (path, data, options) => request("PUT", path, { ...normalizeOptions(options), data });
-const del = (path, options) => request("DELETE", path, normalizeOptions(options));
+const get = (p, o) => request("GET", p, o);
+const post = (p, b, o) => request("POST", p, { ...o, body: b });
+const put  = (p, b, o) => request("PUT", p, { ...o, body: b });
+const del  = (p, o) => request("DELETE", p, o);
 
-/* ------------------------------ Domain APIs ------------------------------ */
-const AuthAPI = {
+/* Auth */
+export const AuthAPI = {
   async login({ email, password }) {
-    const res = await post("/auth/login", { email, password });
-    const token = res?.data?.token || res?.data?.accessToken || res?.data?.jwt;
-    if (token) setToken(token);
-    return res.data;
-  },
-  async register(payload) {
-    return (await post("/auth/register", payload)).data;
+    const { data } = await post("/auth/login", { email, password }, { auth: false });
+    if (data && data.token) setToken(data.token);
+    return data;
   },
   async me() {
-    return (await get("/auth/me")).data;
+    const { data } = await get("/auth/me");
+    return data;
   },
-  logout: clearToken,
+  logout() {
+    clearToken();
+    return Promise.resolve();
+  },
 };
 
-const BookingAPI = {
-  async checkAvailability({ productId, startDate, endDate }) {
-    const params = { productId, startDate, endDate };
-    return (await get("/bookings/availability", { params })).data;
-  },
-  async createBooking(payload) {
-    return (await post("/bookings", payload)).data;
-  },
-  // Alias so callers can use BookingAPI.create(...)
-  async create(payload) {
-    return this.createBooking(payload);
-  },
-  async listMine() {
-    return (await get("/bookings/me")).data || [];
-  },
-  async cancelBooking(bookingId) {
-    return (await del(`/bookings/${bookingId}`)).data;
-  },
+/* Reviews */
+export const ReviewsAPI = {
   async listByProduct(productId) {
-    return (await get(`/bookings/product/${productId}`)).data || [];
+    const { data } = await get(`/reviews/product/${productId}`, { auth: false });
+    return data;
   },
-  async getById(bookingId) {
-    return (await get(`/bookings/${bookingId}`)).data;
+  async create({ productId, rating, comment }) {
+    const { data } = await post("/reviews", { productId, rating, comment });
+    return data;
   },
+  add(payload) { return this.create(payload); }, // alias
 };
 
-const FavoritesAPI = {
+/* Favorites */
+export const FavoritesAPI = {
   async list() {
-    return (await get("/favorites")).data || [];
+    const { data } = await get("/favorites");
+    return data;
   },
   async add(productId) {
-    return (await post(`/favorites/${productId}`)).data;
+    const { data } = await post(`/favorites/${productId}`);
+    return data;
   },
   async remove(productId) {
-    await del(`/favorites/${productId}`);
+    const { data } = await del(`/favorites/${productId}`);
+    return data;
   },
+  async isFavorite(productId) {
+    try {
+      await get(`/favorites/by-product/${productId}`);
+      return true;
+    } catch (e) {
+      if (e && e.status === 404) return false;
+      throw e;
+    }
+  },
+  listMine() { return this.list(); },                 // alias
+  addFavorite(id) { return this.add(id); },           // alias
+  removeFavorite(id) { return this.remove(id); },     // alias
 };
 
-const RatingsAPI = {
+/* Bookings */
+export const BookingAPI = {
   async listByProduct(productId) {
-    return (await get(`/ratings/product/${productId}`)).data || [];
-  },
-  async average(productId) {
-    const avg = await get(`/ratings/product/${productId}/average`);
-    return typeof avg.data === "number" ? avg.data : Number(avg.data) || 0;
-  },
-  async rate(productId, score, comment) {
-    return (await post("/ratings", { productId, score, comment })).data;
+    const { data } = await get(`/bookings/product/${productId}`, { auth: false });
+    return data;
   },
 };
 
-const AdminAPI = {
-  async listAdmins() {
-    return (await get("/admin/users/admins")).data || [];
+/* Admin */
+export const AdminAPI = {
+  async listUsers() {
+    const { data } = await get("/admin/users");
+    return data;
   },
-  async grantAdmin(email) {
-    return (await post("/admin/users/grant-admin", { email })).data;
+  async grantAdmin(userId) {
+    const { data } = await post(`/admin/users/${userId}/roles`, { role: "ROLE_ADMIN" });
+    return data;
   },
-  async revokeAdmin(email) {
-    return (await post("/admin/users/revoke-admin", { email })).data;
+  async revokeAdmin(userId) {
+    const { data } = await del(`/admin/users/${userId}/roles/ROLE_ADMIN`);
+    return data;
   },
 };
 
-/* ------------------------------ Extra helpers ---------------------------- */
-async function fetchCategories() {
-  return (await get("/categories")).data;
-}
-
-async function removeCategory(id) {
-  await del(`/categories/${id}`);
-}
-
-async function uploadProductImage(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await post("/uploads/product-image", formData);
-  return res.data;
-}
-
-async function uploadCategoryImage(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await post("/uploads/category-image", formData);
-  return res.data;
-}
-
-async function createCategory(payload) {
-  return (await post("/categories", payload)).data;
-}
-
-/* ------------------------------- Api facade ------------------------------ */
+/* Convenience methods on the default Api (expected by some components) */
 const Api = {
-  base: DEFAULT_API_BASE,
-  get,
-  post,
-  put,
-  delete: del,
-  getToken,
-  setToken,
-  clearToken,
-  // Convenience shortcuts used around the app
-  checkAvailability: BookingAPI.checkAvailability,
-  createBooking: BookingAPI.createBooking,
-  getMyBookings: BookingAPI.listMine,
-  cancelBooking: BookingAPI.cancelBooking,
-  getFavorites: FavoritesAPI.list,
-  addFavorite: FavoritesAPI.add,
-  removeFavorite: FavoritesAPI.remove,
-  getProductRating: async (productId) => ({ rating: await RatingsAPI.average(productId) }),
-  rateProduct: (productId, score, comment) => RatingsAPI.rate(productId, score, comment),
-  getCategories: fetchCategories,
-  deleteCategory: removeCategory,
-  uploadProductImage,
-  uploadCategoryImage,
-  createCategory,
+  get, post, put, del,
+  resolveApiUrl,
+  getToken, setToken, clearToken,
+
+  // Used by CategoryFilter.jsx (returns raw JSON: page object or array)
+  async getCategories() {
+    const { data } = await get("/categories");
+    return data;
+  },
+
+  // Favorites shortcuts used by useFavorites()
+  async getFavorites() {
+    return FavoritesAPI.list();
+  },
+  async addFavorite(productId) {
+    return FavoritesAPI.add(productId);
+  },
+  async removeFavorite(productId) {
+    return FavoritesAPI.remove(productId);
+  },
 };
 
-export { AuthAPI, BookingAPI, FavoritesAPI, RatingsAPI, AdminAPI };
 export default Api;
+export { Api };

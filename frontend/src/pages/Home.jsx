@@ -1,48 +1,67 @@
+// src/pages/Home.jsx
 import React, { useEffect, useState } from "react";
 import Api from "../services/api";
 import ProductCard from "../components/ProductCard";
 import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
+import LoadingOverlay from "../components/LoadingOverlay.jsx";
+import EmptyState from "../components/EmptyState.jsx";
+import SkeletonCard from "../components/SkeletonCard.jsx";
+
+function SkeletonGrid({ count = 8 }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <SkeletonCard key={i} />
+      ))}
+    </div>
+  );
+}
 
 /**
- * Home keeps Search, Categories, Recommendations always visible.
- * Accessibility: adds focus-ring to actionable elements (refresh, retry).
+ * Home:
+ *  - Keeps the search block as-is.
+ *  - Below, shows "Find your perfect stay" and lists ALL products.
+ *  - If user searches or selects a category, we show the filtered results instead.
+ *  - Clearing filters restores the full list.
  */
 export default function Home() {
-  const [randomItems, setRandomItems] = useState([]);
-  const [loadingRandom, setLoadingRandom] = useState(true);
-  const [randomError, setRandomError] = useState("");
+  const [allProducts, setAllProducts] = useState([]);
+  const [loadingAll, setLoadingAll] = useState(true);
+  const [allError, setAllError] = useState("");
 
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
 
-  const [categoryFilter, setCategoryFilter] = useState(""); // <-- drives Categories block
+  const [categoryFilter, setCategoryFilter] = useState("");
 
-  async function loadRandom() {
-    setLoadingRandom(true);
-    setRandomError("");
+  async function loadAll() {
+    setLoadingAll(true);
+    setAllError("");
     try {
-      const res = await Api.get("/products/random", { params: { limit: 10 } });
-      const arr = Array.isArray(res.data) ? res.data : [];
-      const uniq = Array.from(new Map(arr.map((p) => [p.id, p])).values());
-      setRandomItems(uniq.slice(0, 10));
-    } catch {
-      setRandomError("Failed to load products.");
+      // Supports both array and page-shaped responses
+      const { data } = await Api.get("/products", { params: { size: 100 } });
+      const list = Array.isArray(data?.content) ? data.content : Array.isArray(data) ? data : [];
+      setAllProducts(list);
+    } catch (e) {
+      setAllError("Failed to load products.");
     } finally {
-      setLoadingRandom(false);
+      setLoadingAll(false);
     }
   }
 
   useEffect(() => {
-    loadRandom();
+    loadAll();
   }, []);
 
   async function handleSearch(params) {
+    setHasSearched(true);
     setSearching(true);
     setSearchError("");
     try {
-      const res = await Api.get("/products/search", {
+      const { data } = await Api.get("/products/search", {
         params: {
           categoryId: params.categoryId,
           cityId: params.cityId,
@@ -50,15 +69,10 @@ export default function Home() {
           startDate: params.startDate,
           endDate: params.endDate,
           page: params.page ?? 0,
-          size: params.size ?? 10,
+          size: params.size ?? 20,
         },
       });
-      const data = res.data;
-      const list = Array.isArray(data?.content)
-        ? data.content
-        : Array.isArray(data)
-        ? data
-        : [];
+      const list = Array.isArray(data?.content) ? data.content : Array.isArray(data) ? data : [];
       setResults(list);
     } catch {
       setSearchError("Search failed. Please try again.");
@@ -71,8 +85,14 @@ export default function Home() {
     setResults([]);
     setSearchError("");
     setSearching(false);
-    setCategoryFilter(""); // keep UI in sync
+    setHasSearched(false);
+    setCategoryFilter("");
   }
+
+  // Which list should we show below the hero?
+  const showingFiltered = hasSearched || categoryFilter !== "";
+  const visible = showingFiltered ? results : allProducts;
+  const topTitle = showingFiltered ? "Search results" : "Find your perfect stay";
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-8">
@@ -97,56 +117,64 @@ export default function Home() {
             onChange={(val) => {
               setCategoryFilter(val);
               if (val === "") {
-                setResults([]);
+                handleReset();
               } else {
-                // Quick category-only search to show relevant results
-                handleSearch({ categoryId: val, page: 0, size: 10 });
+                handleSearch({ categoryId: val, page: 0, size: 20 });
               }
             }}
           />
         </div>
       </section>
 
-      {/* Search results */}
-      {searching && <div className="text-sm text-slate-600">Searching…</div>}
-      {!!searchError && <div className="text-sm text-red-600">{searchError}</div>}
-      {results.length > 0 && (
-        <section aria-labelledby="home-results">
-          <h2 id="home-results" className="text-xl font-semibold mb-3">Search results</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {results.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Recommendations */}
-      <section aria-labelledby="home-recommendations">
+      {/* Results / All products */}
+      <section aria-labelledby="home-listing">
         <div className="flex items-center justify-between mb-3">
-          <h2 id="home-recommendations" className="text-xl font-semibold">Recommendations</h2>
-          <button
-            type="button"
-            onClick={loadRandom}
-            className="text-sm px-3 py-2 rounded-lg border hover:bg-slate-50 focus-ring"
-            title="Refresh random recommendations"
-          >
-            Refresh
-          </button>
+          <h2 id="home-listing" className="text-xl font-semibold">{topTitle}</h2>
+          {!showingFiltered && (
+            <button
+              type="button"
+              onClick={loadAll}
+              className="btn-outline btn-sm focus-ring"
+              title="Refresh"
+            >
+              Refresh
+            </button>
+          )}
         </div>
 
-        {loadingRandom && <div className="text-sm text-slate-600">Loading…</div>}
-        {randomError && (
-          <div className="text-sm text-red-600">
-            {randomError}{" "}
-            <button className="underline focus-ring rounded" onClick={loadRandom}>
-              Retry
-            </button>
-          </div>
+        {/* Loading states */}
+        {(!showingFiltered && loadingAll) || (showingFiltered && searching) ? (
+          <SkeletonGrid count={8} />
+        ) : null}
+
+        {/* Overlay spinner for the search flow only (non-blocking) */}
+        <LoadingOverlay show={searching} label="Searching products..." />
+
+        {/* Errors */}
+        {!showingFiltered && allError && (
+          <div className="text-sm text-red-600">{allError}</div>
         )}
-        {!loadingRandom && !randomError && (
+        {showingFiltered && searchError && (
+          <div className="text-sm text-red-600 mb-3">{searchError}</div>
+        )}
+
+        {/* Empty states */}
+        {showingFiltered && !searching && visible.length === 0 && (
+          <EmptyState
+            title="No results"
+            description="Try changing dates, city or category."
+            action={
+              <button className="btn-outline focus-ring" onClick={handleReset}>
+                Clear filters
+              </button>
+            }
+          />
+        )}
+
+        {/* Grid */}
+        {!((!showingFiltered && loadingAll) || (showingFiltered && searching)) && visible.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {randomItems.map((p) => (
+            {visible.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>

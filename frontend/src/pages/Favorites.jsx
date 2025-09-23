@@ -1,126 +1,123 @@
-// src/pages/Favorites.jsx
-import React, { useEffect, useState } from "react";
-import Api from "../services/api";
-import FavoriteButton from "../components/FavoriteButton";
-import { Link } from "react-router-dom";
+// frontend/src/pages/Favorites.jsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import ProductCard from "../components/ProductCard.jsx";
+import EmptyState from "../components/EmptyState.jsx";
+import { Api } from "../services/api.js";
+import { getProduct } from "../services/products.js";
+import useFavorites from "../hooks/useFavorites.js";
 
-/** Picks the best available image for a product or returns empty string. */
-function pickImage(p) {
-  return (
-    p?.imageUrl ||
-    p?.thumbnail ||
-    p?.coverUrl ||
-    p?.image ||
-    (Array.isArray(p?.imageUrls) && p.imageUrls[0]) ||
-    (Array.isArray(p?.images) && (p.images[0]?.url || p.images[0]?.imageUrl)) ||
-    (Array.isArray(p?.photos) && (p.photos[0]?.url || p.photos[0]?.imageUrl)) ||
-    p?.category?.image ||
-    ""
+// Local placeholder (data URL) to avoid DNS errors when there is no image
+const FALLBACK_IMG =
+  "data:image/svg+xml;charset=UTF-8," +
+  encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='400'>
+      <rect width='100%' height='100%' fill='#f1f5f9'/>
+      <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='Inter,system-ui,Arial' font-size='20' fill='#475569'>
+        No image
+      </text>
+    </svg>`
   );
-}
 
-/** Always returns a valid image URL. */
-function resolveImage(p) {
-  const url = pickImage(p);
-  return url || "https://via.placeholder.com/640x400?text=No+image";
+function normalizeProduct(p) {
+  if (!p) return p;
+  // Ensure we always have at least one usable image url
+  const img =
+    p?.imageUrl ||
+    (Array.isArray(p?.imageUrls) && p.imageUrls[0]) ||
+    (Array.isArray(p?.images) && (typeof p.images[0] === "string" ? p.images[0] : p.images[0]?.url)) ||
+    FALLBACK_IMG;
+  return { ...p, imageUrl: img };
 }
 
 export default function Favorites() {
-  const [items, setItems] = useState([]);
+  const { list: favoriteIds, reload: reloadFavorites } = useFavorites();
   const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState([]); // array de productos completos
+  const [error, setError] = useState("");
 
-  async function enrichIfNeeded(list) {
-    // Why: some favorites payloads lack images. Enrich those with /products/:id.
-    const needs = list.filter((p) => !pickImage(p));
-    if (needs.length === 0) return list;
+  const uniqueIds = useMemo(
+    () => Array.from(new Set((favoriteIds || []).filter((id) => Number.isFinite(Number(id))))),
+    [favoriteIds]
+  );
 
-    const augmented = await Promise.all(
-      list.map(async (p) => {
-        const id = p?.id ?? p?.productId;
-        if (!id || pickImage(p)) return p;
-        try {
-          const res = await Api.get(`/products/${id}`);
-          const product = res?.data || {};
-          return { ...product, ...p }; // product provides images; keep name/description from either
-        } catch {
-          return p; // keep original on failure; resolveImage will handle placeholder
-        }
-      })
-    );
-    return augmented;
-  }
-
-  async function load() {
+  const fetchAll = useCallback(async () => {
+    if (!uniqueIds.length) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    setError("");
     try {
-      const list = await Api.getFavorites();
-      const arr = Array.isArray(list) ? list : Array.isArray(list?.content) ? list.content : [];
-      const withImages = await enrichIfNeeded(arr);
-      setItems(withImages);
+      // Fan-out en paralelo a /api/products/:id
+      const results = await Promise.allSettled(uniqueIds.map((id) => getProduct(Number(id))));
+      const ok = results
+        .map((r) => (r.status === "fulfilled" ? normalizeProduct(r.value) : null))
+        .filter(Boolean);
+      setItems(ok);
+    } catch (e) {
+      setError(e?.message || "Failed to load favorites.");
     } finally {
       setLoading(false);
     }
-  }
+  }, [uniqueIds]);
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Cuando el usuario agrega/quita desde el corazón, recargamos la lista
+  const handleChanged = async () => {
+    await reloadFavorites();
+    fetchAll();
+  };
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-6">
-        <p className="text-sm text-slate-600">Loading…</p>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-semibold mb-4">My Favorites</h1>
+        <p className="text-slate-600">Loading…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-semibold mb-4">My Favorites</h1>
+        <p className="text-red-600">{error}</p>
+      </div>
+    );
+  }
+
+  if (!items.length) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-semibold mb-4">My Favorites</h1>
+        <div className="card p-8">
+          <EmptyState
+            title="No favorites yet"
+            description="Save properties you like to find them easily later."
+          />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-2">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">My Favorites</h1>
-        <span className="text-sm text-slate-600">{items.length} saved properties</span>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-semibold mb-6">My Favorites</h1>
 
-      {items.length === 0 && <p className="text-slate-600">You have no favorites yet.</p>}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {items.map((p) => {
-          const id = p?.id ?? p?.productId;
-          const image = resolveImage(p);
-          return (
-            <div key={id} className="rounded-2xl border overflow-hidden shadow-sm relative bg-white">
-              <img
-                src={image}
-                alt={p?.name || "Image"}
-                className="w-full h-48 object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "https://via.placeholder.com/640x400?text=No+image";
-                }}
-              />
-              <div className="absolute top-3 right-3">
-                <FavoriteButton
-                  productId={id}
-                  defaultActive={true}
-                  onChange={(active) => {
-                    if (!active) setItems((prev) => prev.filter((x) => (x?.id ?? x?.productId) !== id));
-                  }}
-                />
-              </div>
-              <div className="p-4 space-y-2">
-                <h3 className="font-semibold text-slate-900 line-clamp-1">{p?.name}</h3>
-                <p className="text-sm text-slate-600 line-clamp-2">{p?.description}</p>
-                <div className="pt-2">
-                  <Link
-                    to={`/product/${id}`}
-                    className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border hover:bg-slate-50 focus-ring"
-                  >
-                    View details →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {items.map((p) => (
+          <div key={p.id} className="relative">
+            {/* ProductCard ya incluye el FavoriteButton.
+                Le pasamos onChange para que cuando quiten el corazón se refresque la lista. */}
+            <ProductCard
+              product={p}
+              onFavoriteChange={handleChanged /* <-- ver nota abajo */}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

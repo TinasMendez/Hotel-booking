@@ -1,84 +1,66 @@
-import React, { useEffect, useState } from "react";
-import api from "../services/api";
+// src/components/RatingStars.jsx
+import React from "react";
 
 /**
- * Interactive star rating with eligibility gate (only users who completed a booking).
- * Expected endpoints:
- *  - GET  /api/v1/ratings/eligibility?productId=XX         -> { eligible: boolean }
- *  - POST /api/v1/ratings                                  -> { id, productId, stars, comment, createdAt, user }
- *      body: { productId, stars, comment }
+ * Visual star rating with optional count.
+ * - Pure presentational. Accessible label announces "X out of Y".
  */
-export default function RatingStars({ productId, onSubmitted }) {
-  const [eligible, setEligible] = useState(false);
-  const [hover, setHover] = useState(0);
-  const [value, setValue] = useState(0);
-  const [comment, setComment] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const stars = [1, 2, 3, 4, 5];
+export default function RatingStars({
+  value = 0,
+  max = 5,
+  count = null,
+  size = "sm",
+  className = "",
+  showLabel = false
+}) {
+  const v = Math.max(0, Math.min(Number(value) || 0, max));
+  const pct = (v / max) * 100;
 
-  useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    api
-      .get("/api/v1/ratings/eligibility", { params: { productId } })
-      .then(({ data }) => mounted && setEligible(Boolean(data?.eligible)))
-      .catch(() => mounted && setEligible(false))
-      .finally(() => mounted && setLoading(false));
-    return () => (mounted = false);
-  }, [productId]);
-
-  async function submit() {
-    if (!eligible || !value) return;
-    setSubmitting(true);
-    try {
-      await api.post("/api/v1/ratings", { productId, stars: value, comment });
-      setValue(0);
-      setComment("");
-      if (typeof onSubmitted === "function") onSubmitted();
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (loading) return <p>Checking rating eligibility…</p>;
-  if (!eligible) return <p>You can rate this product after completing a booking.</p>;
+  const sizeMap = { sm: "h-4 w-4", md: "h-5 w-5", lg: "h-6 w-6" };
+  const dim = sizeMap[size] ?? sizeMap.sm;
 
   return (
-    <div className="rate">
-      <div className="stars" onMouseLeave={() => setHover(0)}>
-        {stars.map((n) => (
-          <button
-            key={n}
-            type="button"
-            className={`star ${n <= (hover || value) ? "on" : "off"}`}
-            onMouseEnter={() => setHover(n)}
-            onClick={() => setValue(n)}
-            aria-label={`Rate ${n} star${n > 1 ? "s" : ""}`}
-          >
-            ★
-          </button>
-        ))}
+    <div
+      className={`inline-flex items-center gap-2 ${className}`}
+      role="img"
+      aria-label={`${v.toFixed(1)} out of ${max}${count != null ? ` from ${count} reviews` : ""}`}
+    >
+      <div className="relative inline-flex">
+        {/* Empty stars row */}
+        <div className="flex">
+          {Array.from({ length: max }).map((_, i) => (
+            <Star key={`e-${i}`} className={`${dim} text-slate-300`} />
+          ))}
+        </div>
+        {/* Filled stars overlay, clipped by width */}
+        <div className="absolute inset-0 overflow-hidden" style={{ width: `${pct}%` }}>
+          <div className="flex">
+            {Array.from({ length: max }).map((_, i) => (
+              <Star key={`f-${i}`} className={`${dim} text-amber-500`} />
+            ))}
+          </div>
+        </div>
       </div>
-      <textarea
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        placeholder="Optional comment"
-      />
-      <button disabled={!value || submitting} onClick={submit}>
-        {submitting ? "Submitting…" : "Submit review"}
-      </button>
 
-      <style>
-        {`
-        .rate{ display:grid; gap:.5rem; max-width:520px; }
-        .stars{ display:flex; gap:.25rem; }
-        .star{ font-size:1.5rem; border:0; background:transparent; cursor:pointer; }
-        .star.on{ color:#f59e0b; }
-        .star.off{ color:#cbd5e1; }
-        textarea{ width:100%; min-height:80px; }
-      `}
-      </style>
+      {showLabel ? (
+        <span className="text-sm text-slate-700 tabular-nums">
+          {v.toFixed(1)}
+          {count != null ? ` (${count})` : ""}
+        </span>
+      ) : count != null ? (
+        <span className="text-xs text-slate-500 tabular-nums">({count})</span>
+      ) : null}
     </div>
+  );
+}
+
+function Star({ className = "" }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M10 15.27l-5.18 3.05 1.4-5.98L1 7.97l6.05-.52L10 1.5l2.95 5.95 6.05.52-5.22 4.37 1.4 5.98z"
+      />
+    </svg>
   );
 }

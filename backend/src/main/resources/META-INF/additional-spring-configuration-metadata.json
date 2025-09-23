@@ -9,77 +9,81 @@
     "type": "java.lang.String",
     "description": "A description for 'jwt.expiration'"
   },
-    {
-      "name": "app.frontend.base-url",
-      "type": "java.lang.String",
-      "description": "Base URL for the frontend used in links inside emails and redirects.",
-      "defaultValue": "http://localhost:5173"
-    },
-    {
-      "name": "app.mail.from",
-      "type": "java.lang.String",
-      "description": "Default From address for outgoing emails.",
-      "defaultValue": "noreply@digitalbooking.local"
-    },
-    {
-      "name": "app.mail.support-contact",
-      "type": "java.lang.String",
-      "description": "Support email address shown to users.",
-      "defaultValue": "reservas@digitalbooking.local"
-    },
-    {
-      "name": "app.support.phone",
-      "type": "java.lang.String",
-      "description": "Public support phone number displayed in the app.",
-      "defaultValue": ""
-    },
-    {
-      "name": "app.whatsapp.support-url",
-      "type": "java.lang.String",
-      "description": "Full WhatsApp deeplink for support (e.g. https://wa.me/<number>?text=...).",
-      "defaultValue": ""
-    },
-    {
-      "name": "app.uploads.base-dir",
-      "type": "java.lang.String",
-      "description": "Base directory for file uploads on the server.",
-      "defaultValue": "./storage/uploads"
-    },
-    {
-      "name": "app.uploads.product-dir",
-      "type": "java.lang.String",
-      "description": "Subdirectory for product images.",
-      "defaultValue": "products"
-    },
-    {
-      "name": "app.uploads.category-dir",
-      "type": "java.lang.String",
-      "description": "Subdirectory for category images.",
-      "defaultValue": "categories"
-    },
-    {
-      "name": "app.uploads.max-files-per-directory",
-      "type": "java.lang.Integer",
-      "description": "Maximum files allowed per upload subdirectory.",
-      "defaultValue": 500
-    },
-    {
-      "name": "app.uploads.max-file-size-bytes",
-      "type": "java.lang.Long",
-      "description": "Maximum upload file size in bytes.",
-      "defaultValue": 5242880
-    },
-    {
-      "name": "app.db.ensure-product-rating-columns",
-      "type": "java.lang.Boolean",
-      "description": "Safety flag for schema maintenance to add rating columns if missing.",
-      "defaultValue": true
-    },
-    {
-      "name": "app.security.actuator.info-public",
-      "type": "java.lang.Boolean",
-      "description": "Expose /actuator/info without auth in dev.",
-      "defaultValue": false
-    }
-  ]
-}
+  {
+    "name": "app.frontend.base-url",
+    "type": "java.lang.String",
+    "description": "Base URL for the frontend used in links inside emails and redirects.",
+    "defaultValue": "http://localhost:5173"
+  },
+  {
+    "name": "app.mail.from",
+    "type": "java.lang.String",
+    "description": "Default From address for outgoing emails.",
+    "defaultValue": "noreply@digitalbooking.local"
+  },
+  {
+    "name": "app.mail.support-contact",
+    "type": "java.lang.String",
+    "description": "Support email address shown to users.",
+    "defaultValue": "reservas@digitalbooking.local"
+  },
+  {
+    "name": "app.support.phone",
+    "type": "java.lang.String",
+    "description": "Public support phone number displayed in the app.",
+    "defaultValue": ""
+  },
+  {
+    "name": "app.whatsapp.support-url",
+    "type": "java.lang.String",
+    "description": "Full WhatsApp deeplink for support (e.g. https://wa.me/<number>?text=...).",
+    "defaultValue": ""
+  },
+  {
+    "name": "app.uploads.base-dir",
+    "type": "java.lang.String",
+    "description": "Base directory for file uploads on the server.",
+    "defaultValue": "./storage/uploads"
+  },
+  {
+    "name": "app.uploads.product-dir",
+    "type": "java.lang.String",
+    "description": "Subdirectory for product images.",
+    "defaultValue": "products"
+  },
+  {
+    "name": "app.uploads.category-dir",
+    "type": "java.lang.String",
+    "description": "Subdirectory for category images.",
+    "defaultValue": "categories"
+  },
+  {
+    "name": "app.uploads.max-files-per-directory",
+    "type": "java.lang.Integer",
+    "description": "Maximum files allowed per upload subdirectory.",
+    "defaultValue": 500
+  },
+  {
+    "name": "app.uploads.max-file-size-bytes",
+    "type": "java.lang.Long",
+    "description": "Maximum upload file size in bytes.",
+    "defaultValue": 5242880
+  },
+  {
+    "name": "app.db.ensure-product-rating-columns",
+    "type": "java.lang.Boolean",
+    "description": "Safety flag for schema maintenance to add rating columns if missing.",
+    "defaultValue": true
+  },
+  {
+    "name": "app.security.actuator.info-public",
+    "type": "java.lang.Boolean",
+    "description": "Expose /actuator/info without auth in dev.",
+    "defaultValue": false
+  },
+  {
+    "name": "features.reviews.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'features.reviews.enabled'"
+  }
+]}

@@ -12,6 +12,7 @@ import com.miapp.reservashotel.service.FavoriteService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // <-- IMPORTANTE
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -43,6 +44,7 @@ public class FavoriteServiceImpl implements FavoriteService {
     }
 
     @Override
+    @Transactional // <-- escribe (create or get existing)
     public FavoriteResponseDTO addFavorite(Long productId) {
         Long userId = currentUserId();
 
@@ -63,12 +65,15 @@ public class FavoriteServiceImpl implements FavoriteService {
     }
 
     @Override
+    @Transactional // <-- escribe (delete); si no existe, borra 0 filas y no lanza excepción
     public void removeFavorite(Long productId) {
         Long userId = currentUserId();
         favoriteRepository.deleteByUserIdAndProductId(userId, productId);
+        // idempotente: no importa si no existía, devolvemos 204 desde el controller
     }
 
     @Override
+    @Transactional(readOnly = true) // <-- solo lectura
     public List<FavoriteResponseDTO> listMyFavorites() {
         Long userId = currentUserId();
         return favoriteRepository.findByUserIdOrderByCreatedAtDesc(userId)
@@ -81,8 +86,12 @@ public class FavoriteServiceImpl implements FavoriteService {
                 .collect(Collectors.toList());
     }
 
+    /** Resolve current user id from SecurityContext (principal = email). */
     private Long currentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new ResourceNotFoundException("No authenticated user in context");
+        }
         String email = auth.getName();
         User u = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found: " + email));

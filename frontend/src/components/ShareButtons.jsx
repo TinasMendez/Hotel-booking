@@ -1,12 +1,12 @@
+// frontend/src/components/ShareButtons.jsx
 import React, { useMemo, useState } from "react";
 import ShareModal from "./ShareModal";
 
 /**
- * Small wrapper that opens a modal with deep-links for social networks.
- * - A11y: focus-ring on trigger button, clear aria labeling.
- * - Styling: Tailwind utilities (no inline <style>).
+ * Small wrapper that opens a modal with deep-links for FB/Twitter/IG.
+ * Now uses the unified button system (.btn-outline .btn-sm + .focus-ring).
  */
-export default function ShareButtons({ product, variant = "primary" }) {
+export default function ShareButtons({ product, variant = "outline", size = "sm", label = "Share" }) {
   const [open, setOpen] = useState(false);
 
   const share = useMemo(
@@ -19,34 +19,17 @@ export default function ShareButtons({ product, variant = "primary" }) {
     [product]
   );
 
-  // Choose button style by variant
-  const baseBtn = "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm focus-ring";
-  const styles =
-    variant === "secondary"
-      ? `${baseBtn} border border-slate-300 bg-white hover:bg-slate-50`
-      : `${baseBtn} bg-emerald-600 text-white hover:bg-emerald-700`;
+  const cls =
+    `${variant === "primary" ? "btn-primary" : "btn-outline"} ` +
+    `${size === "lg" ? "btn-lg" : size === "sm" ? "btn-sm" : "btn-md"} focus-ring`;
 
   return (
     <>
-      <button
-        type="button"
-        className={styles}
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-label="Open share options"
-        title="Share this listing"
-      >
-        {/* Simple share glyph */}
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
-          <path
-            fill="currentColor"
-            d="M18 8a3 3 0 10-2.83-4H15a3 3 0 102.83 4H18zm-12 8a3 3 0 102.83 4H9a3 3 0 10-2.83-4H6zm.59-5.41l8.82-4.41a1 1 0 11.9 1.79l-8.82 4.41a1 1 0 01-.9-1.79zm0 5l8.82 4.41a1 1 0 00.9-1.79l-8.82-4.41a1 1 0 10-.9 1.79z"
-          />
-        </svg>
-        Share
+      <button className={cls} onClick={() => setOpen(true)}>
+        {/* Simple icon + label keeps semantics accessible */}
+        <span className="text-base leading-none">🔗</span>
+        {label}
       </button>
-
       <ShareModal open={open} onClose={() => setOpen(false)} data={share} />
     </>
   );
