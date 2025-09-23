@@ -6,7 +6,11 @@ export function getInitials(input) {
     full = input.trim();
   } else {
     const { firstName, lastName, name, email } = input;
-    full = [firstName, lastName].filter(Boolean).join(" ").trim() || name || email || "";
+    full =
+      [firstName, lastName].filter(Boolean).join(" ").trim() ||
+      name ||
+      email ||
+      "";
   }
   const parts = full.split(/\s+/g).filter(Boolean);
   const a = parts[0]?.[0] || "";
@@ -26,8 +30,10 @@ export function hasRole(user, role) {
   const arr = Array.isArray(user?.roles)
     ? user.roles
     : typeof user?.role === "string"
-    ? [user.role]
-    : [];
-  const names = arr.map((r) => (typeof r === "string" ? r : r?.name)).filter(Boolean);
+      ? [user.role]
+      : [];
+  const names = arr
+    .map((r) => (typeof r === "string" ? r : r?.name))
+    .filter(Boolean);
   return names.includes(role);
 }

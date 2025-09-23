@@ -19,14 +19,19 @@ export default function AdminRoles() {
       const list = await AdminAPI.listAdmins();
       setAdmins(Array.isArray(list) ? list : []);
     } catch (e) {
-      const normalized = normalizeApiError(e, formatMessage({ id: "errors.generic" }));
+      const normalized = normalizeApiError(
+        e,
+        formatMessage({ id: "errors.generic" }),
+      );
       setError(getApiErrorMessage(normalized, formatMessage));
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   async function handleGrant(e) {
     e.preventDefault();
@@ -40,7 +45,10 @@ export default function AdminRoles() {
       setEmail("");
       await load();
     } catch (e) {
-      const normalized = normalizeApiError(e, formatMessage({ id: "errors.generic" }));
+      const normalized = normalizeApiError(
+        e,
+        formatMessage({ id: "errors.generic" }),
+      );
       setError(getApiErrorMessage(normalized, formatMessage));
     } finally {
       setSubmitting(false);
@@ -58,7 +66,10 @@ export default function AdminRoles() {
       setMessage(`Revoked ADMIN role from ${targetEmail}`);
       await load();
     } catch (e) {
-      const normalized = normalizeApiError(e, formatMessage({ id: "errors.generic" }));
+      const normalized = normalizeApiError(
+        e,
+        formatMessage({ id: "errors.generic" }),
+      );
       setError(getApiErrorMessage(normalized, formatMessage));
     } finally {
       setSubmitting(false);
@@ -69,7 +80,9 @@ export default function AdminRoles() {
     <div className="space-y-6">
       <header>
         <h2 className="text-2xl font-semibold">Administrators</h2>
-        <p className="text-sm text-gray-500">Assign or revoke ADMIN role by email.</p>
+        <p className="text-sm text-gray-500">
+          Assign or revoke ADMIN role by email.
+        </p>
       </header>
 
       <form onSubmit={handleGrant} className="flex flex-wrap gap-3 items-end">
@@ -99,7 +112,9 @@ export default function AdminRoles() {
       {loading ? (
         <p>Loading admins…</p>
       ) : admins.length === 0 ? (
-        <p className="text-gray-600">No administrators yet. Use the form above to add one.</p>
+        <p className="text-gray-600">
+          No administrators yet. Use the form above to add one.
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -114,7 +129,9 @@ export default function AdminRoles() {
               {admins.map((admin) => (
                 <tr key={admin.id} className="border-b">
                   <td className="py-2 px-3">{admin.email}</td>
-                  <td className="py-2 px-3 text-sm text-gray-600">{Array.isArray(admin.roles) ? admin.roles.join(", ") : ""}</td>
+                  <td className="py-2 px-3 text-sm text-gray-600">
+                    {Array.isArray(admin.roles) ? admin.roles.join(", ") : ""}
+                  </td>
                   <td className="py-2 px-3 text-right">
                     <button
                       onClick={() => handleRevoke(admin.email)}

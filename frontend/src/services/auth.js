@@ -14,7 +14,7 @@ function extractToken(data) {
 function authError(e) {
   if (e?.response) {
     const { status, data } = e.response;
-    const msg = typeof data === "string" ? data : (data?.message || "Forbidden");
+    const msg = typeof data === "string" ? data : data?.message || "Forbidden";
     return new Error(`HTTP ${status} during login: ${msg}`);
   }
   if (e?.request) return new Error("Network error (no response) during login");

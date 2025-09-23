@@ -3,5 +3,5 @@ export default {
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: { extend: {} },
   // Enable official Tailwind plugins
-  plugins: [require("@tailwindcss/line-clamp")]
+  plugins: [require("@tailwindcss/line-clamp")],
 };

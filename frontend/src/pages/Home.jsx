@@ -34,14 +34,20 @@ export default function Home() {
     }
   }
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => {
+    loadAll();
+  }, []);
 
   async function handleSearch(params) {
     setSearching(true);
     setListError("");
     try {
       const page = await searchProducts(params);
-      const list = Array.isArray(page?.content) ? page.content : (Array.isArray(page) ? page : []);
+      const list = Array.isArray(page?.content)
+        ? page.content
+        : Array.isArray(page)
+          ? page
+          : [];
       setProducts(list);
     } catch {
       setListError("Search failed. Please try again.");
@@ -77,25 +83,39 @@ export default function Home() {
           Find stays by date and city
         </h2>
         <p className="text-sm text-slate-600 mb-4">
-          Use the search to filter by city and date range. You can also explore by category below.
+          Use the search to filter by city and date range. You can also explore
+          by category below.
         </p>
         <SearchBar onSearch={handleSearch} onReset={handleReset} />
       </section>
 
       {/* Categories filter (optional) */}
       <section aria-labelledby="home-categories">
-        <h2 id="home-categories" className="text-xl font-semibold mb-2">Categories</h2>
-        <p className="text-sm text-slate-600 mb-3">Discover by type to find the best match.</p>
+        <h2 id="home-categories" className="text-xl font-semibold mb-2">
+          Categories
+        </h2>
+        <p className="text-sm text-slate-600 mb-3">
+          Discover by type to find the best match.
+        </p>
         <div className="max-w-lg">
-          <CategoryFilter value={categoryFilter} onChange={handleCategoryChange} />
+          <CategoryFilter
+            value={categoryFilter}
+            onChange={handleCategoryChange}
+          />
         </div>
       </section>
 
       {/* Main listing */}
       <section aria-labelledby="home-list">
         <div className="flex items-center justify-between mb-3">
-          <h2 id="home-list" className="text-xl font-semibold">Find your perfect stay</h2>
-          <button type="button" onClick={loadAll} className="btn-outline btn-sm focus-ring">
+          <h2 id="home-list" className="text-xl font-semibold">
+            Find your perfect stay
+          </h2>
+          <button
+            type="button"
+            onClick={loadAll}
+            className="btn-outline btn-sm focus-ring"
+          >
             Refresh
           </button>
         </div>

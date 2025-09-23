@@ -25,12 +25,20 @@ export async function getCategories() {
 export async function getAllProducts({ page = 0, size = 100 } = {}) {
   try {
     const data = await Api.get("/products", { params: { page, size } });
-    let list = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
+    let list = Array.isArray(data?.content)
+      ? data.content
+      : Array.isArray(data)
+        ? data
+        : [];
     if (list.length) return list;
   } catch (_) {}
   try {
     const data = await Api.get("/products/search", { params: { page, size } });
-    return Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
+    return Array.isArray(data?.content)
+      ? data.content
+      : Array.isArray(data)
+        ? data
+        : [];
   } catch (_) {
     return [];
   }

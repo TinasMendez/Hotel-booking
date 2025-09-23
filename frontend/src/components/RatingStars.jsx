@@ -11,7 +11,7 @@ export default function RatingStars({
   count = null,
   size = "sm",
   className = "",
-  showLabel = false
+  showLabel = false,
 }) {
   const v = Math.max(0, Math.min(Number(value) || 0, max));
   const pct = (v / max) * 100;
@@ -33,7 +33,10 @@ export default function RatingStars({
           ))}
         </div>
         {/* Filled stars overlay, clipped by width */}
-        <div className="absolute inset-0 overflow-hidden" style={{ width: `${pct}%` }}>
+        <div
+          className="absolute inset-0 overflow-hidden"
+          style={{ width: `${pct}%` }}
+        >
           <div className="flex">
             {Array.from({ length: max }).map((_, i) => (
               <Star key={`f-${i}`} className={`${dim} text-amber-500`} />

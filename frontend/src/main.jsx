@@ -19,5 +19,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         </ToastProvider>
       </I18nProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

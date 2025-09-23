@@ -1,5 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
+import {
+  useParams,
+  useSearchParams,
+  useNavigate,
+  Link,
+} from "react-router-dom";
 import { fetchProductById, createBooking } from "../services/booking";
 import api from "../services/api";
 
@@ -33,24 +38,43 @@ export default function Booking() {
       .catch(() => mounted && setError("Invalid product identifier."));
 
     // User
-    api.get("/api/v1/auth/me").then(({ data }) => {
-      if (mounted) setMe(data || null);
-    }).catch(() => { /* ignore */ });
+    api
+      .get("/api/v1/auth/me")
+      .then(({ data }) => {
+        if (mounted) setMe(data || null);
+      })
+      .catch(() => {
+        /* ignore */
+      });
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
-  const canSubmit = useMemo(() => Boolean(product && from && to), [product, from, to]);
+  const canSubmit = useMemo(
+    () => Boolean(product && from && to),
+    [product, from, to],
+  );
 
   async function submit() {
     if (!canSubmit) return;
     setSubmitting(true);
     setError("");
     try {
-      await createBooking({ productId: Number(id), startDate: from, endDate: to });
-      navigate(`/booking/${id}/success?from=${from}&to=${to}`, { replace: true });
+      await createBooking({
+        productId: Number(id),
+        startDate: from,
+        endDate: to,
+      });
+      navigate(`/booking/${id}/success?from=${from}&to=${to}`, {
+        replace: true,
+      });
     } catch (e) {
-      setError(e?.response?.data?.message || "Unable to create booking. Please try again.");
+      setError(
+        e?.response?.data?.message ||
+          "Unable to create booking. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -59,13 +83,21 @@ export default function Booking() {
   if (error && !product) {
     return (
       <main className="wrap">
-        <p className="error">{error} <Link to="/">Back to home</Link></p>
+        <p className="error">
+          {error} <Link to="/">Back to home</Link>
+        </p>
         <style>{`.wrap{ padding:2rem; } .error{ color:#b91c1c; }`}</style>
       </main>
     );
   }
 
-  if (!product) return <main className="wrap"><p>Loading…</p><style>{`.wrap{ padding:2rem; }`}</style></main>;
+  if (!product)
+    return (
+      <main className="wrap">
+        <p>Loading…</p>
+        <style>{`.wrap{ padding:2rem; }`}</style>
+      </main>
+    );
 
   return (
     <main className="wrap">
@@ -77,10 +109,15 @@ export default function Booking() {
         <article className="card">
           <h2>Product</h2>
           <div className="prod">
-            <img src={product.images?.[0] || product.imageUrl} alt={product.name} />
+            <img
+              src={product.images?.[0] || product.imageUrl}
+              alt={product.name}
+            />
             <div>
               <b>{product.name}</b>
-              <p className="muted">{product.description?.slice(0, 120) || "—"}</p>
+              <p className="muted">
+                {product.description?.slice(0, 120) || "—"}
+              </p>
             </div>
           </div>
         </article>
@@ -89,8 +126,16 @@ export default function Booking() {
           <h2>Your details</h2>
           {me ? (
             <ul className="list">
-              <li><span>Name</span><b>{me.firstName} {me.lastName}</b></li>
-              <li><span>Email</span><b>{me.email}</b></li>
+              <li>
+                <span>Name</span>
+                <b>
+                  {me.firstName} {me.lastName}
+                </b>
+              </li>
+              <li>
+                <span>Email</span>
+                <b>{me.email}</b>
+              </li>
             </ul>
           ) : (
             <p className="muted">Signed in user data not available.</p>
@@ -102,18 +147,28 @@ export default function Booking() {
           <div className="dates">
             <label>
               From
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+              <input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
             </label>
             <label>
               To
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+              <input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
             </label>
           </div>
           <button disabled={!canSubmit || submitting} onClick={submit}>
             {submitting ? "Creating booking…" : "Confirm booking"}
           </button>
           {error && <p className="error">{error}</p>}
-          <p className="note">You will receive a confirmation email after a successful booking.</p>
+          <p className="note">
+            You will receive a confirmation email after a successful booking.
+          </p>
         </article>
       </section>
 

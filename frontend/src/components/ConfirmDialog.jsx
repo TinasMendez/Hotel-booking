@@ -50,9 +50,9 @@ export default function ConfirmDialog({
     if (!open) return;
     if (!dialogRef.current) return;
     const selectors = "button, [href], [tabindex]:not([tabindex='-1'])";
-    const focusables = Array.from(dialogRef.current.querySelectorAll(selectors)).filter(
-      (node) => !node.hasAttribute("disabled"),
-    );
+    const focusables = Array.from(
+      dialogRef.current.querySelectorAll(selectors),
+    ).filter((node) => !node.hasAttribute("disabled"));
     focusableRef.current = focusables;
     focusables[0]?.focus();
   }, [open]);
@@ -82,11 +82,18 @@ export default function ConfirmDialog({
         className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-5"
       >
         <div className="space-y-2">
-          <h2 id="confirm-dialog-title" className="text-xl font-semibold text-slate-900">
+          <h2
+            id="confirm-dialog-title"
+            className="text-xl font-semibold text-slate-900"
+          >
             {title}
           </h2>
-          {description ? <p className="text-sm text-slate-600">{description}</p> : null}
-          {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+          {description ? (
+            <p className="text-sm text-slate-600">{description}</p>
+          ) : null}
+          {errorMessage ? (
+            <p className="text-sm text-red-600">{errorMessage}</p>
+          ) : null}
         </div>
         <div className="flex justify-end gap-3">
           <button
@@ -103,7 +110,7 @@ export default function ConfirmDialog({
             disabled={loading}
             className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${confirmClasses}`}
           >
-            {loading ? confirmLoadingLabel ?? confirmLabel : confirmLabel}
+            {loading ? (confirmLoadingLabel ?? confirmLabel) : confirmLabel}
           </button>
         </div>
       </div>

@@ -1,5 +1,11 @@
 // frontend/src/modules/auth/AuthContext.jsx
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import Api, { AuthAPI, clearToken as apiClearToken } from "../../services/api";
 
 const AuthCtx = createContext(null);
@@ -59,7 +65,7 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(
     () => ({ user, isLoadingAuth, booted, authError, login, logout }),
-    [user, isLoadingAuth, booted, authError]
+    [user, isLoadingAuth, booted, authError],
   );
 
   // Render children immediately; consumers can rely on isLoadingAuth/booted

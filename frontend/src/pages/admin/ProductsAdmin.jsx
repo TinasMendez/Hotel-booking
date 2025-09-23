@@ -21,9 +21,15 @@ export default function ProductsAdmin() {
       const { data } = await Api.get("/products", {
         params: { page: p - 1, size: PAGE_SIZE, sort: "name,asc" },
       });
-      const content = Array.isArray(data?.content) ? data.content : Array.isArray(data) ? data : [];
+      const content = Array.isArray(data?.content)
+        ? data.content
+        : Array.isArray(data)
+          ? data
+          : [];
       const totalElements =
-        typeof data?.totalElements === "number" ? data.totalElements : content.length;
+        typeof data?.totalElements === "number"
+          ? data.totalElements
+          : content.length;
       const totalPages =
         typeof data?.totalPages === "number"
           ? data.totalPages
@@ -57,7 +63,10 @@ export default function ProductsAdmin() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Products</h1>
-        <Link to="/admin/products/new" className="px-3 py-2 rounded-lg border hover:bg-slate-50">
+        <Link
+          to="/admin/products/new"
+          className="px-3 py-2 rounded-lg border hover:bg-slate-50"
+        >
           Add product
         </Link>
       </div>
@@ -100,7 +109,10 @@ export default function ProductsAdmin() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-3 py-6 text-center text-slate-500">
+                  <td
+                    colSpan={3}
+                    className="px-3 py-6 text-center text-slate-500"
+                  >
                     No products found.
                   </td>
                 </tr>

@@ -40,8 +40,8 @@ async function enrichProductNames(rows) {
       rows
         .filter((b) => !b.productName && (b.productId || b.product?.id))
         .map((b) => Number(b.productId || b.product?.id))
-        .filter((n) => Number.isFinite(n) && n > 0)
-    )
+        .filter((n) => Number.isFinite(n) && n > 0),
+    ),
   );
 
   if (missingIds.length === 0) return rows;
@@ -71,7 +71,7 @@ async function enrichProductNames(rows) {
           // keep missing — we'll render a readable fallback below
         }
       }
-    })
+    }),
   );
 
   // Return new array with names patched when found
@@ -102,7 +102,7 @@ export default function Bookings() {
       setRows(withNames);
     } catch (e) {
       setError(
-        e?.response?.data?.message || e?.message || "Error loading bookings"
+        e?.response?.data?.message || e?.message || "Error loading bookings",
       );
       setRows([]);
     } finally {
@@ -119,7 +119,7 @@ export default function Bookings() {
     try {
       await BookingAPI.cancelBooking(id);
       setRows((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, status: "CANCELLED" } : b))
+        prev.map((b) => (b.id === id ? { ...b, status: "CANCELLED" } : b)),
       );
       toast?.success?.("Booking cancelled");
     } catch (e) {
@@ -170,9 +170,7 @@ export default function Bookings() {
 
           // Shortcut to rebook with last range
           const bookAgainHref = `/product/${b.productId}/book${
-            from || to
-              ? `?${new URLSearchParams({ from, to }).toString()}`
-              : ""
+            from || to ? `?${new URLSearchParams({ from, to }).toString()}` : ""
           }`;
 
           return (
@@ -184,7 +182,9 @@ export default function Bookings() {
                 <div className="font-semibold text-slate-900">
                   {productLabel} — <StatusBadge status={b.status} />
                 </div>
-                <div className="text-sm text-slate-700">{from} → {to}</div>
+                <div className="text-sm text-slate-700">
+                  {from} → {to}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">

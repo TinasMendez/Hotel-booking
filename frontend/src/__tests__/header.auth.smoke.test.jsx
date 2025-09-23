@@ -9,27 +9,29 @@ import { ToastProvider } from "../shared/ToastProvider.jsx";
 import { AuthProvider } from "../modules/auth/AuthContext.jsx";
 
 function Wrapper({ children }) {
-    return (
-        <BrowserRouter>
-        <I18nProvider>
-            <ToastProvider>
-            <AuthProvider>{children}</AuthProvider>
-            </ToastProvider>
-        </I18nProvider>
-        </BrowserRouter>
-    );
-    }
+  return (
+    <BrowserRouter>
+      <I18nProvider>
+        <ToastProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ToastProvider>
+      </I18nProvider>
+    </BrowserRouter>
+  );
+}
 
-    test("renders header with auth CTAs when unauthenticated", async () => {
-    render(<App />, { wrapper: Wrapper });
+test("renders header with auth CTAs when unauthenticated", async () => {
+  render(<App />, { wrapper: Wrapper });
 
-    const header = screen.getByRole("banner");
-    expect(header).toBeInTheDocument();
+  const header = screen.getByRole("banner");
+  expect(header).toBeInTheDocument();
 
-    // Use role-based queries to avoid collisions with footer text
-    const createAccount = within(header).getByRole("link", { name: /Create account/i });
-    const signIn = within(header).getByRole("link", { name: /Sign in/i });
+  // Use role-based queries to avoid collisions with footer text
+  const createAccount = within(header).getByRole("link", {
+    name: /Create account/i,
+  });
+  const signIn = within(header).getByRole("link", { name: /Sign in/i });
 
-    expect(createAccount).toBeInTheDocument();
-    expect(signIn).toBeInTheDocument();
+  expect(createAccount).toBeInTheDocument();
+  expect(signIn).toBeInTheDocument();
 });

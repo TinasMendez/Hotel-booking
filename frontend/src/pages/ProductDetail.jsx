@@ -71,8 +71,12 @@ export default function ProductDetail() {
     }
   }, [productId]);
 
-  useEffect(() => { fetchProduct(); }, [fetchProduct]);
-  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+  useEffect(() => {
+    fetchProduct();
+  }, [fetchProduct]);
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   const onReserve = () => {
     const from = toISO(range.from);
@@ -89,7 +93,9 @@ export default function ProductDetail() {
     return (
       <div className="p-6">
         <p className="text-red-600">Product not found.</p>
-        <Link to="/" className="underline focus-ring rounded">Go back to Home</Link>
+        <Link to="/" className="underline focus-ring rounded">
+          Go back to Home
+        </Link>
       </div>
     );
   }
@@ -97,7 +103,9 @@ export default function ProductDetail() {
     return (
       <div className="p-6">
         <p className="text-red-600">{error}</p>
-        <Link to="/" className="underline focus-ring rounded">Go back to Home</Link>
+        <Link to="/" className="underline focus-ring rounded">
+          Go back to Home
+        </Link>
       </div>
     );
   }
@@ -149,7 +157,11 @@ export default function ProductDetail() {
               title="No images available"
               description="This listing does not include images yet."
               icon={
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-10 w-10">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-10 w-10"
+                >
                   <path
                     fill="currentColor"
                     d="M21 5H3a2 2 0 00-2 2v10a2 2 0 002 2h18a2 2 0 002-2V7a2 2 0 00-2-2zm0 12H3V7h18v10zM8.5 12a2.5 2.5 0 115 0a2.5 2.5 0 01-5 0zm7.5 4l-3.5-4.5L10 14l-2-2.5L5 16h11z"
@@ -163,25 +175,36 @@ export default function ProductDetail() {
         {/* Description */}
         <section>
           <h2 className="text-lg font-semibold mb-2">Description</h2>
-          <p className="text-gray-700">{product?.description || "No description available."}</p>
+          <p className="text-gray-700">
+            {product?.description || "No description available."}
+          </p>
         </section>
 
         {/* Features */}
         <section aria-labelledby="features-title">
-          <h2 id="features-title" className="text-lg font-semibold mb-2">Features</h2>
-          <FeaturesBlock features={product?.features || []} renderTitle={false} />
+          <h2 id="features-title" className="text-lg font-semibold mb-2">
+            Features
+          </h2>
+          <FeaturesBlock
+            features={product?.features || []}
+            renderTitle={false}
+          />
         </section>
 
         {/* Reviews */}
         <section aria-labelledby="reviews-title">
-          <h2 id="reviews-title" className="sr-only">Reviews</h2>
+          <h2 id="reviews-title" className="sr-only">
+            Reviews
+          </h2>
           <ReviewsList productId={productId} />
         </section>
 
         {/* Availability */}
         <section className="space-y-3" aria-labelledby="availability-title">
           <div className="flex items-center justify-between">
-            <h2 id="availability-title" className="text-lg font-semibold">Availability</h2>
+            <h2 id="availability-title" className="text-lg font-semibold">
+              Availability
+            </h2>
             <span className="text-sm text-gray-500">
               Existing bookings: {bookings.length}
             </span>
@@ -204,7 +227,9 @@ export default function ProductDetail() {
         </section>
 
         <section aria-labelledby="policies-title">
-          <h2 id="policies-title" className="sr-only">Policies</h2>
+          <h2 id="policies-title" className="sr-only">
+            Policies
+          </h2>
           <PolicyBlock policies={product?.policies || []} />
         </section>
       </section>

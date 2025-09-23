@@ -3,7 +3,9 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 
 /** Basic guard: if not authenticated, redirect to /login and keep return URL. */
-export function AuthGuard({ reason = "Necesitas iniciar sesión para continuar." }) {
+export function AuthGuard({
+  reason = "Necesitas iniciar sesión para continuar.",
+}) {
   const { isAuthenticated, isLoadingAuth, authError } = useAuth();
   const location = useLocation();
 

@@ -22,7 +22,7 @@ export default function ProductCard({ product, onFavoriteChange }) {
             font-family='Inter,system-ui,Arial' font-size='20' fill='#475569'>
             No image
           </text>
-        </svg>`
+        </svg>`,
       );
   const average = Number(product?.ratingAverage ?? 0);
   const count = Number(product?.ratingCount ?? 0);
@@ -43,13 +43,17 @@ export default function ProductCard({ product, onFavoriteChange }) {
 
       <div className="p-4 space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-semibold text-slate-900 line-clamp-1">{product?.name}</h3>
+          <h3 className="font-semibold text-slate-900 line-clamp-1">
+            {product?.name}
+          </h3>
           <div className="text-sm text-amber-600 shrink-0">
             {count > 0 ? `★ ${average.toFixed(1)} (${count})` : "No ratings"}
           </div>
         </div>
 
-        <p className="text-sm text-slate-600 line-clamp-2">{product?.description}</p>
+        <p className="text-sm text-slate-600 line-clamp-2">
+          {product?.description}
+        </p>
 
         <div className="pt-2">
           <Link to={`/product/${id}`} className="btn-outline focus-ring">

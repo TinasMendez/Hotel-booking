@@ -20,7 +20,7 @@ export default function ShareModal({ open = false, onClose, data }) {
       } else if (e.key === "Tab") {
         // Minimal focus trap
         const focusable = dialogRef.current?.querySelectorAll(
-          'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])'
+          'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])',
         );
         if (!focusable || focusable.length === 0) return;
         const first = focusable[0];
@@ -47,7 +47,8 @@ export default function ShareModal({ open = false, onClose, data }) {
 
   if (!open) return null;
 
-  const url = data?.url || (typeof window !== "undefined" ? window.location.href : "");
+  const url =
+    data?.url || (typeof window !== "undefined" ? window.location.href : "");
   const title = data?.title || "Check this listing";
   const text = data?.description || "Found this on Digital Booking";
   const encoded = encodeURIComponent;

@@ -47,7 +47,10 @@ export default function CategoryCreateAdmin() {
         toast?.success("Image uploaded");
       }
     } catch (err) {
-      const normalized = normalizeApiError(err, formatMessage({ id: "errors.generic" }));
+      const normalized = normalizeApiError(
+        err,
+        formatMessage({ id: "errors.generic" }),
+      );
       const message = getApiErrorMessage(normalized, formatMessage);
       setError(message);
       toast?.error(message);
@@ -72,7 +75,10 @@ export default function CategoryCreateAdmin() {
       toast?.success("Category created");
       navigate("/admin/categories");
     } catch (err) {
-      const normalized = normalizeApiError(err, formatMessage({ id: "errors.generic" }));
+      const normalized = normalizeApiError(
+        err,
+        formatMessage({ id: "errors.generic" }),
+      );
       const message = getApiErrorMessage(normalized, formatMessage);
       setError(message);
       toast?.error(message);
@@ -124,7 +130,8 @@ export default function CategoryCreateAdmin() {
         <section className="space-y-3">
           <h3 className="text-lg font-semibold">Image</h3>
           <p className="text-sm text-gray-600">
-            Upload a new image or paste a URL. The first option will store the file under the admin uploads directory.
+            Upload a new image or paste a URL. The first option will store the
+            file under the admin uploads directory.
           </p>
           <div className="flex flex-col md:flex-row gap-4 bg-gray-50 border border-gray-200 rounded-2xl p-4">
             <label className="w-full md:w-64 h-40 border-dashed border-2 border-gray-300 rounded flex flex-col items-center justify-center cursor-pointer text-sm text-gray-500 bg-white">
@@ -151,7 +158,11 @@ export default function CategoryCreateAdmin() {
               </label>
               {preview && (
                 <div className="border rounded overflow-hidden w-full md:w-72 h-40">
-                  <img src={preview} alt="Category preview" className="w-full h-full object-cover" />
+                  <img
+                    src={preview}
+                    alt="Category preview"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               )}
             </div>

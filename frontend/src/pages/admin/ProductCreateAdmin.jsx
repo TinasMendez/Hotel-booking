@@ -157,9 +157,11 @@ export default function ProductCreateAdmin() {
       const status = err?.response?.status;
       let message;
       if (status === 409) {
-        message = "Name already in use. Please choose a different product name.";
+        message =
+          "Name already in use. Please choose a different product name.";
       } else {
-        message = err?.response?.data?.message || err?.message || "Create failed";
+        message =
+          err?.response?.data?.message || err?.message || "Create failed";
       }
       setSubmitError(message);
       toast?.error(message);
@@ -243,7 +245,9 @@ export default function ProductCreateAdmin() {
             >
               <option value="">Select a city</option>
               {cities.map((city) => (
-                <option key={city.id} value={city.id}>{city.name}</option>
+                <option key={city.id} value={city.id}>
+                  {city.name}
+                </option>
               ))}
             </select>
           </label>
@@ -258,7 +262,9 @@ export default function ProductCreateAdmin() {
             >
               <option value="">Select a category</option>
               {categories.map((category) => (
-                <option key={category.id} value={category.id}>{category.name}</option>
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
               ))}
             </select>
           </label>
@@ -293,11 +299,20 @@ export default function ProductCreateAdmin() {
         </section>
 
         <section className="space-y-3">
-          <h3 className="text-lg font-semibold">Gallery ({imageUrls.length}/{MAX_IMAGES})</h3>
+          <h3 className="text-lg font-semibold">
+            Gallery ({imageUrls.length}/{MAX_IMAGES})
+          </h3>
           <div className="flex flex-wrap gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-4">
             {imageUrls.map((url) => (
-              <div key={url} className="relative w-32 h-32 border rounded overflow-hidden">
-                <img src={url} alt="Product" className="w-full h-full object-cover" />
+              <div
+                key={url}
+                className="relative w-32 h-32 border rounded overflow-hidden"
+              >
+                <img
+                  src={url}
+                  alt="Product"
+                  className="w-full h-full object-cover"
+                />
                 <button
                   type="button"
                   onClick={() => removeImage(url)}

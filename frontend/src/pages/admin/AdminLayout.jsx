@@ -1,9 +1,9 @@
 // src/pages/admin/AdminLayout.jsx
 // Minimal admin layout with a left sidebar and top title.
 
-import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import useIsMobile from '../../hooks/useIsMobile.js';
+import React from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import useIsMobile from "../../hooks/useIsMobile.js";
 
 export default function AdminLayout() {
   const isMobile = useIsMobile();
@@ -12,12 +12,15 @@ export default function AdminLayout() {
   if (isMobile) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center space-y-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Administration is not available on mobile</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">
+          Administration is not available on mobile
+        </h1>
         <p className="text-sm text-slate-600 max-w-md">
-          Please use the desktop version to manage products, categories and reservations. You can continue browsing properties on your phone.
+          Please use the desktop version to manage products, categories and
+          reservations. You can continue browsing properties on your phone.
         </p>
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
         >
           Back to home
@@ -37,7 +40,7 @@ export default function AdminLayout() {
           </div>
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="w-full px-3 py-2 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
           >
             ← Back to Home
@@ -47,7 +50,7 @@ export default function AdminLayout() {
           <NavLink
             to="products"
             className={({ isActive }) =>
-              `block px-3 py-2 rounded ${isActive ? 'bg-gray-900 text-white' : 'hover:bg-gray-200'}`
+              `block px-3 py-2 rounded ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"}`
             }
           >
             Products
@@ -55,7 +58,7 @@ export default function AdminLayout() {
           <NavLink
             to="categories"
             className={({ isActive }) =>
-              `block px-3 py-2 rounded ${isActive ? 'bg-gray-900 text-white' : 'hover:bg-gray-200'}`
+              `block px-3 py-2 rounded ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"}`
             }
           >
             Categories
@@ -63,7 +66,7 @@ export default function AdminLayout() {
           <NavLink
             to="features"
             className={({ isActive }) =>
-              `block px-3 py-2 rounded ${isActive ? 'bg-gray-900 text-white' : 'hover:bg-gray-200'}`
+              `block px-3 py-2 rounded ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"}`
             }
           >
             Features
@@ -71,7 +74,7 @@ export default function AdminLayout() {
           <NavLink
             to="admins"
             className={({ isActive }) =>
-              `block px-3 py-2 rounded ${isActive ? 'bg-gray-900 text-white' : 'hover:bg-gray-200'}`
+              `block px-3 py-2 rounded ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"}`
             }
           >
             Admin Roles

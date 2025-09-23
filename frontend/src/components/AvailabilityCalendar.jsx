@@ -9,11 +9,13 @@ import "react-day-picker/dist/style.css";
  * - Disables booked dates.
  * - Controlled range via `value={{from,to}}` + `onChange({from,to})`.
  */
-export default function AvailabilityCalendar({ bookings = [], value = { from: null, to: null }, onChange }) {
+export default function AvailabilityCalendar({
+  bookings = [],
+  value = { from: null, to: null },
+  onChange,
+}) {
   const disabledDays = useMemo(() => {
-    return bookings
-      .map(b => toRange(b.startDate, b.endDate))
-      .filter(Boolean);
+    return bookings.map((b) => toRange(b.startDate, b.endDate)).filter(Boolean);
   }, [bookings]);
 
   return (
@@ -22,12 +24,15 @@ export default function AvailabilityCalendar({ bookings = [], value = { from: nu
         mode="range"
         numberOfMonths={2}
         selected={value}
-        onSelect={(range) => typeof onChange === "function" && onChange(range || { from: null, to: null })}
+        onSelect={(range) =>
+          typeof onChange === "function" &&
+          onChange(range || { from: null, to: null })
+        }
         disabled={disabledDays}
         captionLayout="months"
         className="max-w-full"
         styles={{
-          root: { width: "fit-content" },         // shrink to content
+          root: { width: "fit-content" }, // shrink to content
           months: { display: "flex", gap: "1.25rem" },
         }}
       />

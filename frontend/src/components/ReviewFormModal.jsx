@@ -11,7 +11,12 @@ import { useAuth } from "../modules/auth/AuthContext";
  * - productId: number
  * - onCreated: (createdReview) => void
  */
-export default function ReviewFormModal({ open, onClose, productId, onCreated }) {
+export default function ReviewFormModal({
+  open,
+  onClose,
+  productId,
+  onCreated,
+}) {
   const { user } = useAuth();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -77,7 +82,9 @@ export default function ReviewFormModal({ open, onClose, productId, onCreated })
 
         <form onSubmit={submit} className="space-y-3">
           <label className="block">
-            <span className="block text-sm font-medium text-slate-700">Rating</span>
+            <span className="block text-sm font-medium text-slate-700">
+              Rating
+            </span>
             <select
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring"
               value={rating}
@@ -86,14 +93,25 @@ export default function ReviewFormModal({ open, onClose, productId, onCreated })
             >
               {[5, 4, 3, 2, 1].map((n) => (
                 <option key={n} value={n}>
-                  {n} – {n === 5 ? "Excellent" : n === 4 ? "Good" : n === 3 ? "Average" : n === 2 ? "Poor" : "Terrible"}
+                  {n} –{" "}
+                  {n === 5
+                    ? "Excellent"
+                    : n === 4
+                      ? "Good"
+                      : n === 3
+                        ? "Average"
+                        : n === 2
+                          ? "Poor"
+                          : "Terrible"}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="block">
-            <span className="block text-sm font-medium text-slate-700">Comment (optional)</span>
+            <span className="block text-sm font-medium text-slate-700">
+              Comment (optional)
+            </span>
             <textarea
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring min-h-[90px]"
               placeholder="Share details that might help other guests…"
@@ -106,7 +124,11 @@ export default function ReviewFormModal({ open, onClose, productId, onCreated })
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            >
               Cancel
             </button>
             <button
@@ -122,5 +144,3 @@ export default function ReviewFormModal({ open, onClose, productId, onCreated })
     </div>
   );
 }
-
-

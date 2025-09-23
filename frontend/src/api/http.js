@@ -23,7 +23,8 @@ async function parseResponse(res) {
 }
 
 function toError(res, payload) {
-  const message = payload?.message || payload?.error || `${res.status} ${res.statusText}`;
+  const message =
+    payload?.message || payload?.error || `${res.status} ${res.statusText}`;
   const error = new Error(message);
   error.response = { status: res.status, data: payload };
   return error;

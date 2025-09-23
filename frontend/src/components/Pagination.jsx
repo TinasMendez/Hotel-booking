@@ -24,20 +24,43 @@ export default function Pagination({
     "px-3 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed focus-ring";
 
   return (
-    <nav aria-label="Products pagination" className="flex items-center justify-center gap-2 py-4">
-      <button className={btn} onClick={() => goTo(1)} disabled={page === 1} aria-label="First page">
+    <nav
+      aria-label="Products pagination"
+      className="flex items-center justify-center gap-2 py-4"
+    >
+      <button
+        className={btn}
+        onClick={() => goTo(1)}
+        disabled={page === 1}
+        aria-label="First page"
+      >
         {"<<"}
       </button>
-      <button className={btn} onClick={() => goTo(page - 1)} disabled={page === 1} aria-label="Previous page">
+      <button
+        className={btn}
+        onClick={() => goTo(page - 1)}
+        disabled={page === 1}
+        aria-label="Previous page"
+      >
         {"<"}
       </button>
       <span className="text-sm tabular-nums">
         {page} / {totalPages}
       </span>
-      <button className={btn} onClick={() => goTo(page + 1)} disabled={page === totalPages} aria-label="Next page">
+      <button
+        className={btn}
+        onClick={() => goTo(page + 1)}
+        disabled={page === totalPages}
+        aria-label="Next page"
+      >
         {">"}
       </button>
-      <button className={btn} onClick={() => goTo(totalPages)} disabled={page === totalPages} aria-label="Last page">
+      <button
+        className={btn}
+        onClick={() => goTo(totalPages)}
+        disabled={page === totalPages}
+        aria-label="Last page"
+      >
         {">>"}
       </button>
     </nav>

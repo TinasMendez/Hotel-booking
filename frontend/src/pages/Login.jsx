@@ -30,13 +30,15 @@ export default function Login() {
       await login({ email: email.trim(), password });
       setStatus({ type: "success", message: "Signed in successfully" });
       toast?.success?.("Signed in successfully");
-      const next =
-        returnTo?.pathname
-          ? `${returnTo.pathname}${returnTo.search || ""}${returnTo.hash || ""}`
-          : "/";
+      const next = returnTo?.pathname
+        ? `${returnTo.pathname}${returnTo.search || ""}${returnTo.hash || ""}`
+        : "/";
       navigate(next, { replace: true });
     } catch {
-      setStatus({ type: "error", message: "Invalid credentials. Please try again." });
+      setStatus({
+        type: "error",
+        message: "Invalid credentials. Please try again.",
+      });
       toast?.error?.("Sign in failed");
     } finally {
       setSubmitting(false);

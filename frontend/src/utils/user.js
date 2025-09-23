@@ -18,12 +18,9 @@ export function getUserFirstName(user) {
 
 export function getUserInitials(user) {
   const display = getUserDisplayName(user);
-  const source = display || (user?.email || "");
+  const source = display || user?.email || "";
   if (!source) return "";
-  const segments = source
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
+  const segments = source.split(/\s+/).filter(Boolean).slice(0, 2);
   if (segments.length === 0 && user?.email) {
     return user.email.slice(0, 2).toUpperCase();
   }

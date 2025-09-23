@@ -2,9 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root { height: 100%; }
-html { scroll-behavior: smooth; }
-body { @apply bg-slate-100 text-slate-900; }
+html,
+body,
+#root {
+  height: 100%;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  @apply bg-slate-100 text-slate-900;
+}
 
 /* Accessibility: consistent focus (why: visible + uniform) */
 *:focus-visible {
@@ -25,15 +33,23 @@ body { @apply bg-slate-100 text-slate-900; }
   --rdp-font-family: inherit;
   --rdp-day-radius: 8px;
 }
-.rdp-button:hover:not([disabled]) { background-color: rgba(16,185,129,.08); }
+.rdp-button:hover:not([disabled]) {
+  background-color: rgba(16, 185, 129, 0.08);
+}
 .rdp-day_range_start,
-.rdp-day_range_end { color: #fff; }
+.rdp-day_range_end {
+  color: #fff;
+}
 
 /* Reusable utilities */
 @layer components {
-  .card { @apply bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden; }
-  .input { @apply w-full px-3 py-2 rounded-lg border border-slate-300 bg-white placeholder-slate-400
-                 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/30; }
+  .card {
+    @apply bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden;
+  }
+  .input {
+    @apply w-full px-3 py-2 rounded-lg border border-slate-300 bg-white placeholder-slate-400
+                 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/30;
+  }
 
   /* --------------------------------------------
    * Buttons system (unified across the app)
@@ -47,23 +63,49 @@ body { @apply bg-slate-100 text-slate-900; }
           transition-colors duration-150 select-none
           h-10 px-4 border;
   }
-  .btn-sm { @apply h-8 px-3 text-xs; }
-  .btn-md { @apply h-10 px-4 text-sm; } /* explicit alias if needed */
-  .btn-lg { @apply h-12 px-5 text-base; }
+  .btn-sm {
+    @apply h-8 px-3 text-xs;
+  }
+  .btn-md {
+    @apply h-10 px-4 text-sm;
+  } /* explicit alias if needed */
+  .btn-lg {
+    @apply h-12 px-5 text-base;
+  }
 
-  .btn:disabled { @apply opacity-60 cursor-not-allowed; }
+  .btn:disabled {
+    @apply opacity-60 cursor-not-allowed;
+  }
 
-  .btn-primary    { @apply btn bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700; }
-  .btn-outline    { @apply btn bg-white border-slate-300 text-slate-900 hover:bg-slate-50; }
-  .btn-muted      { @apply btn border-slate-200 text-slate-700 hover:bg-slate-50; }
-  .btn-ghost      { @apply btn border-transparent bg-transparent text-slate-700 hover:bg-slate-100; }
-  .btn-danger     { @apply btn bg-red-600 border-red-600 text-white hover:bg-red-700; }
+  .btn-primary {
+    @apply btn bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700;
+  }
+  .btn-outline {
+    @apply btn bg-white border-slate-300 text-slate-900 hover:bg-slate-50;
+  }
+  .btn-muted {
+    @apply btn border-slate-200 text-slate-700 hover:bg-slate-50;
+  }
+  .btn-ghost {
+    @apply btn border-transparent bg-transparent text-slate-700 hover:bg-slate-100;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 border-red-600 text-white hover:bg-red-700;
+  }
 
   /* Icon-only buttons (perfect square, center icon) */
-  .btn-icon       { @apply inline-flex items-center justify-center rounded-full border h-9 w-9; }
-  .btn-icon-sm    { @apply h-8 w-8 text-xs; }
-  .btn-icon-lg    { @apply h-10 w-10 text-base; }
+  .btn-icon {
+    @apply inline-flex items-center justify-center rounded-full border h-9 w-9;
+  }
+  .btn-icon-sm {
+    @apply h-8 w-8 text-xs;
+  }
+  .btn-icon-lg {
+    @apply h-10 w-10 text-base;
+  }
 
   /* Optional helper to apply our green focus to any element */
-  .focus-ring { @apply focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:ring-offset-0; }
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:ring-offset-0;
+  }
 }

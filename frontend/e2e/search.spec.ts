@@ -2,12 +2,18 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Home Search", () => {
-  test("should keep categories and recommendations and show some cards after Search", async ({ page }) => {
+  test("should keep categories and recommendations and show some cards after Search", async ({
+    page,
+  }) => {
     await page.goto("/");
 
     // These sections must remain visible before and after searching.
-    await expect(page.getByRole("heading", { name: /categories/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /recommendations/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /categories/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /recommendations/i }),
+    ).toBeVisible();
 
     // Rely on placeholder text instead of label to be resilient to markup tweaks.
     const searchInput = page.getByPlaceholder(/hotel|glamping|loft/i).first();
@@ -22,8 +28,12 @@ test.describe("Home Search", () => {
     await expect(detailsLinks.first()).toBeVisible();
 
     // Sections should still be present.
-    await expect(page.getByRole("heading", { name: /categories/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /recommendations/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /categories/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /recommendations/i }),
+    ).toBeVisible();
 
     // Reset is optional; execute only when available.
     const resetBtn = page.getByRole("button", { name: /^reset$/i }).first();
@@ -32,4 +42,3 @@ test.describe("Home Search", () => {
     }
   });
 });
-

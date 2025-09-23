@@ -34,7 +34,11 @@ export function resolveApiUrl(path) {
 }
 
 /* Core request helper */
-async function request(method, path, { body, auth = true, json = true, params } = {}) {
+async function request(
+  method,
+  path,
+  { body, auth = true, json = true, params } = {},
+) {
   const headers = new Headers();
   if (json) headers.set("Content-Type", "application/json");
   if (auth) {
@@ -70,7 +74,8 @@ async function request(method, path, { body, auth = true, json = true, params } 
 
   if (!res.ok) {
     const err = new Error(
-      (data && (data.message || data.error || data.code)) || `HTTP ${res.status}`
+      (data && (data.message || data.error || data.code)) ||
+        `HTTP ${res.status}`,
     );
     err.status = res.status;
     err.data = data;
@@ -81,13 +86,17 @@ async function request(method, path, { body, auth = true, json = true, params } 
 
 const get = (p, o) => request("GET", p, o);
 const post = (p, b, o) => request("POST", p, { ...o, body: b });
-const put  = (p, b, o) => request("PUT", p, { ...o, body: b });
-const del  = (p, o) => request("DELETE", p, o);
+const put = (p, b, o) => request("PUT", p, { ...o, body: b });
+const del = (p, o) => request("DELETE", p, o);
 
 /* Auth */
 export const AuthAPI = {
   async login({ email, password }) {
-    const data = await post("/auth/login", { email, password }, { auth: false });
+    const data = await post(
+      "/auth/login",
+      { email, password },
+      { auth: false },
+    );
     if (data && data.token) setToken(data.token);
     return data;
   },
@@ -134,9 +143,15 @@ export const FavoritesAPI = {
       throw e;
     }
   },
-  listMine() { return this.list(); },
-  addFavorite(id) { return this.add(id); },
-  removeFavorite(id) { return this.remove(id); },
+  listMine() {
+    return this.list();
+  },
+  addFavorite(id) {
+    return this.add(id);
+  },
+  removeFavorite(id) {
+    return this.remove(id);
+  },
 };
 
 /* Bookings */
@@ -160,16 +175,27 @@ export const BookingAPI = {
 
 /* Admin */
 export const AdminAPI = {
-  listUsers() { return get("/admin/users"); },
-  grantAdmin(userId) { return post(`/admin/users/${userId}/roles`, { role: "ROLE_ADMIN" }); },
-  revokeAdmin(userId) { return del(`/admin/users/${userId}/roles/ROLE_ADMIN`); },
+  listUsers() {
+    return get("/admin/users");
+  },
+  grantAdmin(userId) {
+    return post(`/admin/users/${userId}/roles`, { role: "ROLE_ADMIN" });
+  },
+  revokeAdmin(userId) {
+    return del(`/admin/users/${userId}/roles/ROLE_ADMIN`);
+  },
 };
 
 /* Default + named Api (low-level helpers if you need them) */
 const Api = {
-  get, post, put, del,
+  get,
+  post,
+  put,
+  del,
   resolveApiUrl,
-  getToken, setToken, clearToken,
+  getToken,
+  setToken,
+  clearToken,
 
   // ---- Added safe aliases so legacy hooks/components keep working ----
   getFavorites: () => FavoritesAPI.list(),

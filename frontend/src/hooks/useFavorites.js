@@ -15,7 +15,9 @@ export default function useFavorites() {
       const data = await Api.getFavorites(); // [{id, productId, createdAt}, ...]
       const ids = Array.isArray(data)
         ? data
-            .map((f) => (typeof f === "object" ? Number(f.productId) : Number(f)))
+            .map((f) =>
+              typeof f === "object" ? Number(f.productId) : Number(f),
+            )
             .filter((n) => Number.isFinite(n))
         : [];
       setList(ids);
@@ -34,7 +36,7 @@ export default function useFavorites() {
 
   const isFavorite = useCallback(
     (productId) => list.includes(Number(productId)),
-    [list]
+    [list],
   );
 
   const add = useCallback(
@@ -43,7 +45,7 @@ export default function useFavorites() {
       const ids = await reload();
       return ids.includes(Number(productId));
     },
-    [reload]
+    [reload],
   );
 
   const remove = useCallback(
@@ -52,7 +54,7 @@ export default function useFavorites() {
       const ids = await reload();
       return ids.includes(Number(productId)) === false;
     },
-    [reload]
+    [reload],
   );
 
   const toggle = useCallback(
@@ -66,9 +68,8 @@ export default function useFavorites() {
       const ids = await reload();
       return ids.includes(pid); // final state
     },
-    [list, reload]
+    [list, reload],
   );
 
   return { list, loading, isFavorite, add, remove, toggle, reload };
 }
-

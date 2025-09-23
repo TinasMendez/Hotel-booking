@@ -39,7 +39,9 @@ export function AuthProvider({ children }) {
   async function login({ email, password }) {
     // Ensure a flat JSON body: { email, password }
     const payload = {
-      email: String(email || "").trim().toLowerCase(),
+      email: String(email || "")
+        .trim()
+        .toLowerCase(),
       password: String(password || ""),
     };
 
@@ -67,7 +69,7 @@ export function AuthProvider({ children }) {
       login,
       logout,
     }),
-    [user, bootstrapped]
+    [user, bootstrapped],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -53,7 +53,9 @@ export default function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Protected routes */}
-        <Route element={<ProtectedRoute message="Please sign in to continue." />}>
+        <Route
+          element={<ProtectedRoute message="Please sign in to continue." />}
+        >
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/profile" element={<Profile />} />

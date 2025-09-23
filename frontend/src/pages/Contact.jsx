@@ -48,7 +48,7 @@ export default function Contact() {
         form.message,
         ``,
         `— Sent from Digital Booking contact page`,
-      ].join("\n")
+      ].join("\n"),
     );
     return `mailto:${supportEmail}?subject=${subject}&body=${body}`;
   }
@@ -72,7 +72,10 @@ export default function Contact() {
 
       <form onSubmit={onSubmit} className="card p-6 space-y-5">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-slate-700">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-slate-700"
+          >
             Full name
           </label>
           <input
@@ -89,7 +92,10 @@ export default function Contact() {
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-slate-700"
+          >
             Email
           </label>
           <input
@@ -106,7 +112,10 @@ export default function Contact() {
         </div>
 
         <div>
-          <label htmlFor="subject" className="block text-sm font-medium text-slate-700">
+          <label
+            htmlFor="subject"
+            className="block text-sm font-medium text-slate-700"
+          >
             Subject
           </label>
           <input
@@ -120,7 +129,10 @@ export default function Contact() {
         </div>
 
         <div>
-          <label htmlFor="message" className="block text-sm font-medium text-slate-700">
+          <label
+            htmlFor="message"
+            className="block text-sm font-medium text-slate-700"
+          >
             Message
           </label>
           <textarea
@@ -133,28 +145,25 @@ export default function Contact() {
             onChange={handleChange}
             required
             minLength={5}
-            />
-            <p className="text-xs text-slate-500 mt-1">
-                Your default email app will open to send the message.
-            </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-            <a
-                href="/"
-                className="btn-outline focus-ring"
-            >
-                Cancel
-            </a>
-            <button
-                type="submit"
-                className="btn-primary focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!canSubmit}
-            >
-                Send message
-            </button>
-            </div>
-        </form>
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Your default email app will open to send the message.
+          </p>
         </div>
-    );
-    }
+
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <a href="/" className="btn-outline focus-ring">
+            Cancel
+          </a>
+          <button
+            type="submit"
+            className="btn-primary focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!canSubmit}
+          >
+            Send message
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

@@ -16,7 +16,7 @@ const FALLBACK_IMG =
         font-family='Inter,system-ui,Arial' font-size='20' fill='#475569'>
         No image
       </text>
-    </svg>`
+    </svg>`,
   );
 
 function normalizeProduct(p) {
@@ -25,7 +25,8 @@ function normalizeProduct(p) {
   const img =
     p?.imageUrl ||
     (Array.isArray(p?.imageUrls) && p.imageUrls[0]) ||
-    (Array.isArray(p?.images) && (typeof p.images[0] === "string" ? p.images[0] : p.images[0]?.url)) ||
+    (Array.isArray(p?.images) &&
+      (typeof p.images[0] === "string" ? p.images[0] : p.images[0]?.url)) ||
     FALLBACK_IMG;
   return { ...p, imageUrl: img };
 }
@@ -37,8 +38,13 @@ export default function Favorites() {
   const [error, setError] = useState("");
 
   const uniqueIds = useMemo(
-    () => Array.from(new Set((favoriteIds || []).filter((id) => Number.isFinite(Number(id))))),
-    [favoriteIds]
+    () =>
+      Array.from(
+        new Set(
+          (favoriteIds || []).filter((id) => Number.isFinite(Number(id))),
+        ),
+      ),
+    [favoriteIds],
   );
 
   const fetchAll = useCallback(async () => {
@@ -51,9 +57,13 @@ export default function Favorites() {
     setError("");
     try {
       // Fan-out en paralelo a /api/products/:id
-      const results = await Promise.allSettled(uniqueIds.map((id) => getProduct(Number(id))));
+      const results = await Promise.allSettled(
+        uniqueIds.map((id) => getProduct(Number(id))),
+      );
       const ok = results
-        .map((r) => (r.status === "fulfilled" ? normalizeProduct(r.value) : null))
+        .map((r) =>
+          r.status === "fulfilled" ? normalizeProduct(r.value) : null,
+        )
         .filter(Boolean);
       setItems(ok);
     } catch (e) {
@@ -63,7 +73,9 @@ export default function Favorites() {
     }
   }, [uniqueIds]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   // Cuando el usuario agrega/quita desde el corazón, recargamos la lista
   const handleChanged = async () => {

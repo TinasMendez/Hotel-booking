@@ -17,7 +17,8 @@ export default function Gallery5({ images = [], onViewMore }) {
     );
   }
 
-  const src = (img) => (typeof img === "string" ? img : img?.url || img?.imageUrl || "");
+  const src = (img) =>
+    typeof img === "string" ? img : img?.url || img?.imageUrl || "";
 
   return (
     <div className="grid md:grid-cols-2 gap-3">

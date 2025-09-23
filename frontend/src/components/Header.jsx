@@ -24,7 +24,9 @@ export default function Header() {
             </span>
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-semibold">Digital Booking</span>
-              <span className="text-xs text-gray-500">Find your perfect stay</span>
+              <span className="text-xs text-gray-500">
+                Find your perfect stay
+              </span>
             </div>
           </Link>
 
@@ -38,10 +40,7 @@ export default function Header() {
                 >
                   Create account
                 </NavLink>
-                <NavLink
-                  to="/login"
-                  className="btn-primary btn-sm focus-ring"
-                >
+                <NavLink to="/login" className="btn-primary btn-sm focus-ring">
                   Sign in
                 </NavLink>
               </>
@@ -107,7 +106,9 @@ function MenuItem({ to, label }) {
         className={({ isActive }) =>
           [
             "block rounded-lg px-3 py-2 text-sm font-medium focus-ring",
-            isActive ? "bg-gray-100 text-gray-900" : "text-gray-700 hover:bg-gray-50",
+            isActive
+              ? "bg-gray-100 text-gray-900"
+              : "text-gray-700 hover:bg-gray-50",
           ].join(" ")
         }
       >

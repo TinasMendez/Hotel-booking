@@ -12,7 +12,12 @@ export default function CategoriesAdmin() {
   const [err, setErr] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
-  const [confirmState, setConfirmState] = useState({ open: false, category: null, loading: false, error: "" });
+  const [confirmState, setConfirmState] = useState({
+    open: false,
+    category: null,
+    loading: false,
+    error: "",
+  });
   const { formatMessage } = useIntl();
 
   async function load() {
@@ -20,7 +25,7 @@ export default function CategoriesAdmin() {
     setErr("");
     try {
       const data = await Api.getCategories();
-      setList(Array.isArray(data) ? data : data.content ?? []);
+      setList(Array.isArray(data) ? data : (data.content ?? []));
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -61,7 +66,9 @@ export default function CategoriesAdmin() {
         }));
       } else {
         setConfirmState((prev) => ({ ...prev, loading: false }));
-        setActionError(e.message || formatMessage({ id: "admin.categories.deleteError" }));
+        setActionError(
+          e.message || formatMessage({ id: "admin.categories.deleteError" }),
+        );
         closeConfirm();
       }
     }
@@ -146,7 +153,9 @@ export default function CategoriesAdmin() {
             : ""
         }
         confirmLabel={formatMessage({ id: "admin.categories.confirmAction" })}
-        confirmLoadingLabel={formatMessage({ id: "admin.categories.confirmActionLoading" })}
+        confirmLoadingLabel={formatMessage({
+          id: "admin.categories.confirmActionLoading",
+        })}
         cancelLabel={formatMessage({ id: "admin.categories.cancelAction" })}
         onConfirm={handleDelete}
         onCancel={closeConfirm}

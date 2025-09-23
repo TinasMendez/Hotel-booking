@@ -18,9 +18,13 @@ function v1(path) {
 function jsonHeaders() {
   const h = { "Content-Type": "application/json" };
   try {
-    const raw = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
+    const raw =
+      localStorage.getItem("auth_token") ||
+      sessionStorage.getItem("auth_token");
     if (raw) h.Authorization = `Bearer ${raw}`;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return h;
 }
 

@@ -1,6 +1,11 @@
 export function normalizeApiError(error, fallbackMessage = "") {
   if (!error) {
-    return { code: "UNKNOWN", message: fallbackMessage, status: 0, details: null };
+    return {
+      code: "UNKNOWN",
+      message: fallbackMessage,
+      status: 0,
+      details: null,
+    };
   }
 
   const response = error.response;
@@ -24,7 +29,11 @@ export function normalizeApiError(error, fallbackMessage = "") {
   };
 }
 
-export function getApiErrorMessage(normalizedError, formatMessage, fallbackMessage = "") {
+export function getApiErrorMessage(
+  normalizedError,
+  formatMessage,
+  fallbackMessage = "",
+) {
   if (!normalizedError) return fallbackMessage;
   const { code, message } = normalizedError;
 

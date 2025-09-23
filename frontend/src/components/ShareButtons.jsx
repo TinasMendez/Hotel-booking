@@ -6,7 +6,12 @@ import ShareModal from "./ShareModal";
  * Small wrapper that opens a modal with deep-links for FB/Twitter/IG.
  * Now uses the unified button system (.btn-outline .btn-sm + .focus-ring).
  */
-export default function ShareButtons({ product, variant = "outline", size = "sm", label = "Share" }) {
+export default function ShareButtons({
+  product,
+  variant = "outline",
+  size = "sm",
+  label = "Share",
+}) {
   const [open, setOpen] = useState(false);
 
   const share = useMemo(
@@ -14,9 +19,11 @@ export default function ShareButtons({ product, variant = "outline", size = "sm"
       title: product?.name || "Product",
       description: product?.description || "Check this product",
       url: typeof window !== "undefined" ? window.location.href : "",
-      imageUrl: Array.isArray(product?.images) ? product.images[0] : product?.imageUrl,
+      imageUrl: Array.isArray(product?.images)
+        ? product.images[0]
+        : product?.imageUrl,
     }),
-    [product]
+    [product],
   );
 
   const cls =

@@ -21,12 +21,16 @@ export default function ReviewsList({ productId }) {
   const [open, setOpen] = useState(false);
 
   const requireBooking =
-    String(import.meta?.env?.VITE_REQUIRE_BOOKING_FOR_REVIEW || "false").toLowerCase() === "true";
+    String(
+      import.meta?.env?.VITE_REQUIRE_BOOKING_FOR_REVIEW || "false",
+    ).toLowerCase() === "true";
 
   const userAlreadyReviewed = useMemo(() => {
     if (!user) return false;
     const email = String(user?.email || "").toLowerCase();
-    return reviews.some((r) => String(r?.userEmail || "").toLowerCase() === email);
+    return reviews.some(
+      (r) => String(r?.userEmail || "").toLowerCase() === email,
+    );
   }, [reviews, user]);
 
   const canWrite =
@@ -39,14 +43,17 @@ export default function ReviewsList({ productId }) {
     if (state === "disabled") return "Reviews feature is disabled.";
     if (!authed) return "You must be logged in.";
     if (userAlreadyReviewed) return "You already reviewed this product.";
-    if (requireBooking && !hasBookingForProduct) return "A booking is required to review.";
+    if (requireBooking && !hasBookingForProduct)
+      return "A booking is required to review.";
     return "";
   }
 
   // Overwrite author locally when the review id == last created id
   function applyLocalAuthorFix(list) {
     let lastId = null;
-    try { lastId = localStorage.getItem("db_last_review_id"); } catch (_) {}
+    try {
+      lastId = localStorage.getItem("db_last_review_id");
+    } catch (_) {}
     if (!lastId || !user) return list;
 
     const idNum = Number(lastId);
@@ -57,7 +64,7 @@ export default function ReviewsList({ productId }) {
             userName: user?.fullName || r.userName,
             userEmail: user?.email || r.userEmail,
           }
-        : r
+        : r,
     );
   }
 
@@ -83,7 +90,10 @@ export default function ReviewsList({ productId }) {
 
   async function checkBookingsForThisProduct() {
     try {
-      if (!authed) { setHasBookingForProduct(false); return; }
+      if (!authed) {
+        setHasBookingForProduct(false);
+        return;
+      }
       const mine = await BookingAPI.listMine();
       const match = Array.isArray(mine)
         ? mine.some((b) => Number(b?.productId) === Number(productId))
@@ -136,11 +146,17 @@ export default function ReviewsList({ productId }) {
             <li key={r.id} className="rounded-lg border border-slate-200 p-3">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium">{resolveAuthor(r)}</div>
-                <div className="text-sm" title={`${r.rating} / 5`}>⭐ {r.rating}</div>
+                <div className="text-sm" title={`${r.rating} / 5`}>
+                  ⭐ {r.rating}
+                </div>
               </div>
-              {r.comment ? <p className="mt-1 text-sm text-slate-700">{r.comment}</p> : null}
+              {r.comment ? (
+                <p className="mt-1 text-sm text-slate-700">{r.comment}</p>
+              ) : null}
               {r.createdAt ? (
-                <p className="mt-1 text-xs text-slate-400">{new Date(r.createdAt).toLocaleString()}</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {new Date(r.createdAt).toLocaleString()}
+                </p>
               ) : null}
             </li>
           ))}
@@ -166,8 +182,14 @@ export default function ReviewsList({ productId }) {
         }}
       />
 
-      {!canWrite && requireBooking && authed && state !== "disabled" && !userAlreadyReviewed ? (
-        <p className="text-xs text-slate-500">You need at least one booking for this listing to write a review.</p>
+      {!canWrite &&
+      requireBooking &&
+      authed &&
+      state !== "disabled" &&
+      !userAlreadyReviewed ? (
+        <p className="text-xs text-slate-500">
+          You need at least one booking for this listing to write a review.
+        </p>
       ) : null}
     </section>
   );

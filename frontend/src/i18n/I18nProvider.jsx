@@ -16,8 +16,15 @@ function normalizeLocale(locale) {
 }
 
 export default function I18nProvider({ children }) {
-  const [locale] = useState(() => normalizeLocale(typeof navigator !== "undefined" ? navigator.language : "en"));
-  const messages = useMemo(() => supportedLocales[locale] || enMessages, [locale]);
+  const [locale] = useState(() =>
+    normalizeLocale(
+      typeof navigator !== "undefined" ? navigator.language : "en",
+    ),
+  );
+  const messages = useMemo(
+    () => supportedLocales[locale] || enMessages,
+    [locale],
+  );
 
   return (
     <IntlProvider locale={locale} messages={messages} defaultLocale="en">

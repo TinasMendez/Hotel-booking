@@ -17,7 +17,9 @@ export default function CategoryFilter({ value = "", onChange = () => {} }) {
         if (!off) setLoading(false);
       }
     })();
-    return () => { off = true; };
+    return () => {
+      off = true;
+    };
   }, []);
 
   return (

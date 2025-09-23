@@ -22,12 +22,7 @@ export default function FeaturesBlock({ features = [], renderTitle = true }) {
     if (typeof item === "object") {
       // Try common field candidates
       return (
-        item.name ??
-        item.title ??
-        item.label ??
-        item.code ??
-        item.key ??
-        ""
+        item.name ?? item.title ?? item.label ?? item.code ?? item.key ?? ""
       );
     }
     return String(item ?? "");
@@ -115,9 +110,7 @@ export default function FeaturesBlock({ features = [], renderTitle = true }) {
         KEY_LABELS[canonicalKey] ??
         toTitleCaseWithAcronyms(
           // Try to render from original text (better), otherwise from canonical key
-          String(raw)
-            .replace(/[_-]+/g, " ")
-            .trim()
+          String(raw).replace(/[_-]+/g, " ").trim(),
         );
 
       const finalKey = canonicalKey || toKey(label);
@@ -131,29 +124,20 @@ export default function FeaturesBlock({ features = [], renderTitle = true }) {
 
     // Sort alphabetically by label for stable UI
     return Array.from(map.values()).sort((a, b) =>
-      a.label.localeCompare(b.label)
+      a.label.localeCompare(b.label),
     );
   }, [features]);
 
   if (!clean.length) {
-    return (
-      <div className="text-sm text-slate-600">
-        No features available.
-      </div>
-    );
+    return <div className="text-sm text-slate-600">No features available.</div>;
   }
 
   return (
     <section>
-      {renderTitle && (
-        <h3 className="text-lg font-semibold mb-2">Features</h3>
-      )}
+      {renderTitle && <h3 className="text-lg font-semibold mb-2">Features</h3>}
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {clean.map((f) => (
-          <li
-            key={f.key}
-            className="flex items-center gap-2 text-slate-800"
-          >
+          <li key={f.key} className="flex items-center gap-2 text-slate-800">
             {/* Simple bullet/icon */}
             <span
               aria-hidden="true"

@@ -7,7 +7,10 @@ import { shuffleArray, takeFirst } from "../utils/array";
  * Tailwind-only grid (no inline <style>), responsive down to 1 column on small screens.
  */
 export default function ProductGridRandom({ products = [], CardComponent }) {
-  const slice = useMemo(() => takeFirst(shuffleArray(products), 10), [products]);
+  const slice = useMemo(
+    () => takeFirst(shuffleArray(products), 10),
+    [products],
+  );
 
   return (
     <div className="grid grid-cols-2 gap-4 md:gap-4 sm:grid-cols-1">

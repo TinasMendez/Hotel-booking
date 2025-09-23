@@ -28,7 +28,7 @@ export default function FavoriteButton({ productId, onChange }) {
     setPending(true);
     try {
       const nowFav = await toggle(pid); // final state from backend
-      onChange && onChange(nowFav);     // let parent refresh if needed
+      onChange && onChange(nowFav); // let parent refresh if needed
     } catch (err) {
       alert("Could not update favorites. Try again.");
       console.error(err);
