@@ -1,28 +1,34 @@
 // frontend/src/pages/admin/ProductsAdmin.jsx
-// Lists products (≤10 per page), with Edit/Delete actions and confirmation.
+// Lists products with safe pagination and robust data handling.
+// Uses Api.get which returns the JSON directly (NOT { data }).
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Api from "../../services/api.js";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 10; // You can tune this if needed
 
 export default function ProductsAdmin() {
+  // --- UI state ---
   const [items, setItems] = useState([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(1); // 1-based page for UI
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function load(p = page) {
+  // --- Load products (supports both paged and non-paged APIs) ---
+  async function load(p = 1) {
     setLoading(true);
     setError("");
     try {
-      // IMPORTANT: Api.get returns the JSON directly, not { data }
+      // IMPORTANT: Api.get returns the JSON directly (no { data })
       const data = await Api.get("/products", {
         params: { page: p - 1, size: PAGE_SIZE, sort: "name,asc" },
+        auth: false, // reading products is public
       });
 
+      // Your backend returns a Spring Page: { content, totalElements, totalPages }
+      // but we keep it resilient in case it's a plain array.
       const content = Array.isArray(data?.content)
         ? data.content
         : Array.isArray(data)
@@ -41,7 +47,8 @@ export default function ProductsAdmin() {
 
       setItems(content);
       setTotalPages(totalPagesCalc);
-    } catch {
+      setPage(p);
+    } catch (e) {
       setError("Failed to load products.");
     } finally {
       setLoading(false);
@@ -53,16 +60,20 @@ export default function ProductsAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- Delete product (admin-protected on backend) ---
   async function onDelete(id) {
     if (!window.confirm("Delete this product?")) return;
     try {
-      await Api.delete(`/products/${id}`);
-      await load(page);
+      await Api.del(`/products/${id}`); // requires ADMIN on backend
+      // Reload current page (or previous if last item)
+      const nextPage = items.length === 1 && page > 1 ? page - 1 : page;
+      await load(nextPage);
     } catch {
       window.alert("Failed to delete product.");
     }
   }
 
+  // --- Render ---
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -81,7 +92,7 @@ export default function ProductsAdmin() {
       ) : items.length === 0 ? (
         <p>No products found.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto rounded-lg border bg-white">
           <table className="w-full text-left">
             <thead className="bg-gray-100">
               <tr>
@@ -119,11 +130,7 @@ export default function ProductsAdmin() {
             <button
               className="px-3 py-1 border rounded disabled:opacity-50"
               disabled={page <= 1}
-              onClick={() => {
-                const next = page - 1;
-                setPage(next);
-                load(next);
-              }}
+              onClick={() => load(page - 1)}
             >
               ← Prev
             </button>
@@ -133,11 +140,7 @@ export default function ProductsAdmin() {
             <button
               className="px-3 py-1 border rounded disabled:opacity-50"
               disabled={page >= totalPages}
-              onClick={() => {
-                const next = page + 1;
-                setPage(next);
-                load(next);
-              }}
+              onClick={() => load(page + 1)}
             >
               Next →
             </button>

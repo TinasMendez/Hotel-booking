@@ -191,6 +191,12 @@ export const AdminDashboardAPI = {
   summary() {
     return get("/admin/dashboard/summary");
   },
+  latestBookingsDetailed(limit = 5) {
+    return get("/admin/dashboard/latest-bookings", { params: { limit } });
+  },
+  bookingBuckets(limit = 8, scan = 200) {
+    return get("/admin/dashboard/booking-buckets", { params: { limit, scan } });
+  },
   listCategoriesWithCount() {
     return get("/admin/categories");
   },

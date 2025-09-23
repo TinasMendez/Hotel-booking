@@ -1,5 +1,7 @@
 package com.miapp.reservashotel.controller.admin;
 
+import com.miapp.reservashotel.dto.admin.AdminBookingBucketsDTO;
+import com.miapp.reservashotel.dto.admin.AdminBookingDetailDTO;
 import com.miapp.reservashotel.dto.admin.AdminDashboardSummaryDTO;
 import com.miapp.reservashotel.dto.admin.CategoryWithCountDTO;
 import com.miapp.reservashotel.dto.admin.ProductListItemDTO;
@@ -28,6 +30,21 @@ public class AdminDashboardController {
     @GetMapping("/dashboard/summary")
     public ResponseEntity<AdminDashboardSummaryDTO> summary() {
         return ResponseEntity.ok(service.getDashboardSummary());
+    }
+
+    @GetMapping("/dashboard/latest-bookings")
+    public ResponseEntity<List<AdminBookingDetailDTO>> latestBookings(
+            @RequestParam(name = "limit", defaultValue = "5") int limit
+    ) {
+        return ResponseEntity.ok(service.getLatestBookingsDetailed(limit));
+    }
+
+    @GetMapping("/dashboard/booking-buckets")
+    public ResponseEntity<AdminBookingBucketsDTO> bookingBuckets(
+            @RequestParam(name = "limit", required = false) Integer limitPerBucket,
+            @RequestParam(name = "scan", required = false) Integer scanWindow
+    ) {
+        return ResponseEntity.ok(service.getBookingBuckets(limitPerBucket, scanWindow));
     }
 
     @GetMapping("/categories")
