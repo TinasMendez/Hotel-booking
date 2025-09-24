@@ -1,3 +1,6 @@
+> **Español:** Si prefieres una guía en español con pasos rápidos y mapa de evidencias, visita **[README.es.md](./README.es.md)** y **[docs/ENTREGA_ES.md](./docs/ENTREGA_ES.md)**.
+
+
 # Digital Booking Monorepo
 
 Full-stack booking platform built with Spring Boot (Java 21) and React + Vite. This README covers prerequisites, environment variables, startup commands and the recommended 5 minute smoke test.

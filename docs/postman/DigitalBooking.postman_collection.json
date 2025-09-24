@@ -1,0 +1,371 @@
+{
+  "info": {
+    "_postman_id": "e26cf98a-ddde-41f1-94ba-499265659ad1",
+    "name": "Digital Booking API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "26856997"
+  },
+  "item": [
+    {
+      "name": "GET Products",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Product",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{token}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Fairytale Castle in Heidelberg\",\n  \"description\": \"Spend the night in a fairytale\",\n  \"imageUrl\": \"https://picsum.photos/seed/old-town-cgn/800/600\",\n  \"price\": 190.00,\n  \"address\": \"Hauptstraße 1, Heidelberg, DE\", \n  \"cityId\": 6,\n  \"categoryId\": 5,\n  \"featureIds\": [1]\n}\n"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PUT Product",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE Product",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/products/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Categories",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/categories",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "categories"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Categories",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{token}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"name\": \"Resorts\", \"description\": \"All-in-one properties with pools and spa\", \"imageUrl\": \"https://picsum.photos/seed/resorts/800/400\" }\n"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/categories",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "categories"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PUT Category",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": {
+          "raw": "{{baseUrl}}/api/categories/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "categories", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE Category",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/categories/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "categories", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Cities",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/cities",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cities"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Cities",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Heidelberg\",\n  \"country\": \"Germany\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/api/cities",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cities"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PUT City",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": {
+          "raw": "{{baseUrl}}/api/cities/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cities", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE City",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/cities/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cities", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Features",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/features",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "features"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Feature",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"name\": \"Smart TV\", \"description\": \"Streaming apps available\", \"icon\": \"tv\" }\n"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/features",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "features"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PUT Feature",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": {
+          "raw": "{{baseUrl}}/api/features/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "features", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE Feature",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/features/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "features", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Register",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Valentina\",\n  \"lastName\": \"Serna\",\n  \"username\": \"valentina\",\n  \"email\": \"vale@example.com\",\n  \"password\": \"Password123!\"\n}\n",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Save JWT into {{token}} after login",
+              "try {",
+              "  const data = pm.response.json();",
+              "  const jwt = data.token || data.access_token || data.accessToken || (data.data && data.data.token);",
+              "  if (jwt) {",
+              "    pm.environment.set('token', jwt);",
+              "    pm.test('JWT captured', function () {",
+              "      pm.expect(jwt && jwt.length > 10).to.be.true;",
+              "    });",
+              "  } else {",
+              "    pm.test('Login response should include a token', function () {",
+              "      pm.expect.fail('No token field found in response body');",
+              "    });",
+              "  }",
+              "} catch(e) {",
+              "  pm.test('Response body is JSON', function () {",
+              "    pm.expect.fail('Response is not valid JSON');",
+              "  });",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"vale@example.com\",\n  \"password\": \"Password123!\"\n}\n" },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Favorites",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{token}}", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/favorites",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "favorites"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Favorites (toggle by productId)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{token}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": { "mode": "raw", "raw": "" },
+        "url": {
+          "raw": "{{baseUrl}}/api/favorites/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "favorites", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE Favorites",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/favorites",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "favorites"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "event": [],
+  "variable": [
+    { "key": "baseUrl", "value": "", "type": "default" }
+  ]
+}
