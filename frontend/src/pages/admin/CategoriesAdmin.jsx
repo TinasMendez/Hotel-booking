@@ -4,9 +4,8 @@
 // - Robust: accepts productCount / productsCount / count / total / totalProducts, etc.
 // - Drill-down calls /admin/categories/:id/products
 
-
 import React, { useEffect, useState } from "react";
-import { AdminDashboardAPI } from "../../services/api.js";
+import Api, { AdminDashboardAPI } from "../../services/api.js";
 import { useNavigate } from "react-router-dom";
 
 export default function CategoriesAdmin() {
@@ -69,6 +68,11 @@ export default function CategoriesAdmin() {
   // Drill-down handler
   async function onViewProducts(cat) {
     if (!cat?.id) return;
+    // toggle
+    if (openCatId === cat.id) {
+      closeDrill();
+      return;
+    }
     setLoadingDrill(true);
     setOpenCatId(cat.id);
     setOpenCatName(cat.name);
@@ -107,23 +111,14 @@ export default function CategoriesAdmin() {
     if (!ok) return;
 
     try {
-      // Backend expone DELETE /api/categories/:id (ya protegido por rol ADMIN)
-      await fetch(
-        new URL(`/api/categories/${cat.id}`, window.location.origin),
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: localStorage.getItem("auth_token")
-              ? `Bearer ${localStorage.getItem("auth_token")}`
-              : undefined,
-          },
-        },
-      );
+      // FIX: usar Api.del para golpear http://localhost:8080/api y adjuntar token
+      await Api.del(`/categories/${cat.id}`);
       await load();
       if (openCatId === cat.id) closeDrill();
     } catch (e) {
       alert(
-        e?.message ||
+        e?.data?.message ||
+          e?.message ||
           "Could not delete category. Make sure it has no products or try again.",
       );
     }
@@ -158,7 +153,7 @@ export default function CategoriesAdmin() {
               <th className="text-left px-4 py-3 w-64">Actions</th>
             </tr>
           </thead>
-          <tbody>
+        <tbody>
             {loading ? (
               <tr>
                 <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
@@ -184,7 +179,7 @@ export default function CategoriesAdmin() {
                         className="px-3 py-1.5 rounded bg-gray-900 text-white text-xs"
                         onClick={() => onViewProducts(c)}
                       >
-                        View products
+                        {openCatId === c.id ? "Close" : "View products"}
                       </button>
                       <button
                         type="button"
