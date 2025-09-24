@@ -1,30 +1,43 @@
 // frontend/src/pages/admin/CategoriesAdmin.jsx
-// Admin: list categories with product counts, view products in a category,
-// and delete a category only when it's not in use (count === 0).
+// Admin view for Categories with product counts and drill-down.
+// - Reads counts from /admin/categories (AdminDashboardAPI.listCategoriesWithCount)
+// - Robust: accepts productCount / productsCount / count / total / totalProducts, etc.
+// - Drill-down calls /admin/categories/:id/products
 
-import React, { useEffect, useMemo, useState } from "react";
+
+import React, { useEffect, useState } from "react";
+import { AdminDashboardAPI } from "../../services/api.js";
 import { useNavigate } from "react-router-dom";
-import Api, { AdminDashboardAPI } from "../../services/api.js";
 
 export default function CategoriesAdmin() {
-  const navigate = useNavigate();
-
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [rows, setRows] = useState([]); // [{id,name,count}]
   const [error, setError] = useState("");
 
-  const [categories, setCategories] = useState([]);
-  const [selectedCat, setSelectedCat] = useState(null);
-  const [catProducts, setCatProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
+  // Drill-down
+  const [openCatId, setOpenCatId] = useState(null);
+  const [openCatName, setOpenCatName] = useState("");
+  const [openCatProducts, setOpenCatProducts] = useState([]);
+  const [loadingDrill, setLoadingDrill] = useState(false);
 
-  // Normalize the count property name (productCount | count | numProducts)
-  const getCount = (c) =>
-    Number(
-      c?.productCount ?? c?.count ?? c?.numProducts ?? c?.total ?? 0,
-    );
+  const navigate = useNavigate();
 
-  async function loadCategories() {
+  function pickCount(c) {
+    const v =
+      c?.productCount ??
+      c?.productsCount ??
+      c?.product_count ??
+      c?.products_count ??
+      c?.totalProducts ??
+      c?.total_products ??
+      c?.count ??
+      c?.total ??
+      0;
+    const num = Number(v);
+    return Number.isFinite(num) ? num : 0;
+  }
+
+  async function load() {
     setLoading(true);
     setError("");
     try {
@@ -32,9 +45,16 @@ export default function CategoriesAdmin() {
       const list = Array.isArray(data)
         ? data
         : Array.isArray(data?.content)
-        ? data.content
-        : [];
-      setCategories(list);
+          ? data.content
+          : [];
+
+      const mapped = list.map((c) => ({
+        id: c.id ?? c.categoryId ?? c.category_id,
+        name: c.name ?? c.categoryName ?? c.category_name ?? "—",
+        count: pickCount(c),
+      }));
+
+      setRows(mapped.sort((a, b) => (a.id || 0) - (b.id || 0)));
     } catch (e) {
       setError(e?.data?.message || e?.message || "Failed to load categories.");
     } finally {
@@ -42,63 +62,75 @@ export default function CategoriesAdmin() {
     }
   }
 
-  async function loadProductsFor(cat) {
+  useEffect(() => {
+    load();
+  }, []);
+
+  // Drill-down handler
+  async function onViewProducts(cat) {
     if (!cat?.id) return;
-    setLoadingProducts(true);
+    setLoadingDrill(true);
+    setOpenCatId(cat.id);
+    setOpenCatName(cat.name);
+    setOpenCatProducts([]);
     try {
       const list = await AdminDashboardAPI.listProductsByCategory(cat.id);
-      setCatProducts(Array.isArray(list) ? list : []);
+      const arr = Array.isArray(list)
+        ? list
+        : Array.isArray(list?.content)
+          ? list.content
+          : [];
+      setOpenCatProducts(
+        arr.map((p) => ({
+          id: p.id,
+          name: p.name,
+        })),
+      );
     } catch (e) {
-      setCatProducts([]);
+      setOpenCatProducts([]);
     } finally {
-      setLoadingProducts(false);
+      setLoadingDrill(false);
     }
   }
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  function closeDrill() {
+    setOpenCatId(null);
+    setOpenCatName("");
+    setOpenCatProducts([]);
+  }
 
-  // When selected category changes, load its products
-  useEffect(() => {
-    if (selectedCat) loadProductsFor(selectedCat);
-  }, [selectedCat?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleDelete(cat) {
+  async function onDelete(cat) {
     if (!cat?.id) return;
-    const count = getCount(cat);
-    if (count > 0) return; // safety
     const ok = window.confirm(
-      `Delete category "${cat.name}"? This action cannot be undone.`,
+      `Delete category “${cat.name}”? This cannot be undone.`,
     );
     if (!ok) return;
 
-    setSaving(true);
-    setError("");
     try {
-      await Api.del(`/categories/${cat.id}`); // requires ADMIN
-      // If we were viewing this category's products, clear panel
-      if (selectedCat?.id === cat.id) {
-        setSelectedCat(null);
-        setCatProducts([]);
-      }
-      // Refresh list
-      await loadCategories();
-    } catch (e) {
-      setError(
-        e?.data?.message ||
-          e?.message ||
-          "Could not delete category. It may be in use.",
+      // Backend expone DELETE /api/categories/:id (ya protegido por rol ADMIN)
+      await fetch(
+        new URL(`/api/categories/${cat.id}`, window.location.origin),
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: localStorage.getItem("auth_token")
+              ? `Bearer ${localStorage.getItem("auth_token")}`
+              : undefined,
+          },
+        },
       );
-    } finally {
-      setSaving(false);
+      await load();
+      if (openCatId === cat.id) closeDrill();
+    } catch (e) {
+      alert(
+        e?.message ||
+          "Could not delete category. Make sure it has no products or try again.",
+      );
     }
   }
 
-  const totalCategories = useMemo(() => categories.length, [categories]);
-
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Categories</h1>
         <button
@@ -111,142 +143,141 @@ export default function CategoriesAdmin() {
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="border border-red-200 bg-red-50 text-red-700 text-sm p-3 rounded">
           {error}
         </div>
       )}
 
       <div className="rounded-lg border bg-white">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left text-gray-600">
-                <th className="px-4 py-2 font-semibold">ID</th>
-                <th className="px-4 py-2 font-semibold">Name</th>
-                <th className="px-4 py-2 font-semibold"># Products</th>
-                <th className="px-4 py-2 font-semibold">Actions</th>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 text-gray-600">
+              <th className="text-left px-4 py-3 w-24">ID</th>
+              <th className="text-left px-4 py-3">Name</th>
+              <th className="text-left px-4 py-3 w-32"># Products</th>
+              <th className="text-left px-4 py-3 w-64">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
+                  Loading…
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
-                    Loading…
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
+                  No categories found.
+                </td>
+              </tr>
+            ) : (
+              rows.map((c) => (
+                <tr key={c.id} className="border-t">
+                  <td className="px-4 py-3">{c.id}</td>
+                  <td className="px-4 py-3">{c.name}</td>
+                  <td className="px-4 py-3">{c.count}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 rounded bg-gray-900 text-white text-xs"
+                        onClick={() => onViewProducts(c)}
+                      >
+                        View products
+                      </button>
+                      <button
+                        type="button"
+                        className={`px-3 py-1.5 rounded text-xs ${
+                          c.count > 0
+                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                            : "bg-red-600 text-white"
+                        }`}
+                        disabled={c.count > 0}
+                        onClick={() => onDelete(c)}
+                        title={
+                          c.count > 0
+                            ? "Cannot delete a category with products"
+                            : "Delete category"
+                        }
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ) : categories.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
-                    No categories found.
-                  </td>
-                </tr>
-              ) : (
-                categories.map((c) => {
-                  const count = getCount(c);
-                  const canDelete = count === 0 && !saving;
-                  return (
-                    <tr
-                      key={c.id}
-                      className="border-t hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-4 py-2">{c.id}</td>
-                      <td className="px-4 py-2">{c.name}</td>
-                      <td className="px-4 py-2">{count}</td>
-                      <td className="px-4 py-2 space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCat(c)}
-                          className="px-3 py-1 rounded bg-gray-900 text-white"
-                        >
-                          View products
-                        </button>
+              ))
+            )}
+          </tbody>
+        </table>
 
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(c)}
-                          disabled={!canDelete}
-                          title={
-                            count > 0
-                              ? "Cannot delete: category has products."
-                              : "Delete category"
-                          }
-                          className={`px-3 py-1 rounded ${
-                            canDelete
-                              ? "bg-red-600 text-white hover:bg-red-700"
-                              : "bg-red-200 text-white cursor-not-allowed"
-                          }`}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+        <div className="px-4 py-2 text-xs text-gray-500">
+          {rows.length} categories
         </div>
-
-        {!loading && (
-          <div className="px-4 py-3 text-xs text-gray-500 border-t">
-            {totalCategories} categories
-          </div>
-        )}
       </div>
 
-      {/* Drill-down: products in selected category */}
-      {selectedCat && (
+      {/* Drill-down panel */}
+      {openCatId && (
         <div className="rounded-lg border bg-white">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <h2 className="text-base font-semibold">
-              Products in “{selectedCat.name}”
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+            <h2 className="font-semibold text-sm">
+              Products in “{openCatName}”
             </h2>
             <button
               type="button"
-              onClick={() => {
-                setSelectedCat(null);
-                setCatProducts([]);
-              }}
-              className="text-sm px-3 py-1 rounded border"
+              onClick={closeDrill}
+              className="px-3 py-1.5 rounded border text-sm"
             >
               Close
             </button>
           </div>
 
-          {loadingProducts ? (
-            <div className="p-4 text-sm text-gray-500">Loading products…</div>
-          ) : catProducts.length === 0 ? (
-            <div className="p-4 text-sm text-gray-500">No products.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left text-gray-600">
-                    <th className="px-4 py-2 font-semibold">ID</th>
-                    <th className="px-4 py-2 font-semibold">Name</th>
-                    <th className="px-4 py-2 font-semibold">Actions</th>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-gray-600">
+                <th className="text-left px-4 py-3 w-24">ID</th>
+                <th className="text-left px-4 py-3">Name</th>
+                <th className="text-left px-4 py-3 w-32">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingDrill ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-6 text-center text-gray-500"
+                  >
+                    Loading…
+                  </td>
+                </tr>
+              ) : openCatProducts.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-6 text-center text-gray-500"
+                  >
+                    No products in this category.
+                  </td>
+                </tr>
+              ) : (
+                openCatProducts.map((p) => (
+                  <tr key={p.id} className="border-t">
+                    <td className="px-4 py-3">{p.id}</td>
+                    <td className="px-4 py-3">{p.name}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 rounded border text-xs"
+                        onClick={() => navigate(`/admin/products/${p.id}/edit`)}
+                      >
+                        Edit
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {catProducts.map((p) => (
-                    <tr key={p.id} className="border-t hover:bg-gray-50">
-                      <td className="px-4 py-2">{p.id}</td>
-                      <td className="px-4 py-2">{p.name}</td>
-                      <td className="px-4 py-2">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/admin/products/${p.id}/edit`)}
-                          className="px-3 py-1 rounded border"
-                        >
-                          Edit
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

@@ -32,6 +32,7 @@ import CategoryCreateAdmin from "./pages/admin/CategoryCreateAdmin.jsx";
 import FeaturesAdmin from "./pages/admin/FeaturesAdmin.jsx";
 import AdminRoles from "./pages/admin/AdminRoles.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx"; // ← NEW
+import CitiesAdmin from "./pages/admin/CitiesAdmin.jsx"; // ← NEW
 
 /**
  * App Router
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="products/:id/edit" element={<ProductEditAdmin />} />
         <Route path="categories" element={<CategoriesAdmin />} />
         <Route path="categories/new" element={<CategoryCreateAdmin />} />
+        <Route path="cities" element={<CitiesAdmin />} /> {/* ← NEW */}
         <Route path="features" element={<FeaturesAdmin />} />
         <Route path="admins" element={<AdminRoles />} />
       </Route>

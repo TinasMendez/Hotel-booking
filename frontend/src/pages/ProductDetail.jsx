@@ -32,10 +32,38 @@ export default function ProductDetail() {
   const [error, setError] = useState("");
   const [range, setRange] = useState({ from: null, to: null });
 
+  // ---- CAMBIO: unificamos images + imageUrls + imageUrl ----
   const images = useMemo(() => {
-    const raw = product?.images || [];
-    return raw.map((it) => (typeof it === "string" ? { url: it } : it));
+    const bucket = [];
+
+    // Soporte legado
+    if (Array.isArray(product?.images)) bucket.push(...product.images);
+
+    // Nuevo backend/admin
+    if (Array.isArray(product?.imageUrls)) bucket.push(...product.imageUrls);
+    if (product?.imageUrl) bucket.push(product.imageUrl);
+
+    // Normalizamos a objetos { url } y eliminamos duplicados
+    const norm = bucket
+      .map((it) =>
+        typeof it === "string"
+          ? { url: it }
+          : it && typeof it.url === "string"
+            ? it
+            : null,
+      )
+      .filter(Boolean);
+
+    const seen = new Set();
+    return norm.filter((it) => {
+      const u = it.url?.trim();
+      if (!u) return false;
+      if (seen.has(u)) return false;
+      seen.add(u);
+      return true;
+    });
   }, [product]);
+  // ----------------------------------------------------------
 
   const fetchProduct = useCallback(async () => {
     if (!Number.isFinite(productId) || productId <= 0) {
@@ -114,14 +142,13 @@ export default function ProductDetail() {
 
   return (
     <div className="space-y-6">
-      {/* HERO: separación del header + contenido en columna, con respiro entre título y back */}
+      {/* HERO */}
       <div className="bg-slate-50 border-b mt-6 shadow-sm">
         <div className="container mx-auto px-4">
           <div className="min-h-[30px] py-1 flex flex-col items-start justify-center">
             <h1 className="text-3xl font-semibold tracking-tight">
               {product?.name}
             </h1>
-            {/* Botón back más pequeño y separado del título */}
             <Link
               to="/"
               className="mt-4 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-ring"
@@ -157,11 +184,7 @@ export default function ProductDetail() {
               title="No images available"
               description="This listing does not include images yet."
               icon={
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-10 w-10"
-                >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-10 w-10">
                   <path
                     fill="currentColor"
                     d="M21 5H3a2 2 0 00-2 2v10a2 2 0 002 2h18a2 2 0 002-2V7a2 2 0 00-2-2zm0 12H3V7h18v10zM8.5 12a2.5 2.5 0 115 0a2.5 2.5 0 01-5 0zm7.5 4l-3.5-4.5L10 14l-2-2.5L5 16h11z"

@@ -1,345 +1,245 @@
-// src/pages/admin/FeaturesAdmin.jsx
-// List + create + inline edit (name, icon) + delete
+// frontend/src/pages/admin/FeaturesAdmin.jsx
+// Admin - Manage Features WITHOUT "icon" field in the UI,
 
 import React, { useEffect, useState } from "react";
-import { useIntl } from "react-intl";
-import { httpDelete, httpGet, httpPost, httpPut } from "../../api/http";
-import { useToast } from "../../shared/ToastProvider.jsx";
-import { getApiErrorMessage, normalizeApiError } from "../../utils/apiError.js";
-
-function Row({ f, onSave, onDelete, busy }) {
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(f.name || "");
-  const [icon, setIcon] = useState(f.icon || "");
-  const [description, setDescription] = useState(f.description || "");
-
-  useEffect(() => {
-    setName(f.name || "");
-    setIcon(f.icon || "");
-    setDescription(f.description || "");
-  }, [f]);
-
-  const save = async () => {
-    const payload = {
-      ...f,
-      name: name.trim(),
-      icon: icon.trim(),
-      description: description.trim(),
-    };
-    await onSave(payload);
-    setEditing(false);
-  };
-
-  return (
-    <tr className="border-t">
-      <td className="p-3">{f.id}</td>
-      <td className="p-3">
-        {editing ? (
-          <input
-            className="border rounded p-1 w-full"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        ) : (
-          f.name
-        )}
-      </td>
-      <td className="p-3">
-        {editing ? (
-          <input
-            className="border rounded p-1 w-full"
-            value={icon}
-            onChange={(e) => setIcon(e.target.value)}
-          />
-        ) : (
-          f.icon
-        )}
-      </td>
-      <td className="p-3">
-        {editing ? (
-          <textarea
-            className="border rounded p-1 w-full"
-            rows={2}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        ) : (
-          <span className="text-sm text-slate-600 whitespace-pre-line">
-            {f.description || "—"}
-          </span>
-        )}
-      </td>
-      <td className="p-3">
-        {editing ? (
-          <div className="flex gap-2">
-            <button
-              onClick={save}
-              className="px-3 py-1 rounded bg-green-600 text-white"
-              disabled={busy}
-            >
-              Save
-            </button>
-            <button
-              onClick={() => {
-                setEditing(false);
-                setName(f.name || "");
-                setIcon(f.icon || "");
-                setDescription(f.description || "");
-              }}
-              className="px-3 py-1 rounded border"
-              disabled={busy}
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setEditing(true)}
-              className="px-3 py-1 rounded border"
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => onDelete(f.id)}
-              className="px-3 py-1 rounded bg-red-600 text-white"
-              disabled={busy}
-            >
-              Delete
-            </button>
-          </div>
-        )}
-      </td>
-    </tr>
-  );
-}
+import Api from "../../services/api.js";
 
 export default function FeaturesAdmin() {
-  const toast = useToast();
-  const { formatMessage } = useIntl();
-  const [items, setItems] = useState([]);
+  const [features, setFeatures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  // form
+  const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
-  const [icon, setIcon] = useState("");
   const [description, setDescription] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [rowBusyId, setRowBusyId] = useState(null);
+  // keep the current (hidden) icon when editing, or fallback to "-"
+  const [currentIcon, setCurrentIcon] = useState("-");
 
-  const load = async () => {
+  async function load() {
     setLoading(true);
     setErr("");
     try {
-      const data = await httpGet("/features");
-      setItems(Array.isArray(data) ? data : (data?.content ?? []));
+      // GET /api/features is public (permitAll en SecurityConfig)
+      const data = await Api.get("/features", { auth: false });
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.content)
+        ? data.content
+        : [];
+      setFeatures(
+        list.map((f) => ({
+          id: f.id,
+          name: f.name,
+          description: f.description || "",
+          // we keep icon internally to avoid breaking PUT validation
+          icon: f.icon || "-",
+        }))
+      );
     } catch (e) {
-      const normalized = normalizeApiError(
-        e,
-        formatMessage({ id: "errors.generic" }),
-      );
-      const message = getApiErrorMessage(
-        normalized,
-        formatMessage,
-        formatMessage({ id: "errors.generic" }),
-      );
-      setErr(message);
-      toast?.error(message);
+      setErr(e?.data?.message || e?.message || "Failed to load features.");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
     load();
   }, []);
 
-  const onCreate = async (e) => {
+  function resetForm() {
+    setEditingId(null);
+    setName("");
+    setDescription("");
+    setCurrentIcon("-");
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    setSaving(true);
+    setErr("");
+
+    if (!name.trim()) {
+      setErr("Name is required.");
+      return;
+    }
+
+    // Backend likely requires `icon` -> send existing or placeholder
+    const payload = {
+      name: name.trim(),
+      description: description.trim(),
+      icon: (currentIcon && currentIcon.trim()) || "-",
+    };
+
     try {
-      const payload = {
-        name: name.trim(),
-        icon: icon.trim(),
-        description: description.trim(),
-      };
-      if (!payload.name || !payload.icon) {
-        throw new Error(
-          formatMessage({
-            id: "admin.features.validation.required",
-            defaultMessage: "Name and icon are required.",
-          }),
-        );
+      if (editingId) {
+        await Api.put(`/features/${editingId}`, payload);
+      } else {
+        // for create, force a benign placeholder if nothing is set
+        payload.icon = "-";
+        await Api.post("/features", payload);
       }
-      await httpPost("/features", payload);
-      setName("");
-      setIcon("");
-      setDescription("");
-      toast?.success(
-        formatMessage({
-          id: "admin.features.createSuccess",
-          defaultMessage: "Feature created successfully.",
-        }),
-      );
+      resetForm();
       await load();
     } catch (e) {
-      const normalized = normalizeApiError(
-        e,
-        formatMessage({ id: "errors.generic" }),
+      setErr(
+        e?.data?.message ||
+          e?.message ||
+          "Could not save feature. Please try again."
       );
-      const message = getApiErrorMessage(normalized, formatMessage, e?.message);
-      toast?.error(message || formatMessage({ id: "errors.generic" }));
     }
-    setSaving(false);
-  };
+  }
 
-  const onSaveRow = async (feat) => {
-    setRowBusyId(feat.id);
+  function onEdit(feature) {
+    setEditingId(feature.id);
+    setName(feature.name || "");
+    setDescription(feature.description || "");
+    // keep whatever icon is stored in backend, we don't show it
+    setCurrentIcon(feature.icon || "-");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function onDelete(feature) {
+    const ok = window.confirm(`Delete feature “${feature.name}”?`);
+    if (!ok) return;
     try {
-      const payload = {
-        name: (feat.name || "").trim(),
-        icon: (feat.icon || "").trim(),
-        description: (feat.description || "").trim(),
-      };
-      if (!payload.name || !payload.icon) {
-        throw new Error(
-          formatMessage({
-            id: "admin.features.validation.required",
-            defaultMessage: "Name and icon are required.",
-          }),
-        );
-      }
-      await httpPut(`/features/${feat.id}`, payload);
-      toast?.success(
-        formatMessage({
-          id: "admin.features.updateSuccess",
-          defaultMessage: "Feature updated.",
-        }),
-      );
+      await Api.del(`/features/${feature.id}`);
+      if (editingId === feature.id) resetForm();
       await load();
     } catch (e) {
-      const normalized = normalizeApiError(
-        e,
-        formatMessage({ id: "errors.generic" }),
+      alert(
+        e?.data?.message || e?.message || "Could not delete feature right now."
       );
-      const message = getApiErrorMessage(normalized, formatMessage, e?.message);
-      toast?.error(message || formatMessage({ id: "errors.generic" }));
-    } finally {
-      setRowBusyId(null);
     }
-  };
-
-  const onDeleteRow = async (id) => {
-    const confirmed = window.confirm(
-      formatMessage({
-        id: "admin.features.confirmDelete",
-        defaultMessage: "Delete this feature?",
-      }),
-    );
-    if (!confirmed) return;
-    setRowBusyId(id);
-    try {
-      await httpDelete(`/features/${id}`);
-      toast?.success(
-        formatMessage({
-          id: "admin.features.deleteSuccess",
-          defaultMessage: "Feature removed.",
-        }),
-      );
-      setItems((prev) => prev.filter((x) => x.id !== id));
-    } catch (e) {
-      const normalized = normalizeApiError(
-        e,
-        formatMessage({ id: "errors.generic" }),
-      );
-      const message = getApiErrorMessage(normalized, formatMessage, e?.message);
-      toast?.error(message || formatMessage({ id: "errors.generic" }));
-    } finally {
-      setRowBusyId(null);
-    }
-  };
+  }
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-3">Features</h2>
-      {loading && <p>Loading…</p>}
-      {err && <p className="text-red-600">Error: {err}</p>}
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Admin Panel</h1>
 
-      {/* Create form */}
-      <form
-        onSubmit={onCreate}
-        className="mb-4 bg-white p-4 rounded shadow grid gap-3"
-      >
-        <h3 className="font-semibold">Add Feature</h3>
-        <div className="grid gap-1">
-          <label className="text-sm">Name</label>
-          <input
-            className="border rounded p-2"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+      <section className="rounded-lg border bg-white">
+        <div className="px-4 py-3 border-b bg-gray-50">
+          <h2 className="font-semibold">
+            {editingId ? "Edit Feature" : "Add Feature"}
+          </h2>
         </div>
-        <div className="grid gap-1">
-          <label className="text-sm">Icon (CSS class or emoji)</label>
-          <input
-            className="border rounded p-2"
-            required
-            value={icon}
-            onChange={(e) => setIcon(e.target.value)}
-          />
-        </div>
-        <div className="grid gap-1">
-          <label className="text-sm">Description</label>
-          <textarea
-            className="border rounded p-2"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-          />
-        </div>
-        <div>
-          <button
-            className="px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-60"
-            disabled={saving}
-          >
-            {saving ? "Saving…" : "Create"}
-          </button>
-        </div>
-      </form>
 
-      {/* List */}
-      <div className="overflow-x-auto bg-white rounded shadow">
+        {err && (
+          <div className="mx-4 mt-4 mb-0 border border-red-200 bg-red-50 text-red-700 text-sm p-3 rounded">
+            {err}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Name</label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 rounded border"
+              placeholder="Feature name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              maxLength={120}
+            />
+          </div>
+
+          {/* Icon field intentionally hidden from UI */}
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Description</label>
+            <textarea
+              className="w-full px-3 py-2 rounded border"
+              placeholder="Describe the feature"
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={2000}
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              className="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              {editingId ? "Save changes" : "Create"}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 rounded border"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+      </section>
+
+      <section className="rounded-lg border bg-white">
+        <div className="px-4 py-3 border-b bg-gray-50">
+          <h2 className="font-semibold">Features</h2>
+        </div>
+
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left p-3">ID</th>
-              <th className="text-left p-3">Name</th>
-              <th className="text-left p-3">Icon</th>
-              <th className="text-left p-3">Description</th>
-              <th className="text-left p-3">Actions</th>
+          <thead>
+            <tr className="bg-gray-50 text-gray-600">
+              <th className="text-left px-4 py-3 w-24">ID</th>
+              <th className="text-left px-4 py-3">Name</th>
+              <th className="text-left px-4 py-3">Description</th>
+              <th className="text-left px-4 py-3 w-40">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((f) => (
-              <Row
-                key={f.id}
-                f={f}
-                onSave={onSaveRow}
-                onDelete={onDeleteRow}
-                busy={rowBusyId === f.id}
-              />
-            ))}
-            {items.length === 0 && (
+            {loading ? (
               <tr>
-                <td colSpan={5} className="p-4 text-center text-gray-500">
-                  No features.
+                <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
+                  Loading…
                 </td>
               </tr>
+            ) : features.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
+                  No features found.
+                </td>
+              </tr>
+            ) : (
+              features.map((f) => (
+                <tr key={f.id} className="border-t">
+                  <td className="px-4 py-3">{f.id}</td>
+                  <td className="px-4 py-3">{f.name}</td>
+                  <td className="px-4 py-3">
+                    {f.description ? (
+                      <span className="text-gray-700">{f.description}</span>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 rounded border text-xs"
+                        onClick={() => onEdit(f)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 rounded bg-red-600 text-white text-xs"
+                        onClick={() => onDelete(f)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
-      </div>
+      </section>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 // frontend/src/pages/admin/ProductCreateAdmin.jsx
 // Create a product compliant with backend ProductRequestDTO.
-// Fields required by backend: name, description, price, address,
-// cityId, categoryId, featureIds (min 1), imageUrls (1..5), optional imageUrl.
-
+// Required by backend: name, description, price, cityId, categoryId,
+// featureIds (min 1), imageUrls (1..5). imageUrl (primary) is optional.
+// Address has been REMOVED from the UI and payload.
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,14 +20,13 @@ export default function ProductCreateAdmin() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-  const [address, setAddress] = useState("");
 
   const [categoryId, setCategoryId] = useState("");
   const [cityId, setCityId] = useState("");
   const [featureIds, setFeatureIds] = useState([]); // numbers
 
   // Gallery (imageUrls)
-  const [images, setImages] = useState([]); // [{url, title?}]
+  const [images, setImages] = useState([]); // [{url}]
   const [newImageUrl, setNewImageUrl] = useState("");
   const fileRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -146,9 +145,8 @@ export default function ProductCreateAdmin() {
     setImages((prev) => prev.filter((i) => i.url !== u));
   }
 
-  // ---------- Inline create: Category ----------
-  async function createCategoryInline(e) {
-    e.preventDefault();
+  // ---------- Inline create: Category (no nested form) ----------
+  async function createCategoryInline() {
     setInlineError("");
     if (!catName.trim()) {
       setInlineError("Category name is required.");
@@ -161,10 +159,8 @@ export default function ProductCreateAdmin() {
         imageUrl: catImageUrl.trim() || undefined,
       };
       const created = await Api.post("/categories", body); // requires ADMIN
-      // Add to list and select
       setCategories((prev) => [...prev, created]);
       setCategoryId(created.id);
-      // Reset form
       setCatName("");
       setCatDescription("");
       setCatImageUrl("");
@@ -174,19 +170,15 @@ export default function ProductCreateAdmin() {
     }
   }
 
-  // ---------- Inline create: City ----------
-  async function createCityInline(e) {
-    e.preventDefault();
+  // ---------- Inline create: City (no nested form) ----------
+  async function createCityInline() {
     setInlineError("");
     if (!cityName.trim()) {
       setInlineError("City name is required.");
       return;
     }
     try {
-      const body = {
-        name: cityName.trim(),
-        country: cityCountry.trim() || undefined,
-      };
+      const body = { name: cityName.trim(), country: cityCountry.trim() || undefined };
       const created = await Api.post("/cities", body); // requires ADMIN
       setCities((prev) => [...prev, created]);
       setCityId(created.id);
@@ -213,7 +205,7 @@ export default function ProductCreateAdmin() {
       price: price === "" ? null : Number(price),
       imageUrl: primary,
       imageUrls,
-      address: address.trim(),
+      // address removed
       cityId: cityId ? Number(cityId) : null,
       categoryId: categoryId ? Number(categoryId) : null,
       featureIds: featureIds.map(Number),
@@ -224,7 +216,6 @@ export default function ProductCreateAdmin() {
     if (!payload.description) return stopWith("Description is required.");
     if (payload.price === null || isNaN(payload.price) || payload.price <= 0)
       return stopWith("Price must be a positive number.");
-    if (!payload.address) return stopWith("Address is required.");
     if (!payload.cityId || !payload.categoryId)
       return stopWith("Please select category and city.");
     if (!payload.featureIds || payload.featureIds.length === 0)
@@ -289,7 +280,7 @@ export default function ProductCreateAdmin() {
               <input
                 type="number"
                 min="1"
-                step="1"
+                step="0.01"
                 className="w-full px-3 py-2 rounded border border-gray-300"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
@@ -312,86 +303,78 @@ export default function ProductCreateAdmin() {
             />
           </div>
 
-          {/* Address + City */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Address</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 rounded border border-gray-300"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Street and number"
-                required
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium mb-1">City</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowNewCity((v) => !v);
-                    setInlineError("");
-                  }}
-                  className="text-xs px-2 py-1 rounded border"
-                >
-                  {showNewCity ? "Cancel new city" : "Add new city"}
-                </button>
-              </div>
-              <select
-                className="w-full px-3 py-2 rounded border border-gray-300"
-                value={cityId || ""}
-                onChange={(e) => setCityId(e.target.value)}
-                required
+          {/* City */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium mb-1">City</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewCity((v) => !v);
+                  setInlineError("");
+                }}
+                className="text-xs px-2 py-1 rounded border"
               >
-                <option value="">Select a city</option>
-                {cities.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}{c.country ? ` — ${c.country}` : ""}
-                  </option>
-                ))}
-              </select>
-
-              {showNewCity && (
-                <form onSubmit={createCityInline} className="mt-2 p-3 border rounded space-y-2 bg-gray-50">
-                  {inlineError && (
-                    <div className="text-xs text-red-600">{inlineError}</div>
-                  )}
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      className="px-2 py-1 rounded border"
-                      placeholder="City name *"
-                      value={cityName}
-                      onChange={(e) => setCityName(e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      className="px-2 py-1 rounded border"
-                      placeholder="Country"
-                      value={cityCountry}
-                      onChange={(e) => setCityCountry(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button type="submit" className="px-3 py-1 rounded bg-emerald-600 text-white">
-                      Create city
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowNewCity(false);
-                        setInlineError("");
-                      }}
-                      className="px-3 py-1 rounded border"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </form>
-              )}
+                {showNewCity ? "Cancel new city" : "Add new city"}
+              </button>
             </div>
+            <select
+              className="w-full px-3 py-2 rounded border border-gray-300"
+              value={cityId || ""}
+              onChange={(e) => setCityId(e.target.value)}
+              required
+            >
+              <option value="">Select a city</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                  {c.country ? ` — ${c.country}` : ""}
+                </option>
+              ))}
+            </select>
+
+            {showNewCity && (
+              <div className="mt-2 p-3 border rounded space-y-2 bg-gray-50">
+                {inlineError && (
+                  <div className="text-xs text-red-600">{inlineError}</div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    className="px-2 py-1 rounded border"
+                    placeholder="City name *"
+                    value={cityName}
+                    onChange={(e) => setCityName(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="px-2 py-1 rounded border"
+                    placeholder="Country"
+                    value={cityCountry}
+                    onChange={(e) => setCityCountry(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={createCityInline}
+                    className="px-3 py-1 rounded bg-emerald-600 text-white"
+                  >
+                    Create city
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNewCity(false);
+                      setInlineError("");
+                    }}
+                    className="px-3 py-1 rounded border"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Category */}
@@ -424,7 +407,7 @@ export default function ProductCreateAdmin() {
             </select>
 
             {showNewCategory && (
-              <form onSubmit={createCategoryInline} className="mt-2 p-3 border rounded space-y-2 bg-gray-50">
+              <div className="mt-2 p-3 border rounded space-y-2 bg-gray-50">
                 {inlineError && (
                   <div className="text-xs text-red-600">{inlineError}</div>
                 )}
@@ -452,7 +435,11 @@ export default function ProductCreateAdmin() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" className="px-3 py-1 rounded bg-emerald-600 text-white">
+                  <button
+                    type="button"
+                    onClick={createCategoryInline}
+                    className="px-3 py-1 rounded bg-emerald-600 text-white"
+                  >
                     Create category
                   </button>
                   <button
@@ -466,7 +453,7 @@ export default function ProductCreateAdmin() {
                     Close
                   </button>
                 </div>
-              </form>
+              </div>
             )}
           </div>
 

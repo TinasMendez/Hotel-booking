@@ -205,6 +205,24 @@ export const AdminDashboardAPI = {
   },
 };
 
+/* Cities (CRUD para la pantalla de administración de ciudades) */
+export const CitiesAPI = {
+  list() {
+    // público para usar en formularios
+    return get("/cities", { auth: false });
+  },
+  create({ name, country }) {
+    // requiere ADMIN
+    return post("/cities", { name, country });
+  },
+  update(id, { name, country }) {
+    return put(`/cities/${id}`, { name, country });
+  },
+  remove(id) {
+    return del(`/cities/${id}`);
+  },
+};
+
 /* Default + named Api (low-level helpers if you need them) */
 const Api = {
   get,
@@ -223,6 +241,7 @@ const Api = {
 
   // Some places call this directly
   getCategories: () => get("/categories", { auth: false }),
+  getCities: () => CitiesAPI.list(),
 };
 
 export default Api;

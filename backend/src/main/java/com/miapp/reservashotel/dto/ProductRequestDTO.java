@@ -6,7 +6,12 @@ import java.util.List;
 
 /**
  * Product request payload with validation.
- * Note: Using IDs to bind relations (Category, City, Features).
+ * Note:
+ * - Address is OPTIONAL (no @NotBlank). We keep the field in case you want to use it later,
+ *   but it won't be required nor validated beyond max length.
+ * - Relations are sent by IDs (Category, City, Features).
+ * - imageUrls must contain between 1 and 5 URLs. imageUrl (primary) is optional;
+ *   if null, backend will use the first item of imageUrls as primary.
  */
 public class ProductRequestDTO {
 
@@ -30,7 +35,7 @@ public class ProductRequestDTO {
     private List<@NotBlank(message = "Image URL cannot be blank")
             @Size(max = 512, message = "Image URL must be at most 512 characters") String> imageUrls;
 
-    @NotBlank(message = "Address is required")
+    // Address is OPTIONAL now (no @NotBlank)
     @Size(max = 255, message = "Address must be at most 255 characters")
     private String address;
 
@@ -47,13 +52,13 @@ public class ProductRequestDTO {
     public ProductRequestDTO() {}
 
     public ProductRequestDTO(String name, String description, BigDecimal price, String imageUrl,
-                                String address, Long cityId, Long categoryId, List<Long> featureIds,
-                                List<String> imageUrls) {
+                             String address, Long cityId, Long categoryId, List<Long> featureIds,
+                             List<String> imageUrls) {
         this.name = name;
         this.description = description;
         this.price = price;
         this.imageUrl = imageUrl;
-        this.address = address;
+        this.address = address; // optional
         this.cityId = cityId;
         this.categoryId = categoryId;
         this.featureIds = featureIds;

@@ -85,6 +85,17 @@ export default function AdminLayout() {
           </NavLink>
 
           <NavLink
+            to="cities"
+            className={({ isActive }) =>
+              `block px-3 py-2 rounded ${
+                isActive ? "bg-gray-900 text-white" : "hover:bg-gray-200"
+              }`
+            }
+          >
+            Cities
+          </NavLink>
+
+          <NavLink
             to="features"
             className={({ isActive }) =>
               `block px-3 py-2 rounded ${

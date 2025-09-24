@@ -3,13 +3,11 @@ import { Link } from "react-router-dom";
 import FavoriteButton from "./FavoriteButton.jsx";
 
 /**
- * ProductCard displays image, name, rating and a CTA.
- * Accessibility: adds focus-ring to CTA; FavoriteButton handles its own focus style.
- *
- * Extra:
- * - onFavoriteChange?: (isFav:boolean) => void  (opcional; útil en /favorites para refrescar)
+ * ProductCard displays image, name, optional rating and a CTA.
+ * - hideRatings?: when true, rating block is not rendered at all.
+ * Accessibility: adds focus-ring to CTA; FavoriteButton maneja su propio estilo.
  */
-export default function ProductCard({ product, onFavoriteChange }) {
+export default function ProductCard({ product, onFavoriteChange, hideRatings = false }) {
   const id = product?.id;
   const imageSrc =
     product?.imageUrl ||
@@ -24,8 +22,10 @@ export default function ProductCard({ product, onFavoriteChange }) {
           </text>
         </svg>`,
       );
+
   const average = Number(product?.ratingAverage ?? 0);
   const count = Number(product?.ratingCount ?? 0);
+  const hasRatings = count > 0;
 
   return (
     <div className="card hover:shadow-md transition-shadow">
@@ -46,9 +46,17 @@ export default function ProductCard({ product, onFavoriteChange }) {
           <h3 className="font-semibold text-slate-900 line-clamp-1">
             {product?.name}
           </h3>
-          <div className="text-sm text-amber-600 shrink-0">
-            {count > 0 ? `★ ${average.toFixed(1)} (${count})` : "No ratings"}
-          </div>
+
+          {/* Rating solo si no está oculto y hay datos */}
+          {!hideRatings && hasRatings && (
+            <div
+              className="text-sm text-amber-600 shrink-0"
+              aria-label={`Rating ${average.toFixed(1)} out of 5, ${count} reviews`}
+              title={`${average.toFixed(1)} (${count})`}
+            >
+              ★ {average.toFixed(1)} ({count})
+            </div>
+          )}
         </div>
 
         <p className="text-sm text-slate-600 line-clamp-2">
