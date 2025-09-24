@@ -1,168 +1,108 @@
-> **Español:** Si prefieres una guía en español con pasos rápidos y mapa de evidencias, visita **[README.es.md](./README.es.md)** y **[docs/ENTREGA_ES.md](./docs/ENTREGA_ES.md)**.
-
-
-- Developer docs: see [Architecture](docs/ARCHITECTURE.md), [API Quickstart](docs/API_QUICKSTART.md), and [Postman guide](docs/postman/README.md).
-
 # Digital Booking Monorepo
 
-Full-stack booking platform built with Spring Boot (Java 21) and React + Vite. This README covers prerequisites, environment variables, startup commands and the recommended 5 minute smoke test.
+> **Espanol:** If you prefer a Spanish quick guide and evidence map, see **[README.es.md](./README.es.md)** and **[docs/ENTREGA_ES.md](./docs/ENTREGA_ES.md)**.
+
+Full-stack booking platform built with **Spring Boot (Java 21)** and **React + Vite**. This README keeps setup simple: quick start, demo accounts, a 5-minute smoke test, and links to the rest of the docs.
 
 ---
 
-## 1. Requirements
+## 1) Requirements
 
 | Tool | Version |
 |------|---------|
 | Java | 21 (LTS) |
-| Spring Boot | 3.5.3 |
-| Maven | ≥ 3.9 |
-| Node.js | ≥ 18.x |
-| npm | ≥ 9.x |
-| MySQL | ≥ 8.0 |
+| Spring Boot | 3.x |
+| Maven | >= 3.9 |
+| Node.js | >= 18.x |
+| npm | >= 9.x |
+| MySQL | >= 8.0 |
 | Vite | 5.x |
 
-Optional utilities for local QA:
-- Docker (for quick MySQL & Mailpit containers)
-- Mailpit (SMTP testing web UI)
+Optional for local QA:
+- **Docker** (to run Mailpit or DB quickly)
+- **Mailpit** (SMTP testing web UI at http://localhost:8025)
 
 ---
 
-## 2. Quick infrastructure setup (Docker)
+## 2) Quick start
 
+### Option A - Docker Compose (Mailpit only)
 ```bash
-cp .env.example .env   # edit DB_/JWT_ values before booting services
-docker compose up -d
+# Bring up Mailpit for dev emails (see docker-compose.yml)
+docker compose up -d mailpit
+# Mail UI -> http://localhost:8025
 ```
 
-This brings up MySQL 8, Mailpit, the Spring Boot API and the Vite frontend. Mailpit’s web UI lives at http://localhost:8025.
-
----
-
-## 3. Backend (Spring Boot)
-
-### 3.1 Environment variables (application.properties uses placeholders)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_URL` | `jdbc:mysql://localhost:3306/reservasdb?useSSL=false&serverTimezone=UTC` | JDBC URL when running locally |
-| `DB_USERNAME` | `root` | Database user (override if you created `app_user`) |
-| `DB_PASSWORD` | *(required if user has one)* | Password for the database user |
-| `JWT_SECRET` | *(required)* | HS256 signing key (≥ 32 ASCII chars). Example: `please-change-this-64-byte-secret-key-1234567890abcdef` |
-| `MAIL_HOST` | `localhost` | SMTP host (Mailpit by default) |
-| `MAIL_PORT` | `1025` | SMTP port |
-| `MAIL_USERNAME` | *(empty)* | SMTP user if auth required |
-| `MAIL_PASSWORD` | *(empty)* | SMTP password if auth required |
-| `MAIL_SMTP_AUTH` | `false` | Toggle SMTP auth |
-| `MAIL_SMTP_STARTTLS` | `false` | Toggle STARTTLS |
-| `MAIL_FROM` | `noreply@digitalbooking.local` | Sender address for transactional emails |
-| `MAIL_SUPPORT` | `reservas@digitalbooking.local` | Support contact shown in emails |
-| `FRONTEND_BASE_URL` | `http://localhost:5173` | Used in booking confirmation emails |
-| `SUPPORT_PHONE` | *(empty)* | Optional phone number shown in emails |
-| `SUPPORT_WHATSAPP_URL` | *(empty)* | Optional WhatsApp deeplink |
-| `UPLOADS_BASE_DIR` | `./storage/uploads` | Filesystem root for uploaded images |
-| `UPLOADS_MAX_FILES_PER_DIR` | `500` | Safety cap per upload directory (0 = no limit) |
-| `UPLOADS_MAX_FILE_SIZE` | `5242880` | Max image size in bytes (default 5 MB) |
-| `SPRINGDOC_API_DOCS` | `true` | Enables `/v3/api-docs` + Swagger UI |
-| `ACTUATOR_INFO_PUBLIC` | `false` | Expose `/actuator/info` without authentication in non-dev environments |
-
-> ℹ️  Copy `.env.example` to `.env` and adjust secrets before running the stack locally.
-
-### 3.2 Useful commands
-
+### Option B - Manual (DB + API + Web)
 ```bash
-# Build without running tests
-mvn clean package -DskipTests
+# 1) Database (local MySQL 8)
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS reservasdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-# Run the API
-mvn spring-boot:run
-```
+# 2) Backend (Spring Boot API)
+cd backend
+mvn spring-boot:run   # http://localhost:8080
 
-Running `mvn clean package` (or any build that executes the `build-info` goal) refreshes the metadata returned by `/actuator/info`.
-
-### 3.3 Observabilidad (Actuator)
-
-- **Dev profile**: `/actuator/health` y `/actuator/info` están abiertos. `curl http://localhost:8080/actuator/info` devuelve versión y timestamp del build.
-- **Prod profile**: sólo se expone `/actuator/health`. Para consultar `/actuator/info` se requiere un usuario con `ROLE_ADMIN` y la propiedad `ACTUATOR_INFO_PUBLIC=true`.
-- Variable opcional `ACTUATOR_INFO_PUBLIC=true` permite habilitar `/actuator/info` sin autenticación (ya incluida por defecto en `application-dev`).
-
-### 3.4 QA seed data
-
-Launch the application with `app.seed.qa=true` to preload cities, categories, products (with gallery & policies), bookings and demo users.
-
-Demo accounts include:
-- **Admin:** `admin@admin.com` / `Admin123*`
-- **QA Admin:** `vale@example.com` / `Test1234!`
-- **QA User:** `vsernamendez@gmail.com` / `Nina1234!`
-
----
-
-## 4. Frontend (React + Vite)
-
-### 4.1 Environment variables (`frontend/.env.example`)
-
-```
-VITE_API_BASE=http://localhost:8080/api
-VITE_WHATSAPP_NUMBER=573000000000
-VITE_WHATSAPP_MESSAGE=Hi! I would like to know more about this property.
-```
-
-### 4.2 Commands
-
-```bash
+# 3) Frontend (React + Vite)
+cd ../frontend
 npm install
-npm run dev    # development server (http://localhost:5173)
-npm run build  # production build
+npm run dev           # http://localhost:5173
 ```
 
----
-
-## 5. Five-minute smoke test
-
-1. **Infra**
-   - MySQL running with the credentials above.
-   - Mailpit running (http://localhost:8025).
-
-2. **Backend up**
-   - `mvn spring-boot:run`
-   - Check `GET http://localhost:8080/actuator/health` returns `{"status":"UP"}`.
-
-3. **API sanity**
-   - `GET http://localhost:8080/api/products` returns 200.
-   - Register a user `POST /api/auth/register` → 201.
-   - Login `POST /api/auth/login` → 200 (copy JWT if you want to test raw endpoints).
-
-4. **Frontend**
-   - `npm run dev`, open http://localhost:5173.
-   - Login with `vsernamendez@gmail.com / Nina1234!`.
-   - Explore Home (autosuggest + calendar), view product detail, use “Share”.
-
-5. **Reservation flow**
-   - From a product detail, choose a valid range, click “Reserve”, confirm booking.
-   - Check Mailpit inbox → booking confirmation email (HTML template).
-   - Visit “My bookings” to verify the new reservation; cancel it to ensure the status updates.
-
-6. **Admin checks**
-   - Login as `vale@example.com / Test1234!` (ROLE_ADMIN).
-   - Access `/administración` → admin dashboard.
-   - Create a category/product; verify they appear in Home.
-
-7. **Policies & Profile**
-   - Ensure the “Policies” page is reachable from header/footer.
-   - Open “My profile” from the avatar menu and confirm user details are correct.
+Default local configuration (already in the project):
+- **DB URL:** `jdbc:mysql://localhost:3306/reservasdb`
+- **DB user/pass:** `root` / `Tina050898`
+- **JWT:** HS256 secret set in `application.properties`
+- **Mailpit (dev):** http://localhost:8025
 
 ---
 
-## 6. Notas y recomendaciones
+## 3) Demo accounts
 
-- El proyecto evita Lombok; todas las entidades/DTO tienen getters/setters manuales.
-- JWT está configurado con roles (`Role` entity + `@ManyToMany`). Usar `Authorization: Bearer <token>` para endpoints protegidos.
-- El filtro JWT vive en `backend/src/main/java/com/miapp/reservashotel/security/JwtAuthenticationFilter.java`.
-- Para producción, rotar claves, configurar un SMTP real y mover cualquier secreto a variables de entorno seguras.
-- Si se emplea una base en memoria para tests, hacerlo vía perfiles (e.g., `application-test.properties`).
+Use these for quick validation:
+
+- **Admin:** `vale@example.com` / `Test1234!`
+- **User:** `juan@example.com` / `Juan1234!`
+
+> You can also register a new user at any time.
 
 ---
 
-## 7. Comandos útiles
+## 4) 5-minute smoke test
+
+1. Open **Home** -> search box, categories, recommendations render.
+2. **Login** with the Admin account above.
+3. Open a **product detail**, select a valid date range, and **Reserve** -> see success screen.
+4. Go to **My bookings** -> verify the new reservation.
+5. Open **Mailpit** (`http://localhost:8025`) -> booking confirmation email appears.
+6. Click the floating **WhatsApp** button -> deeplink opens.
+7. Visit the **Admin panel** (desktop) -> categories/products/features.
+   - Delete a **category without products** -> HTTP **204**.
+   - Try to delete a **category with products** -> HTTP **409**.
+
+---
+
+## 5) Postman
+
+The collection/environment are in `docs/postman/`. Typical flow:
+
+1. Import **DigitalBooking.postman_environment.json** and **DigitalBooking.postman_collection.json**.
+2. Select the **Digital Booking Local Environment**.
+3. Run **POST Login** with the admin credentials - the script stores the JWT in `{{token}}`.
+4. Call protected endpoints (Products/Categories/Bookings).
+
+> See **[docs/postman/README.md](docs/postman/README.md)** and **[docs/API_QUICKSTART.md](docs/API_QUICKSTART.md)** for details.
+
+---
+
+## 6) Observability (Actuator)
+
+- **Dev:** `/actuator/health` and `/actuator/info` are open.  
+  `curl http://localhost:8080/actuator/info` returns build version & timestamp.
+- **Prod:** only `/actuator/health` is public (unless explicitly configured).
+
+---
+
+## 7) Useful commands
 
 Backend:
 ```bash
@@ -172,10 +112,17 @@ mvn spring-boot:run
 
 Frontend:
 ```bash
-npm run build
 npm run dev
+npm run build
 ```
 
 ---
 
-¡Lista la guía! Levantar MySQL + Mailpit, correr backend y frontend y realizar el smoke test dejará ver todas las historias implementadas (reservas, favoritos, ratings, políticas, botón WhatsApp, etc.).
+## 8) Documentation
+
+- Architecture: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+- API Quickstart: **[docs/API_QUICKSTART.md](docs/API_QUICKSTART.md)**
+- Postman guide: **[docs/postman/README.md](docs/postman/README.md)**
+- QA plan: **[docs/tests/plan.md](docs/tests/plan.md)**
+- QA checklist: **[docs/verification/QA_CHECKLIST.md](docs/verification/QA_CHECKLIST.md)**
+- Evidence index: **[docs/evidence/INDEX.md](docs/evidence/INDEX.md)**

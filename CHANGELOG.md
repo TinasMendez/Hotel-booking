@@ -52,7 +52,5 @@
 - Email confirmation (HTML) on booking via Mailpit.
 ### Changed
 - Login gate before booking; redirect back after auth.
-### Fixed
-- Category delete rules: 409 if in use; 404 if not found; 204 on success.
 ### Docs
 - Evidence pack guidelines and test cases for booking scenarios.

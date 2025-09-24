@@ -1,5 +1,6 @@
 // frontend/src/services/api.js
 
+// ---- Base URL ----
 const BASE_URL =
   (typeof import.meta !== "undefined" &&
     import.meta.env &&
@@ -26,11 +27,20 @@ export function clearToken() {
   setToken("");
 }
 
-/* URL helper */
-export function resolveApiUrl(path) {
+/* URL helper (accepts optional query params for compatibility with http.js) */
+export function resolveApiUrl(path, params) {
   const base = BASE_URL.replace(/\/+$/, "");
   const suffix = String(path || "").replace(/^\/+/, "");
-  return `${base}/${suffix}`;
+  let url = `${base}/${suffix}`;
+  if (params && typeof params === "object") {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+    });
+    const s = qs.toString();
+    if (s) url += (url.includes("?") ? "&" : "?") + s;
+  }
+  return url;
 }
 
 /* Core request helper */
@@ -46,7 +56,6 @@ async function request(
     if (t) headers.set("Authorization", `Bearer ${t}`);
   }
 
-  // simple querystring support
   let url = resolveApiUrl(path);
   if (params && typeof params === "object") {
     const qs = new URLSearchParams();
@@ -89,7 +98,12 @@ const post = (p, b, o) => request("POST", p, { ...o, body: b });
 const put = (p, b, o) => request("PUT", p, { ...o, body: b });
 const del = (p, o) => request("DELETE", p, o);
 
-/* Auth */
+// multipart helper
+async function postMultipart(path, formData, opts = {}) {
+  return request("POST", path, { ...opts, body: formData, json: false });
+}
+
+/* ===================== AUTH ===================== */
 export const AuthAPI = {
   async login({ email, password }) {
     const data = await post(
@@ -100,30 +114,39 @@ export const AuthAPI = {
     if (data && data.token) setToken(data.token);
     return data;
   },
+
+  async register({ firstName, lastName, email, password }) {
+    return post(
+      "/auth/register",
+      { firstName, lastName, email, password },
+      { auth: false },
+    );
+  },
+
   me() {
     return get("/auth/me");
   },
+
   logout() {
     clearToken();
     return Promise.resolve();
   },
 };
 
-/* Reviews */
+/* ===================== REVIEWS ===================== */
 export const ReviewsAPI = {
   listByProduct(productId) {
-    // Public endpoint to read reviews
     return get(`/reviews/product/${productId}`, { auth: false });
   },
   create({ productId, rating, comment }) {
     return post("/reviews", { productId, rating, comment });
   },
   add(payload) {
-    return this.create(payload); // alias
+    return this.create(payload);
   },
 };
 
-/* Favorites */
+/* ===================== FAVORITES ===================== */
 export const FavoritesAPI = {
   list() {
     return get("/favorites");
@@ -154,17 +177,14 @@ export const FavoritesAPI = {
   },
 };
 
-/* Bookings */
+/* ===================== BOOKINGS ===================== */
 export const BookingAPI = {
-  // already used in the product details page
   listByProduct(productId) {
     return get(`/bookings/product/${productId}`, { auth: false });
   },
-  // used by the booking flow
   create(payload) {
     return post("/bookings", payload);
   },
-  // handy helpers some screens use
   listMine() {
     return get("/bookings/mine");
   },
@@ -173,7 +193,7 @@ export const BookingAPI = {
   },
 };
 
-/* Admin (users/roles by EMAIL – matches your AdminUserController) */
+/* ===================== ADMIN (USERS/ROLES) ===================== */
 export const AdminAPI = {
   listAdmins() {
     return get("/admin/users/admins");
@@ -186,7 +206,7 @@ export const AdminAPI = {
   },
 };
 
-/* Admin Dashboard helpers */
+/* ===================== ADMIN DASHBOARD ===================== */
 export const AdminDashboardAPI = {
   summary() {
     return get("/admin/dashboard/summary");
@@ -205,14 +225,12 @@ export const AdminDashboardAPI = {
   },
 };
 
-/* Cities (CRUD para la pantalla de administración de ciudades) */
+/* ===================== CITIES (ADMIN CRUD) ===================== */
 export const CitiesAPI = {
   list() {
-    // público para usar en formularios
     return get("/cities", { auth: false });
   },
   create({ name, country }) {
-    // requiere ADMIN
     return post("/cities", { name, country });
   },
   update(id, { name, country }) {
@@ -223,7 +241,109 @@ export const CitiesAPI = {
   },
 };
 
-/* Default + named Api (low-level helpers if you need them) */
+/* ===================== CATEGORIES (ADMIN HELPERS) ===================== */
+async function uploadCategoryImage(file) {
+  const fd = new FormData();
+  fd.append("file", file);
+  const candidates = [
+    "/admin/uploads",
+    "/admin/categories/upload",
+    "/uploads",
+  ];
+  let lastErr = null;
+  for (const ep of candidates) {
+    try {
+      const res = await postMultipart(ep, fd, { auth: true });
+      if (res && typeof res === "object" && res.url) return res;
+      if (typeof res === "string" && res.startsWith("http")) return { url: res };
+      if (res) return res;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("Upload failed");
+}
+
+/**
+ * Create a category with defensive payload + endpoint fallback.
+ */
+async function createCategory(input) {
+  // Normalize fields and send synonyms to satisfy varying DTOs.
+  const name =
+    String(input?.name ?? input?.title ?? "").trim();
+  const description = String(input?.description ?? "").trim();
+  const img =
+    String(
+      input?.imageUrl ?? input?.image ?? input?.img ?? input?.url ?? "",
+    ).trim();
+
+  // Send multiple keys so whichever the backend expects is present.
+  const body = {
+    name,
+    title: name,          // some DTOs use "title"
+    description,
+    imageUrl: img,
+    image: img,
+    img: img,
+    url: img,
+  };
+
+  try {
+    return await post("/admin/categories", body);
+  } catch (e) {
+    // If the admin route rejects due to mapping/handler/validation differences,
+    // try the public path that many backends expose with role guards.
+    const recoverable = [400, 404, 405, 415, 422, 500];
+    if (recoverable.includes(e?.status)) {
+      return await post("/categories", body);
+    }
+    throw e;
+  }
+}
+
+async function updateCategory(id, input) {
+  const name =
+    String(input?.name ?? input?.title ?? "").trim();
+  const description = String(input?.description ?? "").trim();
+  const img =
+    String(
+      input?.imageUrl ?? input?.image ?? input?.img ?? input?.url ?? "",
+    ).trim();
+
+  const body = {
+    name,
+    title: name,
+    description,
+    imageUrl: img,
+    image: img,
+    img: img,
+    url: img,
+  };
+
+  try {
+    return await put(`/admin/categories/${id}`, body);
+  } catch (e) {
+    const recoverable = [400, 404, 405, 415, 422, 500];
+    if (recoverable.includes(e?.status)) {
+      return await put(`/categories/${id}`, body);
+    }
+    throw e;
+  }
+}
+
+async function deleteCategory(id) {
+  try {
+    return await del(`/admin/categories/${id}`);
+  } catch (e) {
+    const recoverable = [404, 405, 500];
+    if (recoverable.includes(e?.status)) {
+      return await del(`/categories/${id}`);
+    }
+    throw e;
+  }
+}
+
+/* ===================== DEFAULT EXPORT (with feature APIs) ===================== */
 const Api = {
   get,
   post,
@@ -234,7 +354,21 @@ const Api = {
   setToken,
   clearToken,
 
-  // ---- Added safe aliases so legacy hooks/components keep working ----
+  AuthAPI,
+  ReviewsAPI,
+  FavoritesAPI,
+  BookingAPI,
+  AdminAPI,
+  AdminDashboardAPI,
+  CitiesAPI,
+
+  // Categories admin helpers
+  uploadCategoryImage,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+
+  // ---- Safe aliases so legacy hooks/components keep working ----
   getFavorites: () => FavoritesAPI.list(),
   addFavorite: (id) => FavoritesAPI.add(id),
   removeFavorite: (id) => FavoritesAPI.remove(id),

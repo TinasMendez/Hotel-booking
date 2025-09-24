@@ -1,5 +1,6 @@
 # API Quickstart
 
+
 This short guide shows how to authenticate and hit the most common endpoints.  
 Use the Postman environment variables provided in `docs/postman/*`.
 

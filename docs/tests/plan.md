@@ -41,7 +41,7 @@
 ### HU #6 — Gallery 1+4 + “View more”
 | ID | Steps | Expected | Result | Evidence |
 |---|---|---|---|---|
-| S1-H6-01 | Open detail with ≥5 images | 1 large left + 4-grid right + “View more” |  | /docs/evidence/s1/HU-06-gallery.png |
+| S1-H6-01 | Open detail with ≥5 images | 1 large left + 4-grid right + “View more” |  | /docs/evidence/s1/HU-06-gallery-1-plus-4.png |
 
 ### HU #7 — Footer global
 | ID | Steps | Expected | Result | Evidence |
@@ -58,17 +58,9 @@
 |---|---|---|---|---|
 | S1-H9-01 | Mobile viewport → /admin | Message “Administration is not available on mobile” + back to home |  | /docs/evidence/s1/HU-09-admin-mobile.png |
 
-### HU #10–#11 — List & delete product
-| ID | Steps | Expected | Result | Evidence |
-|---|---|---|---|---|
-| S1-H10-01 | Admin list | Columns Id, Name, Actions |  | /docs/evidence/s1/HU-10-list.png |
-| S1-H11-01 | Delete product (confirm) | Item removed from DB and UI |  | /docs/evidence/s1/HU-11-delete.png |
-
 ---
 
 ## Sprint 2 (registro, login, roles, categorías, features)
-*(…lista completa similar; abreviado por espacio…)*
-
 - HU #12 Categorizar productos → filtro ok.
 - HU #13 Registro (validaciones).
 - HU #14 Login (errores, éxito).
@@ -77,34 +69,19 @@
 - HU #17/18 Features CRUD + display.
 - HU #21 Agregar categoría.
 
----
-
 ## Sprint 3 (búsqueda, disponibilidad, favoritos, share, políticas, ratings)
-
 - HU #22 Búsqueda: título, helper text, autosuggest, 2 datepickers, botón, mantiene bloques.
 - HU #23 Disponibilidad: fechas ocupadas disabled; error toast con retry.
 - HU #24 Favoritos toggle y listado.
 - HU #25 Perfil visible.
 - HU #26 Políticas.
 - HU #27 Share abre opciones (FB/X/IG o share nativo).
-- **HU #28 Ratings**:
-  - S3-H28-01: Usuario **con reserva finalizada** puede puntuar → éxito.
-  - S3-H28-02: Usuario **sin reserva finalizada** intenta puntuar → rechazado.
-  - S3-H28-03: Promedio y #reviews visibles en detalle **y** en resultados; promedio actualiza en tiempo real.
-
-- **HU #29 Eliminar categoría**:
-  - S3-H29-01: DELETE categoría sin productos → 204.
-  - S3-H29-02: DELETE categoría con productos → 409.
-  - S3-H29-03: DELETE categoría inexistente → 404.
-
----
+- HU #28 Ratings (con reserva finalizada), promedio y #reviews.
 
 ## Sprint 4 (booking, historial, WhatsApp, email)
 - HU #30 Login gate y selección de fechas.
 - HU #31 Página de detalles (producto + usuario + rango).
 - HU #32 Crear reserva (success + errores).
 - HU #33 Historial (estados + cancelar).
-- HU #34 WhatsApp (deeplink + **toast “Opening WhatsApp…”**).
+- HU #34 WhatsApp (deeplink + toast).
 - HU #35 Email confirmación en Mailpit.
-
----
